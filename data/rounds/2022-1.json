@@ -1,0 +1,649 @@
+{
+  "round": "2022-1",
+  "title": "2022년 1회",
+  "sourceUrl": "https://chobopark.tistory.com/271",
+  "questions": [
+    {
+      "id": "2022-1#1",
+      "num": 1,
+      "prompt": "아래 설명에 맞는 RAID 단계를 숫자로 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">Striping(스트라이핑) 구현 방식</div>\n<div class=\"desc-box\">I/O 로드의 분산으로 매우 빠른 속도</div>\n<div class=\"desc-box\">데이터를 블럭으로 분할 저장하며, 각 블럭은 다른 디스크로 나뉘어 저장</div>",
+      "bodyText": "아래 설명에 맞는 RAID 단계를 숫자로 작성하시오.\n\n- Striping(스트라이핑) 구현 방식\n- I/O 로드의 분산으로 매우 빠른 속도\n- 데이터를 블럭으로 분할 저장하며, 각 블럭은 다른 디스크로 나뉘어 저장",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "0",
+            "RAID 0",
+            "raid0",
+            "RAID0"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "0"
+        }
+      ],
+      "display": "0 (RAID 0)"
+    },
+    {
+      "id": "2022-1#2",
+      "num": 2,
+      "prompt": "다음 설명을 확인하여 해당하는 항목을 보기에서 찾아 적으시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. 오류가 발생하기 전까지의 사항을 로그(log)로 기록해 놓고, 이전 상태로 되돌아간 후, 실패가 발생하기 전까지의 과정을 그대로 따라가는 현상</div>\n<div class=\"desc-box\">2. 작업을 취소하여 트랜잭션을 이전 상태로 되돌리는 것</div>\n<div class=\"hint\">※ 실제 기출문제에서는 답의 보기가 주어집니다. (오답 중, rollback 등..)</div>",
+      "bodyText": "다음 설명을 확인하여 해당하는 항목을 보기에서 찾아 적으시오.\n\n1. 오류가 발생하기 전까지의 사항을 로그(log)로 기록해 놓고, 이전 상태로 되돌아간 후, 실패가 발생하기 전까지의 과정을 그대로 따라가는 현상\n2. 작업을 취소하여 트랜잭션을 이전 상태로 되돌리는 것\n\n※ 실제 기출문제에서는 답의 보기가 주어집니다. (오답 중, rollback 등..)",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "redo",
+            "REDO",
+            "재실행"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "redo"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "undo",
+            "UNDO",
+            "취소"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "undo"
+        }
+      ],
+      "display": "1. redo / 2. undo"
+    },
+    {
+      "id": "2022-1#3",
+      "num": 3,
+      "prompt": "다음 자바 문법에 알맞는 출력 결과를 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class A {\n  int a;\n  int b;\n}\n\n  public class Main {\n\n  static void func1(A m){\n   m.a *= 10;\n  }\n\n  static void func2(A m){\n    m.a += m.b;\n  }\n\n  public static void main(String args[]){\n\n  A m = new A();\n\n  m.a = 100;\n  func1(m);\n  m.b = m.a;\n  func2(m);\n\n  System.out.printf(\"%d\", m.a);\n\n  }\n}</pre>",
+      "bodyText": "다음 자바 문법에 알맞는 출력 결과를 작성하시오.\n\n```java\nclass A {\n  int a;\n  int b;\n}\n\n  public class Main {\n\n  static void func1(A m){\n   m.a *= 10;\n  }\n\n  static void func2(A m){\n    m.a += m.b;\n  }\n\n  public static void main(String args[]){\n\n  A m = new A();\n\n  m.a = 100;\n  func1(m);\n  m.b = m.a;\n  func2(m);\n\n  System.out.printf(\"%d\", m.a);\n\n  }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "2000"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "2000"
+        }
+      ],
+      "display": "2000"
+    },
+    {
+      "id": "2022-1#4",
+      "num": 4,
+      "prompt": "다음 SQL 결과에 알맞는 쿼리를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">&lt;성적 테이블&gt;</div>\n<table class=\"tbl\">\n<tr><th>Index</th><th>name</th><th>score</th></tr>\n<tr><td>1</td><td>Kim</td><td>95</td></tr>\n<tr><td>2</td><td>Gun</td><td>90</td></tr>\n<tr><td>3</td><td>Son</td><td>80</td></tr>\n<tr><td>4</td><td>Jung</td><td>60</td></tr>\n</table>\n<pre class=\"code\">SELECT name, score FROM 성적 ( 1 ) BY ( 2 ) ( 3 )</pre>",
+      "bodyText": "다음 SQL 결과에 알맞는 쿼리를 작성하시오.\n\n<성적 테이블>\n| Index | name | score |\n| --- | --- | --- |\n| 1 | Kim | 95 |\n| 2 | Gun | 90 |\n| 3 | Son | 80 |\n| 4 | Jung | 60 |\n\n```sql\nSELECT name, score FROM 성적 ( 1 ) BY ( 2 ) ( 3 )\n```",
+      "sourceImages": [
+        "raw/2022-1/img00.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "ORDER",
+            "order"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ORDER"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "score",
+            "SCORE"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "score"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "DESC",
+            "desc",
+            "descending"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "DESC"
+        }
+      ],
+      "display": "(1) ORDER / (2) score / (3) DESC"
+    },
+    {
+      "id": "2022-1#5",
+      "num": 5,
+      "prompt": "데이터베이스의 이상현상 중, 삭제 이상에 대해 서술하시오.",
+      "bodyHtml": "<div class=\"desc-box\">릴레이션에서 한 튜플을 삭제할 때 발생하는 이상(anomaly)이 무엇인지 한두 문장으로 설명한다.</div>",
+      "bodyText": "데이터베이스의 이상현상 중, 삭제 이상에 대해 서술하시오.\n\n릴레이션에서 한 튜플을 삭제할 때 발생하는 이상(anomaly)이 무엇인지 한두 문장으로 설명한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [],
+          "normalize": "default",
+          "validator": {
+            "type": "keywords",
+            "all": [
+              "삭제"
+            ],
+            "any": [
+              "원하지",
+              "의도하지",
+              "다른",
+              "필요한",
+              "함께",
+              "같이",
+              "연쇄",
+              "손실"
+            ],
+            "minAny": 1
+          },
+          "sampleAnswer": "데이터를 삭제할 경우 원하지 않는 다른 데이터도 함께 삭제되어버리는 이상"
+        }
+      ],
+      "display": "데이터를 삭제할 경우 원하지 않는 다른 데이터도 삭제되어버리는 이상"
+    },
+    {
+      "id": "2022-1#6",
+      "num": 6,
+      "prompt": "다음은 파이썬 코드이다. 출력되는 a와 b의 값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">def exam(num1, num2=2):\n  print('a=', num1, 'b=', num2)\nexam(20)</pre>",
+      "bodyText": "다음은 파이썬 코드이다. 출력되는 a와 b의 값을 작성하시오.\n\n```python\ndef exam(num1, num2=2):\n  print('a=', num1, 'b=', num2)\nexam(20)\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "a= 20 b= 2",
+            "A= 20 B= 2"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "a= 20 b= 2"
+        }
+      ],
+      "display": "a= 20 b= 2"
+    },
+    {
+      "id": "2022-1#7",
+      "num": 7,
+      "prompt": "다음 설명과 관련된 답을 보기에서 골라 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. 요소를 확장해준다는 의미를 가지고 있으며, 모든 항목을 하나의 요소로 추가</div>\n<div class=\"desc-box\">2. 리스트 내부 요소를 꺼내주는 함수로써, 그 요소는 리스트 안에서 삭제하고 그 값을 반환</div>\n<div class=\"desc-box\">3. 리스트 내부의 요소의 순서는 뒤집는 역할</div>\n<div class=\"hint\">※ 실제 기출문제에서는 답의 보기가 주어집니다. (오답 중, remove, sort 등..)</div>",
+      "bodyText": "다음 설명과 관련된 답을 보기에서 골라 작성하시오.\n\n1. 요소를 확장해준다는 의미를 가지고 있으며, 모든 항목을 하나의 요소로 추가\n2. 리스트 내부 요소를 꺼내주는 함수로써, 그 요소는 리스트 안에서 삭제하고 그 값을 반환\n3. 리스트 내부의 요소의 순서는 뒤집는 역할\n\n※ 실제 기출문제에서는 답의 보기가 주어집니다. (오답 중, remove, sort 등..)",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "extend",
+            "EXTEND",
+            "extend()"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "extend"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "pop",
+            "POP",
+            "pop()"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "pop"
+        },
+        {
+          "label": "3번",
+          "accept": [
+            "reverse",
+            "REVERSE",
+            "reverse()"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "reverse"
+        }
+      ],
+      "display": "1. extend / 2. pop / 3. reverse"
+    },
+    {
+      "id": "2022-1#8",
+      "num": 8,
+      "prompt": "다음 아래 단어를 영어 약자로 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">임시 키 무결성 프로토콜</div>",
+      "bodyText": "다음 아래 단어를 영어 약자로 작성하시오.\n\n임시 키 무결성 프로토콜",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "TKIP",
+            "tkip",
+            "Temporal Key Integrity Protocol",
+            "TKIP(Temporal Key Integrity Protocol)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "TKIP"
+        }
+      ],
+      "display": "TKIP (Temporal Key Integrity Protocol)"
+    },
+    {
+      "id": "2022-1#9",
+      "num": 9,
+      "prompt": "다음 중, 설명에 대한 답을 영어 약자로 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">키보드나 마우스와 같은 장치 없이 말이나 행동 그리고 감정과 같은 인간의 자연스러운 표현으로 컴퓨터나 장치를 제어할 수 있는 환경</div>",
+      "bodyText": "다음 중, 설명에 대한 답을 영어 약자로 작성하시오.\n\n키보드나 마우스와 같은 장치 없이 말이나 행동 그리고 감정과 같은 인간의 자연스러운 표현으로 컴퓨터나 장치를 제어할 수 있는 환경",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "NUI",
+            "nui",
+            "Natural User Interface",
+            "NUI(Natural User Interface)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "NUI"
+        }
+      ],
+      "display": "NUI (Natural User Interface)"
+    },
+    {
+      "id": "2022-1#10",
+      "num": 10,
+      "prompt": "다음은 분석도구에 대한 설명으로 보기에 알맞는 답을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. 소스 코드의 실행 없이, 코드의 의미를 분석해 결함을 찾아내는 원시적 코드 분석 기법</div>\n<div class=\"desc-box\">2. 소스 코드를 실행하여 프로그램 동작이나 반응을 추적하고 코드에 존재하는 메모리 누수, 스레드 결함 등을 분석</div>\n<div class=\"hint\">※ 실제 기출문제에서는 답의 보기가 주어집니다. (오답 중, running analysis 등..)</div>",
+      "bodyText": "다음은 분석도구에 대한 설명으로 보기에 알맞는 답을 작성하시오.\n\n1. 소스 코드의 실행 없이, 코드의 의미를 분석해 결함을 찾아내는 원시적 코드 분석 기법\n2. 소스 코드를 실행하여 프로그램 동작이나 반응을 추적하고 코드에 존재하는 메모리 누수, 스레드 결함 등을 분석\n\n※ 실제 기출문제에서는 답의 보기가 주어집니다. (오답 중, running analysis 등..)",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "static",
+            "STATIC",
+            "static analysis",
+            "정적 분석",
+            "정적"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "static"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "dynamic",
+            "DYNAMIC",
+            "dynamic analysis",
+            "동적 분석",
+            "동적"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "dynamic"
+        }
+      ],
+      "display": "1. static / 2. dynamic"
+    },
+    {
+      "id": "2022-1#11",
+      "num": 11,
+      "prompt": "다음 Java 코드 중에서 밑줄에 들어갈 알맞는 코드를 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class Car implements Runnable{\n  int a;\n\n  public void run(){\n     system.out.println(\"message\")\n  }\n}\n\npublic class Main{\n  public static void main(String args[]){\n    Thread t1 = new Thread(new ___());\n    t1.start();\n  }\n}</pre>",
+      "bodyText": "다음 Java 코드 중에서 밑줄에 들어갈 알맞는 코드를 작성하시오.\n\n```java\nclass Car implements Runnable{\n  int a;\n\n  public void run(){\n     system.out.println(\"message\")\n  }\n}\n\npublic class Main{\n  public static void main(String args[]){\n    Thread t1 = new Thread(new ___());\n    t1.start();\n  }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "Car",
+            "car",
+            "Car()"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Car"
+        }
+      ],
+      "display": "Car"
+    },
+    {
+      "id": "2022-1#12",
+      "num": 12,
+      "prompt": "다음 설명에 대한 알맞는 단어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">자바 프로그래밍 언어를 이용한 xUnit의 테스트 기법으로써 숨겨진 단위 테스트를 끌어내어 정형화시켜 단위 테스트를 쉽게 해주는 테스트용 Framework이다.</div>",
+      "bodyText": "다음 설명에 대한 알맞는 단어를 작성하시오.\n\n자바 프로그래밍 언어를 이용한 xUnit의 테스트 기법으로써 숨겨진 단위 테스트를 끌어내어 정형화시켜 단위 테스트를 쉽게 해주는 테스트용 Framework이다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "JUnit",
+            "junit",
+            "JUNIT",
+            "J Unit"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "JUnit"
+        }
+      ],
+      "display": "JUnit"
+    },
+    {
+      "id": "2022-1#13",
+      "num": 13,
+      "prompt": "다음 보기 중에서 블랙박스 테스트 기법을 3가지 골라 작성하시오.",
+      "bodyHtml": "<div class=\"boki\"><b>[보기]</b>\nㄱ. Cause-Decision Graph&emsp;ㄴ. Decision Coverage&emsp;ㄷ. Boundary Value Analysis<br>ㄹ. Equivalence Partitioning&emsp;ㅁ. Statement Coverage&emsp;ㅂ. Cause-Effect Graph<br>ㅅ. Base Path Testing&emsp;ㅇ. Base Path Coverage&emsp;ㅈ. Boundary Division Analysis</div>",
+      "bodyText": "다음 보기 중에서 블랙박스 테스트 기법을 3가지 골라 작성하시오.\n\n[보기]\nㄱ. Cause-Decision Graph\nㄴ. Decision Coverage\nㄷ. Boundary Value Analysis\nㄹ. Equivalence Partitioning\nㅁ. Statement Coverage\nㅂ. Cause-Effect Graph\nㅅ. Base Path Testing\nㅇ. Base Path Coverage\nㅈ. Boundary Division Analysis",
+      "sourceImages": [
+        "raw/2022-1/img01.png"
+      ],
+      "answerMode": "unordered",
+      "fields": [
+        {
+          "label": "답 1",
+          "accept": [
+            "ㄷ",
+            "Boundary Value Analysis",
+            "boundary value analysis",
+            "경계값 분석",
+            "경곗값 분석",
+            "경계값분석"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄷ"
+        },
+        {
+          "label": "답 2",
+          "accept": [
+            "ㄹ",
+            "Equivalence Partitioning",
+            "equivalence partitioning",
+            "동등분할",
+            "동치분할",
+            "동치 분할"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄹ"
+        },
+        {
+          "label": "답 3",
+          "accept": [
+            "ㅂ",
+            "Cause-Effect Graph",
+            "cause-effect graph",
+            "cause effect graph",
+            "원인-결과 그래프",
+            "원인효과그래프"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㅂ"
+        }
+      ],
+      "display": "ㄷ. Boundary Value Analysis / ㄹ. Equivalence Partitioning / ㅂ. Cause-Effect Graph"
+    },
+    {
+      "id": "2022-1#14",
+      "num": 14,
+      "prompt": "다음 소스코드에서 입력값이 5가 들어왔을때 출력되는 값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\nint func(int a) {\n  if (a &lt;= 1) return 1;\n  return a * func(a - 1);\n}\n\nint main() {\n  int a;\n  scanf(\"%d\", &amp;a);\n  printf(\"%d\", func(a));\n\n}</pre>",
+      "bodyText": "다음 소스코드에서 입력값이 5가 들어왔을때 출력되는 값을 작성하시오.\n\n```c\n#include <stdio.h>\nint func(int a) {\n  if (a <= 1) return 1;\n  return a * func(a - 1);\n}\n\nint main() {\n  int a;\n  scanf(\"%d\", &a);\n  printf(\"%d\", func(a));\n\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "120"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "120"
+        }
+      ],
+      "display": "120"
+    },
+    {
+      "id": "2022-1#15",
+      "num": 15,
+      "prompt": "다음 중, 괄호 (&nbsp;) 안에 들어갈 연산자를 써서 정수를 역순으로 출력하는 알맞는 답을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\nint main() {\n\n  int number = 1234;\n  int div = 10;\n  int result = 0;\n\n  while (number ( 1 ) 0) {\n\n    result = result * div;\n    result = result + number ( 2 ) div;\n    number = number ( 3 ) div;\n\n  }\n\n  printf(\"%d\", result);return 0;\n\n}</pre>\n<div class=\"desc-box\">결과 : 4321</div>",
+      "bodyText": "다음 중, 괄호 (  ) 안에 들어갈 연산자를 써서 정수를 역순으로 출력하는 알맞는 답을 작성하시오.\n\n```c\n#include <stdio.h>\nint main() {\n\n  int number = 1234;\n  int div = 10;\n  int result = 0;\n\n  while (number ( 1 ) 0) {\n\n    result = result * div;\n    result = result + number ( 2 ) div;\n    number = number ( 3 ) div;\n\n  }\n\n  printf(\"%d\", result);return 0;\n\n}\n```\n\n결과 : 4321",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            ">"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": ">"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "%"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "%"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "/"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "/"
+        }
+      ],
+      "display": "(1) > / (2) % / (3) /"
+    },
+    {
+      "id": "2022-1#16",
+      "num": 16,
+      "prompt": "다음 설명에 대한 답을 영어 약자로 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">정보보호 관리체계의 영문 약자</div>",
+      "bodyText": "다음 설명에 대한 답을 영어 약자로 작성하시오.\n\n정보보호 관리체계의 영문 약자",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ISMS",
+            "isms",
+            "Information Security Management System",
+            "ISMS(Information Security Management System)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ISMS"
+        }
+      ],
+      "display": "ISMS (Information Security Management System)"
+    },
+    {
+      "id": "2022-1#17",
+      "num": 17,
+      "prompt": "다음 설명 중, 괄호 (&nbsp;) 안에 들어가는 알맞는 답을 보기에서 선택하여 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. 슈퍼키는 (&nbsp;&nbsp;1&nbsp;&nbsp;)의 속성을 갖는다.</div>\n<div class=\"desc-box\">2. 후보키는 (&nbsp;&nbsp;1&nbsp;&nbsp;)와/과 (&nbsp;&nbsp;2&nbsp;&nbsp;)의 속성을 갖는다.</div>\n<div class=\"hint\">※ 실제 기출문제에서는 답의 보기가 주어집니다. (오답 중, 참조성, 무결성 등..)</div>",
+      "bodyText": "다음 설명 중, 괄호 (  ) 안에 들어가는 알맞는 답을 보기에서 선택하여 작성하시오.\n\n1. 슈퍼키는 (  1  )의 속성을 갖는다.\n2. 후보키는 (  1  )와/과 (  2  )의 속성을 갖는다.\n\n※ 실제 기출문제에서는 답의 보기가 주어집니다. (오답 중, 참조성, 무결성 등..)",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "유일성",
+            "uniqueness",
+            "unique"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "유일성"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "최소성",
+            "minimality",
+            "minimum"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "최소성"
+        }
+      ],
+      "display": "(1) 유일성 / (2) 최소성"
+    },
+    {
+      "id": "2022-1#18",
+      "num": 18,
+      "prompt": "다음 설명과 관련된 답을 보기에서 찾아서 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">이 공격은 APT 공격에서 주로 쓰이는 공격으로, 공격 대상이 방문할 가능성이 있는 합법적인 웹 사이트를 미리 감염시킨 뒤, 잠복하고 있다가 공격 대상이 방문하면 대상의 컴퓨터에 악성코드를 설치하는 방식</div>\n<div class=\"hint\">※ 실제 기출문제에서는 답의 보기가 주어집니다. (오답 중, Pharming, Ransomware 등..)</div>",
+      "bodyText": "다음 설명과 관련된 답을 보기에서 찾아서 작성하시오.\n\n이 공격은 APT 공격에서 주로 쓰이는 공격으로, 공격 대상이 방문할 가능성이 있는 합법적인 웹 사이트를 미리 감염시킨 뒤, 잠복하고 있다가 공격 대상이 방문하면 대상의 컴퓨터에 악성코드를 설치하는 방식\n\n※ 실제 기출문제에서는 답의 보기가 주어집니다. (오답 중, Pharming, Ransomware 등..)",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "watering hole",
+            "Watering Hole",
+            "watering hole attack",
+            "워터링 홀",
+            "워터링홀"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "watering hole"
+        }
+      ],
+      "display": "watering hole (워터링 홀)"
+    },
+    {
+      "id": "2022-1#19",
+      "num": 19,
+      "prompt": "다음 소스코드가 실행할 때의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\nint isPrime(int number) {\n  int i;\n  for (i=2; i&lt;number; i++) {\n    if (number % i == 0) return 0;\n  }\n  return 1;\n}\n\nint main(void) {\n  int number = 13195, max_div=0, i;\n  for (i=2; i&lt;number; i++)\n  if (isPrime(i) == 1 &amp;&amp; number % i == 0) max_div = i;\n  printf(\"%d\", max_div);\n  return 0;\n}</pre>",
+      "bodyText": "다음 소스코드가 실행할 때의 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\nint isPrime(int number) {\n  int i;\n  for (i=2; i<number; i++) {\n    if (number % i == 0) return 0;\n  }\n  return 1;\n}\n\nint main(void) {\n  int number = 13195, max_div=0, i;\n  for (i=2; i<number; i++)\n  if (isPrime(i) == 1 && number % i == 0) max_div = i;\n  printf(\"%d\", max_div);\n  return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "29"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "29"
+        }
+      ],
+      "display": "29"
+    },
+    {
+      "id": "2022-1#20",
+      "num": 20,
+      "prompt": "다음은 V모델에서의 테스트 단계에 대한 설명으로 괄호안에 들어갈 답을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">왼쪽(개발 단계): 요구분석 → 아키텍처 설계 → 모듈 설계 → 구현</div>\n<div class=\"desc-box\">오른쪽(테스트 단계, 아래에서 위로): 구현 → (&nbsp;&nbsp;1&nbsp;&nbsp;) → (&nbsp;&nbsp;2&nbsp;&nbsp;) → (&nbsp;&nbsp;3&nbsp;&nbsp;) → (&nbsp;&nbsp;4&nbsp;&nbsp;)</div>\n<table class=\"tbl\">\n<tr><th>개발 단계</th><th>검증</th><th>테스트 단계</th></tr>\n<tr><td>요구분석</td><td>요구 분석 검증</td><td>(&nbsp;&nbsp;3&nbsp;&nbsp;)</td></tr>\n<tr><td>아키텍처 설계</td><td>인터페이스 검증</td><td>(&nbsp;&nbsp;2&nbsp;&nbsp;)</td></tr>\n<tr><td>모듈 설계</td><td>모듈 검증</td><td>(&nbsp;&nbsp;1&nbsp;&nbsp;)</td></tr>\n<tr><td>구현</td><td>-</td><td>-</td></tr>\n</table>\n<div class=\"hint\">※ (&nbsp;4&nbsp;)는 (&nbsp;3&nbsp;) 위 단계입니다.</div>",
+      "bodyText": "다음은 V모델에서의 테스트 단계에 대한 설명으로 괄호안에 들어갈 답을 작성하시오.\n\n왼쪽(개발 단계): 요구분석 → 아키텍처 설계 → 모듈 설계 → 구현\n오른쪽(테스트 단계, 아래에서 위로): 구현 → (  1  ) → (  2  ) → (  3  ) → (  4  )\n\n| 개발 단계 | 검증 | 테스트 단계 |\n| --- | --- | --- |\n| 요구분석 | 요구 분석 검증 | (  3  ) |\n| 아키텍처 설계 | 인터페이스 검증 | (  2  ) |\n| 모듈 설계 | 모듈 검증 | (  1  ) |\n| 구현 | - | - |\n\n※ (  4  )는 (  3  ) 위 단계입니다.",
+      "sourceImages": [
+        "raw/2022-1/img02.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "단위 테스트",
+            "단위테스트",
+            "unit test",
+            "unit testing"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "단위 테스트"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "통합 테스트",
+            "통합테스트",
+            "integration test",
+            "integration testing"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "통합 테스트"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "시스템 테스트",
+            "시스템테스트",
+            "system test",
+            "system testing"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "시스템 테스트"
+        },
+        {
+          "label": "(4)",
+          "accept": [
+            "인수 테스트",
+            "인수테스트",
+            "acceptance test",
+            "acceptance testing",
+            "인수 검사"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "인수 테스트"
+        }
+      ],
+      "display": "(1) 단위 테스트 / (2) 통합 테스트 / (3) 시스템 테스트 / (4) 인수 테스트"
+    }
+  ]
+}

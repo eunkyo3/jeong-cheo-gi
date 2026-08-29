@@ -1,0 +1,545 @@
+{
+  "round": "2025-2",
+  "title": "2025년 2회",
+  "sourceUrl": "https://chobopark.tistory.com/554",
+  "questions": [
+    {
+      "id": "2025-2#1",
+      "num": 1,
+      "prompt": "다음은 파일 구조와 관련된 설명이다. 설명을 읽고 괄호 안에 들어갈 가장 알맞은 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">데이터베이스의 물리 설계 시, 레코드에 접근하는 방법은 순차 접근 방법, [&nbsp;&nbsp;&nbsp;] 방법, 해싱 방법 등이 있다.</div>\n<div class=\"desc-box\">이 중 [&nbsp;&nbsp;&nbsp;] 방법은 레코드의 키 값과 포인터를 쌍으로 묶어 저장하며 검색 시 키 값을 기준으로 빠르게 탐색할 수 있도록 설계되어 있다.</div>\n<div class=\"desc-box\">이 방식은 검색 속도가 빠르며 &lt;키 값, 포인터&gt; 쌍으로 구성된 자료 구조를 사용하여 해당 키가 가리키는 주소를 통해 원하는 레코드를 직접 찾을 수 있다.</div>\n<table class=\"tbl\">\n<tr><th>접근 방법</th><th>설명</th></tr>\n<tr><td>순차 접근</td><td>레코드를 처음부터 하나씩 검사</td></tr>\n<tr><td>[&nbsp;&nbsp;&nbsp;&nbsp;] 접근</td><td>키-값 쌍으로 구성되어 빠르게 검색</td></tr>\n<tr><td>해싱 접근</td><td>해시 함수를 이용해 직접 주소 계산 후 접근</td></tr>\n</table>",
+      "bodyText": "다음은 파일 구조와 관련된 설명이다. 설명을 읽고 괄호 안에 들어갈 가장 알맞은 용어를 작성하시오.\n\n데이터베이스의 물리 설계 시, 레코드에 접근하는 방법은 순차 접근 방법, [   ] 방법, 해싱 방법 등이 있다.\n\n이 중 [   ] 방법은 레코드의 키 값과 포인터를 쌍으로 묶어 저장하며 검색 시 키 값을 기준으로 빠르게 탐색할 수 있도록 설계되어 있다.\n\n이 방식은 검색 속도가 빠르며 <키 값, 포인터> 쌍으로 구성된 자료 구조를 사용하여 해당 키가 가리키는 주소를 통해 원하는 레코드를 직접 찾을 수 있다.\n\n| 접근 방법 | 설명 |\n| --- | --- |\n| 순차 접근 | 레코드를 처음부터 하나씩 검사 |\n| [    ] 접근 | 키-값 쌍으로 구성되어 빠르게 검색 |\n| 해싱 접근 | 해시 함수를 이용해 직접 주소 계산 후 접근 |",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "인덱스",
+            "색인",
+            "index",
+            "인덱스(index)",
+            "색인(index)",
+            "인덱스 방법",
+            "색인 방법",
+            "인덱스 접근"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "인덱스"
+        }
+      ],
+      "display": "인덱스(Index) 또는 색인"
+    },
+    {
+      "id": "2025-2#2",
+      "num": 2,
+      "prompt": "다음은 데이터베이스 릴레이션의 구성 요소 중 하나에 대한 설명이다. 설명을 읽고 보기에서 알맞은 기호를 골라 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">릴레이션(Relation)에서 열(Column)을 의미하며 데이터 항목의 속성(Attribute) 또는 특성을 나타낸다.<br>각 열은 고유한 이름을 가지며 특정 도메인(Domain)에서 정의된 값을 갖는다.<br>예를 들어 \"학생\" 릴레이션에서 학번, 이름, 전공 등은 각각 하나의 열이며 이 열들은 학생의 고유한 속성을 나타낸다.<br>이 개념은 파일 구조에서의 필드(Field)에 해당하며 릴레이션에서 행(Row, Tuple)의 구성 요소가 된다.</div>\n<div class=\"boki\"><b>[보기]</b>\nㄱ. Cardinality&emsp;ㄴ. Domain&emsp;ㄷ. Attribute<br>ㅁ. Degree&emsp;ㅂ. Schema&emsp;ㅅ. Tuple</div>",
+      "bodyText": "다음은 데이터베이스 릴레이션의 구성 요소 중 하나에 대한 설명이다. 설명을 읽고 보기에서 알맞은 기호를 골라 작성하시오.\n\n릴레이션(Relation)에서 열(Column)을 의미하며 데이터 항목의 속성(Attribute) 또는 특성을 나타낸다.\n각 열은 고유한 이름을 가지며 특정 도메인(Domain)에서 정의된 값을 갖는다.\n예를 들어 \"학생\" 릴레이션에서 학번, 이름, 전공 등은 각각 하나의 열이며 이 열들은 학생의 고유한 속성을 나타낸다.\n이 개념은 파일 구조에서의 필드(Field)에 해당하며 릴레이션에서 행(Row, Tuple)의 구성 요소가 된다.\n\n[보기]\nㄱ. Cardinality\nㄴ. Domain\nㄷ. Attribute\nㅁ. Degree\nㅂ. Schema\nㅅ. Tuple",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ㄷ",
+            "attribute",
+            "속성",
+            "ㄷ. attribute",
+            "ㄷ.attribute",
+            "ㄷ attribute"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄷ"
+        }
+      ],
+      "display": "ㄷ. Attribute (속성)"
+    },
+    {
+      "id": "2025-2#3",
+      "num": 3,
+      "prompt": "다음은 정보보안 관련 문제이다. 아래 내용을 보고 알맞은 단어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">원격 접속과 관련된 보안 프로토콜이며 암호화된 통신을 제공하는 보안 접속용 프로토콜이다.<br>공개키 기반의 인증 방식을 사용하며 암호화된 데이터 전송을 지원한다.<br>주로 원격 서버에 안전하게 접속할 때 사용되며 기본 포트 번호는 22번이다.<br>Telnet의 보안 취약점을 보완한 대안으로 널리 사용된다.</div>",
+      "bodyText": "다음은 정보보안 관련 문제이다. 아래 내용을 보고 알맞은 단어를 작성하시오.\n\n원격 접속과 관련된 보안 프로토콜이며 암호화된 통신을 제공하는 보안 접속용 프로토콜이다.\n공개키 기반의 인증 방식을 사용하며 암호화된 데이터 전송을 지원한다.\n주로 원격 서버에 안전하게 접속할 때 사용되며 기본 포트 번호는 22번이다.\nTelnet의 보안 취약점을 보완한 대안으로 널리 사용된다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ssh",
+            "secure shell",
+            "ssh(secure shell)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "SSH"
+        }
+      ],
+      "display": "SSH (Secure Shell)"
+    },
+    {
+      "id": "2025-2#4",
+      "num": 4,
+      "prompt": "스케줄링 알고리즘에 관한 다음 설명을 읽고 (1)과 (2)에 알맞은 스케줄링 알고리즘의 명칭을 각각 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">(1) CPU burst 시간이 짧은 프로세스를 우선적으로 처리하는 스케줄링 방식이다. \"Shortest Next CPU Burst\"라고도 불리며 선점형 또는 비선점형으로 구현될 수 있다.</div>\n<div class=\"desc-box\">(2) 위의 스케줄링 방식을 선점형으로 구현한 형태로 실행 중인 프로세스보다 더 짧은 burst 시간을 가진 프로세스가 도착하면 현재 CPU를 선점한다.</div>",
+      "bodyText": "스케줄링 알고리즘에 관한 다음 설명을 읽고 (1)과 (2)에 알맞은 스케줄링 알고리즘의 명칭을 각각 쓰시오.\n\n(1) CPU burst 시간이 짧은 프로세스를 우선적으로 처리하는 스케줄링 방식이다. \"Shortest Next CPU Burst\"라고도 불리며 선점형 또는 비선점형으로 구현될 수 있다.\n\n(2) 위의 스케줄링 방식을 선점형으로 구현한 형태로 실행 중인 프로세스보다 더 짧은 burst 시간을 가진 프로세스가 도착하면 현재 CPU를 선점한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "sjf",
+            "shortest job first",
+            "sjf(shortest job first)",
+            "shortest next cpu burst"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "SJF"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "srt",
+            "shortest remaining time",
+            "srt(shortest remaining time)",
+            "srtf",
+            "shortest remaining time first"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "SRT"
+        }
+      ],
+      "display": "(1) SJF (Shortest Job First) / (2) SRT (Shortest Remaining Time)"
+    },
+    {
+      "id": "2025-2#5",
+      "num": 5,
+      "prompt": "다음은 Java의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public class Main {\n    public static void change(String[] data, String s){\n        data[0] = s;\n        s = \"Z\";\n    }\n\n    public static void main(String[] args) {\n        String data[] = { \"A\" };\n        String s = \"B\";\n\n        change(data, s);\n        System.out.print(data[0] + s);\n    }\n}</pre>",
+      "bodyText": "다음은 Java의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.\n\n```java\npublic class Main {\n    public static void change(String[] data, String s){\n        data[0] = s;\n        s = \"Z\";\n    }\n\n    public static void main(String[] args) {\n        String data[] = { \"A\" };\n        String s = \"B\";\n\n        change(data, s);\n        System.out.print(data[0] + s);\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "BB",
+            "bb"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "BB"
+        }
+      ],
+      "display": "BB"
+    },
+    {
+      "id": "2025-2#6",
+      "num": 6,
+      "prompt": "다음은 IP 주소와 서브넷 마스크에 관한 문제이다. 주어진 정보를 참고하여 괄호 안에 들어갈 알맞은 값을 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">호스트의 IP 주소가 223.13.234.132이고 서브넷 마스크가 255.255.255.192일 때 다음 물음에 답하시오.<br><br>이 호스트가 속한 네트워크 주소는 223.13.234.(&nbsp;①&nbsp;)이다.<br>이 네트워크에서 사용 가능한 호스트 수는 (&nbsp;②&nbsp;)개이다.</div>\n<div class=\"hint\">※ 단, 네트워크 주소와 브로드캐스트 주소는 제외한다.</div>",
+      "bodyText": "다음은 IP 주소와 서브넷 마스크에 관한 문제이다. 주어진 정보를 참고하여 괄호 안에 들어갈 알맞은 값을 쓰시오.\n\n호스트의 IP 주소가 223.13.234.132이고 서브넷 마스크가 255.255.255.192일 때 다음 물음에 답하시오.\n\n이 호스트가 속한 네트워크 주소는 223.13.234.( ① )이다.\n이 네트워크에서 사용 가능한 호스트 수는 ( ② )개이다.\n\n※ 단, 네트워크 주소와 브로드캐스트 주소는 제외한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "①",
+          "accept": [
+            "128",
+            "223.13.234.128"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "128"
+        },
+        {
+          "label": "②",
+          "accept": [
+            "62",
+            "62개"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "62"
+        }
+      ],
+      "display": "① 128 / ② 62"
+    },
+    {
+      "id": "2025-2#7",
+      "num": 7,
+      "prompt": "다음은 디자인 패턴에 관한 문제이다. 아래 내용을 보고 알맞은 단어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">어떤 객체에 대한 접근을 제어하거나 추가적인 기능을 부여하기 위해 해당 객체의 대리 객체를 사용하는 방식의 디자인 패턴이다.<br>실제 객체에 대한 접근 전에 필요한 작업을 수행할 수 있으며 실제 객체의 생성을 지연시켜 메모리와 자원을 절약할 수 있다.<br>또한, 실제 객체를 감추어 정보은닉을 강화할 수 있다는 장점이 있다.</div>",
+      "bodyText": "다음은 디자인 패턴에 관한 문제이다. 아래 내용을 보고 알맞은 단어를 작성하시오.\n\n어떤 객체에 대한 접근을 제어하거나 추가적인 기능을 부여하기 위해 해당 객체의 대리 객체를 사용하는 방식의 디자인 패턴이다.\n실제 객체에 대한 접근 전에 필요한 작업을 수행할 수 있으며 실제 객체의 생성을 지연시켜 메모리와 자원을 절약할 수 있다.\n또한, 실제 객체를 감추어 정보은닉을 강화할 수 있다는 장점이 있다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "proxy",
+            "프록시",
+            "proxy pattern",
+            "프록시 패턴",
+            "프록시(proxy)",
+            "대리자"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Proxy"
+        }
+      ],
+      "display": "Proxy (프록시 패턴)"
+    },
+    {
+      "id": "2025-2#8",
+      "num": 8,
+      "prompt": "다음은 웹 데이터 교환 방식에 관한 문제이다. 아래 설명을 읽고 괄호 안에 들어갈 알맞은 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;)은/는 웹 페이지 전체를 다시 불러오지 않고 JavaScript와 XML(또는 JSON)을 이용하여 일부 콘텐츠만 비동기적으로 갱신할 수 있는 기술이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;)은/는 HTML만으로는 구현하기 어려운 동적인 기능들을 가능하게 하여 사용자가 웹 페이지와 보다 자유롭게 상호작용할 수 있도록 해주는 웹 개발 기법이다.</div>",
+      "bodyText": "다음은 웹 데이터 교환 방식에 관한 문제이다. 아래 설명을 읽고 괄호 안에 들어갈 알맞은 용어를 작성하시오.\n\n(  )은/는 웹 페이지 전체를 다시 불러오지 않고 JavaScript와 XML(또는 JSON)을 이용하여 일부 콘텐츠만 비동기적으로 갱신할 수 있는 기술이다.\n\n(  )은/는 HTML만으로는 구현하기 어려운 동적인 기능들을 가능하게 하여 사용자가 웹 페이지와 보다 자유롭게 상호작용할 수 있도록 해주는 웹 개발 기법이다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ajax",
+            "에이잭스",
+            "asynchronous javascript and xml",
+            "ajax(asynchronous javascript and xml)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "AJAX"
+        }
+      ],
+      "display": "AJAX (Asynchronous JavaScript And XML)"
+    },
+    {
+      "id": "2025-2#9",
+      "num": 9,
+      "prompt": "다음은 Java언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public class Main {\n\n    static interface F {\n        int apply(int x) throws Exception;\n    }\n\n    public static int run(F f) {\n        try {\n            return f.apply(3);\n        } catch (Exception e) {\n            return 7;\n        }\n    }\n\n    public static void main(String[] args) {\n\n        F f = (x) -&gt; {\n            if (x &gt; 2) {\n                throw new Exception();\n            }\n            return x * 2;\n        };\n\n        System.out.print(run(f) + run((int n) -&gt; n + 9));\n    }\n\n}</pre>",
+      "bodyText": "다음은 Java언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.\n\n```java\npublic class Main {\n\n    static interface F {\n        int apply(int x) throws Exception;\n    }\n\n    public static int run(F f) {\n        try {\n            return f.apply(3);\n        } catch (Exception e) {\n            return 7;\n        }\n    }\n\n    public static void main(String[] args) {\n\n        F f = (x) -> {\n            if (x > 2) {\n                throw new Exception();\n            }\n            return x * 2;\n        };\n\n        System.out.print(run(f) + run((int n) -> n + 9));\n    }\n\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "19"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "19"
+        }
+      ],
+      "display": "19"
+    },
+    {
+      "id": "2025-2#10",
+      "num": 10,
+      "prompt": "다음은 Java언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public class Main{\n\n    public static class Parent {\n\n        public int x(int i) { return i + 2; }\n        public static String id() { return \"P\";}\n\n    }\n\n    public static class Child extends Parent {\n\n        public int x(int i) { return i + 3; }\n        public String x(String s) { return s + \"R\"; }\n        public static String id() { return \"C\"; }\n\n    }\n\n    public static void main(String[] args) {\n\n        Parent ref = new Child();\n        System.out.println(ref.x(2) + ref.id());\n\n    }\n\n}</pre>",
+      "bodyText": "다음은 Java언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.\n\n```java\npublic class Main{\n\n    public static class Parent {\n\n        public int x(int i) { return i + 2; }\n        public static String id() { return \"P\";}\n\n    }\n\n    public static class Child extends Parent {\n\n        public int x(int i) { return i + 3; }\n        public String x(String s) { return s + \"R\"; }\n        public static String id() { return \"C\"; }\n\n    }\n\n    public static void main(String[] args) {\n\n        Parent ref = new Child();\n        System.out.println(ref.x(2) + ref.id());\n\n    }\n\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "5P",
+            "5p"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "5P"
+        }
+      ],
+      "display": "5P"
+    },
+    {
+      "id": "2025-2#11",
+      "num": 11,
+      "prompt": "다음 아래 제어 흐름 그래프가 분기 커버리지를 만족하기 위한 테스팅 순서를 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">   +---&gt; [1] POINTER = FALSE\n   |            |\n   |            v\n   |      &lt; 2 &gt; X &gt; K ?  ----YES----&gt; [3] POINTER = TRUE\n   |            |                              |\n   |          (NO)                             |\n   |            v                              |\n   |      [4] X = X + 2  &lt;---------------------+\n   |            |\n   |            v\n   |      [5] CALL SUB(X, POINTER, RESULT)\n   |            |\n   |            v\n   |      &lt; 6 &gt; RESULT &gt; 1 ?  ----NO----&gt; [7] PRINT RESULT\n   |            |\n   +---(YES)----+</pre>\n<table class=\"tbl\">\n<tr><th>노드</th><th>내용</th></tr>\n<tr><td>1</td><td>POINTER = FALSE</td></tr>\n<tr><td>2</td><td>X &gt; K ? (조건)</td></tr>\n<tr><td>3</td><td>POINTER = TRUE</td></tr>\n<tr><td>4</td><td>X = X + 2</td></tr>\n<tr><td>5</td><td>CALL SUB(X, POINTER, RESULT)</td></tr>\n<tr><td>6</td><td>RESULT &gt; 1 ? (조건)</td></tr>\n<tr><td>7</td><td>PRINT RESULT</td></tr>\n</table>\n<div class=\"hint\">※ 분기 커버리지를 만족하는 테스트 경로 두 개를 모두, 노드 번호를 이어 쓴 형태로 쉼표로 구분해 작성한다.</div>",
+      "bodyText": "다음 아래 제어 흐름 그래프가 분기 커버리지를 만족하기 위한 테스팅 순서를 쓰시오.\n\n```\n   +---> [1] POINTER = FALSE\n   |            |\n   |            v\n   |      < 2 > X > K ?  ----YES----> [3] POINTER = TRUE\n   |            |                              |\n   |          (NO)                             |\n   |            v                              |\n   |      [4] X = X + 2  <---------------------+\n   |            |\n   |            v\n   |      [5] CALL SUB(X, POINTER, RESULT)\n   |            |\n   |            v\n   |      < 6 > RESULT > 1 ?  ----NO----> [7] PRINT RESULT\n   |            |\n   +---(YES)----+\n```\n\n| 노드 | 내용 |\n| --- | --- |\n| 1 | POINTER = FALSE |\n| 2 | X > K ? (조건) |\n| 3 | POINTER = TRUE |\n| 4 | X = X + 2 |\n| 5 | CALL SUB(X, POINTER, RESULT) |\n| 6 | RESULT > 1 ? (조건) |\n| 7 | PRINT RESULT |\n\n※ 분기 커버리지를 만족하는 테스트 경로 두 개를 모두, 노드 번호를 이어 쓴 형태로 쉼표로 구분해 작성한다.",
+      "sourceImages": [
+        "raw/2025-2/img00.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답 (두 경로)",
+          "accept": [
+            "1234561, 124567",
+            "1234561 124567",
+            "1234561 / 124567",
+            "1 → 2 → 3 → 4 → 5 → 6 → 1, 1 → 2 → 4 → 5 → 6 → 7",
+            "124567, 1234561",
+            "124567 1234561",
+            "124567 / 1234561",
+            "1 → 2 → 4 → 5 → 6 → 7, 1 → 2 → 3 → 4 → 5 → 6 → 1",
+            "1234567, 124561",
+            "1234567 124561",
+            "1234567 / 124561",
+            "1 → 2 → 3 → 4 → 5 → 6 → 7, 1 → 2 → 4 → 5 → 6 → 1",
+            "124561, 1234567",
+            "124561 1234567",
+            "124561 / 1234567",
+            "1 → 2 → 4 → 5 → 6 → 1, 1 → 2 → 3 → 4 → 5 → 6 → 7"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "1234561, 124567"
+        }
+      ],
+      "display": "1234561, 124567 (또는 1234567, 124561)"
+    },
+    {
+      "id": "2025-2#12",
+      "num": 12,
+      "prompt": "다음은 C언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n#define SIZE 3\n\ntypedef struct {\n    int a[SIZE];\n    int front;\n    int rear;\n} Queue;\n\nvoid enq(Queue* q, int val){\n    q-&gt;a[q-&gt;rear] = val;\n    q-&gt;rear = (q-&gt;rear + 1) % SIZE;\n}\n\nint deq(Queue* q) {\n    int val = q-&gt;a[q-&gt;front];\n    q-&gt;front = (q-&gt;front + 1) % SIZE;\n    return val;\n}\n\nint main() {\n    Queue q = {{0}, 0, 0};\n\n    enq(&amp;q,1); enq(&amp;q,2); deq(&amp;q); enq(&amp;q, 3);\n\n    int first = deq(&amp;q);\n    int second = deq(&amp;q);\n    printf(\"%d 그리고 %d\", first, second);\n\n    return 0;\n}</pre>",
+      "bodyText": "다음은 C언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n#define SIZE 3\n\ntypedef struct {\n    int a[SIZE];\n    int front;\n    int rear;\n} Queue;\n\nvoid enq(Queue* q, int val){\n    q->a[q->rear] = val;\n    q->rear = (q->rear + 1) % SIZE;\n}\n\nint deq(Queue* q) {\n    int val = q->a[q->front];\n    q->front = (q->front + 1) % SIZE;\n    return val;\n}\n\nint main() {\n    Queue q = {{0}, 0, 0};\n\n    enq(&q,1); enq(&q,2); deq(&q); enq(&q, 3);\n\n    int first = deq(&q);\n    int second = deq(&q);\n    printf(\"%d 그리고 %d\", first, second);\n\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "2 그리고 3",
+            "2그리고3"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "2 그리고 3"
+        }
+      ],
+      "display": "2 그리고 3"
+    },
+    {
+      "id": "2025-2#13",
+      "num": 13,
+      "prompt": "라운드로빈(RR) 방식을 이용하고 아래 내용을 참고하여 평균 대기시간을 구하시오.",
+      "bodyHtml": "<div class=\"desc-box\">운영체제에서 라운드로빈(Round Robin, RR) 스케줄링은 각 프로세스에 동일한 시간 할당량(타임 퀀텀)을 순차적으로 부여하며 CPU를 할당하는 방식이다.<br>다음은 4개의 프로세스가 서로 다른 시간에 도착하며 각기 다른 실행 시간을 가지는 상황이다. 이때 시간 할당량은 4ms이고 컨텍스트 스위칭 시간은 무시한다고 가정한다.<br>아래 정보를 바탕으로 라운드로빈(RR) 방식으로 CPU 스케줄링을 수행할 경우 모든 프로세스의 평균 대기시간(Average Waiting Time)은 얼마인가?</div>\n<table class=\"tbl\">\n<tr><th>프로세스</th><th>도착 시간(ms)</th><th>실행 시간(ms)</th></tr>\n<tr><td>P1</td><td>0</td><td>8</td></tr>\n<tr><td>P2</td><td>1</td><td>4</td></tr>\n<tr><td>P3</td><td>2</td><td>9</td></tr>\n<tr><td>P4</td><td>3</td><td>5</td></tr>\n</table>",
+      "bodyText": "라운드로빈(RR) 방식을 이용하고 아래 내용을 참고하여 평균 대기시간을 구하시오.\n\n운영체제에서 라운드로빈(Round Robin, RR) 스케줄링은 각 프로세스에 동일한 시간 할당량(타임 퀀텀)을 순차적으로 부여하며 CPU를 할당하는 방식이다.\n다음은 4개의 프로세스가 서로 다른 시간에 도착하며 각기 다른 실행 시간을 가지는 상황이다. 이때 시간 할당량은 4ms이고 컨텍스트 스위칭 시간은 무시한다고 가정한다.\n아래 정보를 바탕으로 라운드로빈(RR) 방식으로 CPU 스케줄링을 수행할 경우 모든 프로세스의 평균 대기시간(Average Waiting Time)은 얼마인가?\n\n| 프로세스 | 도착 시간(ms) | 실행 시간(ms) |\n| --- | --- | --- |\n| P1 | 0 | 8 |\n| P2 | 1 | 4 |\n| P3 | 2 | 9 |\n| P4 | 3 | 5 |",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "11.75",
+            "11.75ms"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "11.75"
+        }
+      ],
+      "display": "11.75ms"
+    },
+    {
+      "id": "2025-2#14",
+      "num": 14,
+      "prompt": "다음은 C언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nstruct dat {\n    int x;\n    int y;\n};\n\nint main() {\n    struct dat a[] = {{1, 2}, {3, 4}, {5, 6}};\n    struct dat* ptr = a;\n    struct dat** pptr = &amp;ptr;\n\n    (*pptr)[1] = (*pptr)[2];\n    printf(\"%d 그리고 %d\", a[1].x, a[1].y);\n\n    return 0;\n}</pre>",
+      "bodyText": "다음은 C언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n\nstruct dat {\n    int x;\n    int y;\n};\n\nint main() {\n    struct dat a[] = {{1, 2}, {3, 4}, {5, 6}};\n    struct dat* ptr = a;\n    struct dat** pptr = &ptr;\n\n    (*pptr)[1] = (*pptr)[2];\n    printf(\"%d 그리고 %d\", a[1].x, a[1].y);\n\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "5 그리고 6",
+            "5그리고6"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "5 그리고 6"
+        }
+      ],
+      "display": "5 그리고 6"
+    },
+    {
+      "id": "2025-2#15",
+      "num": 15,
+      "prompt": "다음은 Java언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public class Main{\n    public static class BO {\n        public int v;\n        public BO(int v) {\n            this.v = v;\n        }\n    }\n    public static void main(String[] args) {\n        BO a = new BO(1);\n        BO b = new BO(2);\n        BO c = new BO(3);\n        BO[] arr = {a, b, c};\n        BO t = arr[0];\n        arr[0] = arr[2];\n        arr[2] = t;\n        arr[1].v = arr[0].v;\n        System.out.println(a.v + \"a\" + b.v + \"b\" + c.v);\n    }\n}</pre>",
+      "bodyText": "다음은 Java언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.\n\n```java\npublic class Main{\n    public static class BO {\n        public int v;\n        public BO(int v) {\n            this.v = v;\n        }\n    }\n    public static void main(String[] args) {\n        BO a = new BO(1);\n        BO b = new BO(2);\n        BO c = new BO(3);\n        BO[] arr = {a, b, c};\n        BO t = arr[0];\n        arr[0] = arr[2];\n        arr[2] = t;\n        arr[1].v = arr[0].v;\n        System.out.println(a.v + \"a\" + b.v + \"b\" + c.v);\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "1a3b3",
+            "1A3B3"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "1a3b3"
+        }
+      ],
+      "display": "1a3b3"
+    },
+    {
+      "id": "2025-2#16",
+      "num": 16,
+      "prompt": "다음은 C언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n#include &lt;stdlib.h&gt;\n\nstruct node {\n    int p;\n    struct node* n;\n};\n\nint main() {\n    struct node a = {1, NULL};\n    struct node b = {2, NULL};\n    struct node c = {3, NULL};\n\n    a.n = &amp;b; b.n = &amp;c; c.n = NULL;\n    c.n = &amp;a; a.n = &amp;b; b.n = NULL;\n    struct node* head = &amp;c;\n    printf(\"%d %d %d\", head-&gt;p, head-&gt;n-&gt;p, head-&gt;n-&gt;n-&gt;p);\n    return 0;\n}</pre>",
+      "bodyText": "다음은 C언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n#include <stdlib.h>\n\nstruct node {\n    int p;\n    struct node* n;\n};\n\nint main() {\n    struct node a = {1, NULL};\n    struct node b = {2, NULL};\n    struct node c = {3, NULL};\n\n    a.n = &b; b.n = &c; c.n = NULL;\n    c.n = &a; a.n = &b; b.n = NULL;\n    struct node* head = &c;\n    printf(\"%d %d %d\", head->p, head->n->p, head->n->n->p);\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "3 1 2",
+            "312"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "3 1 2"
+        }
+      ],
+      "display": "3 1 2"
+    },
+    {
+      "id": "2025-2#17",
+      "num": 17,
+      "prompt": "다음은 Python언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">lst = [1,2,3]\ndst = {i : i* 2 for i in lst}\ns = set(dst.values())\nlst[0] = 99\ndst[2]=7\ns.add(99)\nprint(len(s &amp; set(dst.values())))</pre>",
+      "bodyText": "다음은 Python언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.\n\n```python\nlst = [1,2,3]\ndst = {i : i* 2 for i in lst}\ns = set(dst.values())\nlst[0] = 99\ndst[2]=7\ns.add(99)\nprint(len(s & set(dst.values())))\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "2"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "2"
+        }
+      ],
+      "display": "2"
+    },
+    {
+      "id": "2025-2#18",
+      "num": 18,
+      "prompt": "다음은 C언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n#include &lt;stdlib.h&gt;\n\nstruct node {\n    char c;\n    struct node* p;\n};\n\nstruct node* func(char* s) {\n    struct node* h = NULL, *n;\n\n    while(*s) {\n        n = malloc(sizeof(struct node));\n        n-&gt;c = *s++;\n        n-&gt;p = h;\n        h = n;\n    }\n\n    return h;\n}\n\nint main() {\n    struct node* n = func(\"BEST\");\n\n    while(n) {\n        putchar(n-&gt;c);\n        struct node* t = n;\n        n = n-&gt;p;\n        free(t);\n    }\n\n    return 0;\n}</pre>",
+      "bodyText": "다음은 C언어의 문제이다. 아래 코드를 보고 알맞은 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n#include <stdlib.h>\n\nstruct node {\n    char c;\n    struct node* p;\n};\n\nstruct node* func(char* s) {\n    struct node* h = NULL, *n;\n\n    while(*s) {\n        n = malloc(sizeof(struct node));\n        n->c = *s++;\n        n->p = h;\n        h = n;\n    }\n\n    return h;\n}\n\nint main() {\n    struct node* n = func(\"BEST\");\n\n    while(n) {\n        putchar(n->c);\n        struct node* t = n;\n        n = n->p;\n        free(t);\n    }\n\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "TSEB",
+            "tseb"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "TSEB"
+        }
+      ],
+      "display": "TSEB"
+    },
+    {
+      "id": "2025-2#19",
+      "num": 19,
+      "prompt": "다음은 TCP 통신 과정에서 발생할 수 있는 보안 취약점에 대한 설명이다. 이를 이용한 공격 기법을 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">TCP는 연결을 수립하기 위해 클라이언트가 서버에 SYN 패킷을 보내고 서버는 SYN-ACK 패킷으로 응답한 후 클라이언트가 다시 ACK 패킷을 보내는 3-way-handshake 과정을 거친다.<br>이때 공격자는 클라이언트 역할로 수많은 SYN 패킷을 서버에 전송한 뒤 마지막 ACK를 고의로 보내지 않아 서버가 연결 대기 상태를 계속 유지하게 만든다.<br>이로 인해 서버의 연결 대기 큐가 가득 차면서 정상적인 접속 요청을 처리하지 못하게 되어 서비스 거부 상태가 발생한다.</div>",
+      "bodyText": "다음은 TCP 통신 과정에서 발생할 수 있는 보안 취약점에 대한 설명이다. 이를 이용한 공격 기법을 쓰시오.\n\nTCP는 연결을 수립하기 위해 클라이언트가 서버에 SYN 패킷을 보내고 서버는 SYN-ACK 패킷으로 응답한 후 클라이언트가 다시 ACK 패킷을 보내는 3-way-handshake 과정을 거친다.\n이때 공격자는 클라이언트 역할로 수많은 SYN 패킷을 서버에 전송한 뒤 마지막 ACK를 고의로 보내지 않아 서버가 연결 대기 상태를 계속 유지하게 만든다.\n이로 인해 서버의 연결 대기 큐가 가득 차면서 정상적인 접속 요청을 처리하지 못하게 되어 서비스 거부 상태가 발생한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "syn flooding",
+            "synflooding",
+            "syn flood",
+            "syn 플러딩",
+            "syn플러딩",
+            "syn flooding 공격",
+            "syn flooding attack"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "SYN Flooding"
+        }
+      ],
+      "display": "SYN Flooding (SYN 플러딩)"
+    },
+    {
+      "id": "2025-2#20",
+      "num": 20,
+      "prompt": "다음 테이블에서 πTTL(employee)에 대한 연산 결과 값을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>[employee 테이블]</b></div>\n<table class=\"tbl\">\n<tr><th>Index</th><th>AGE</th><th>TTL</th></tr>\n<tr><td>1</td><td>55</td><td>부장</td></tr>\n<tr><td>2</td><td>35</td><td>대리</td></tr>\n<tr><td>3</td><td>42</td><td>과장</td></tr>\n<tr><td>4</td><td>45</td><td>차장</td></tr>\n</table>\n<div class=\"desc-box\"><b>[연산 결과]</b></div>\n<table class=\"tbl\">\n<tr><th>(&nbsp;①&nbsp;)</th></tr>\n<tr><td>(&nbsp;②&nbsp;)</td></tr>\n<tr><td>(&nbsp;③&nbsp;)</td></tr>\n<tr><td>(&nbsp;④&nbsp;)</td></tr>\n<tr><td>(&nbsp;⑤&nbsp;)</td></tr>\n</table>",
+      "bodyText": "다음 테이블에서 πTTL(employee)에 대한 연산 결과 값을 작성하시오.\n\n[employee 테이블]\n| Index | AGE | TTL |\n| --- | --- | --- |\n| 1 | 55 | 부장 |\n| 2 | 35 | 대리 |\n| 3 | 42 | 과장 |\n| 4 | 45 | 차장 |\n\n[연산 결과]\n| ( ① ) |\n| --- |\n| ( ② ) |\n| ( ③ ) |\n| ( ④ ) |\n| ( ⑤ ) |",
+      "sourceImages": [
+        "raw/2025-2/img01.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "①",
+          "accept": [
+            "ttl"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "TTL"
+        },
+        {
+          "label": "②",
+          "accept": [
+            "부장"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "부장"
+        },
+        {
+          "label": "③",
+          "accept": [
+            "대리"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "대리"
+        },
+        {
+          "label": "④",
+          "accept": [
+            "과장"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "과장"
+        },
+        {
+          "label": "⑤",
+          "accept": [
+            "차장"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "차장"
+        }
+      ],
+      "display": "① TTL / ② 부장 / ③ 대리 / ④ 과장 / ⑤ 차장"
+    }
+  ]
+}

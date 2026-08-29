@@ -1,0 +1,706 @@
+{
+  "round": "2023-1",
+  "title": "2023년 1회",
+  "sourceUrl": "https://chobopark.tistory.com/372",
+  "questions": [
+    {
+      "id": "2023-1#1",
+      "num": 1,
+      "prompt": "아래 Java 코드에서 출력되는 값을 순서대로 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class Static{\n\n    public int a = 20;\n    static int b = 0;\n\n}\n\npublic class Main{\n    public static void main(String[] args) {\n\n        int a;\n        a = 10;\n        Static.b = a;\n\n        Static st = new Static();\n\n        System.out.println(Static.b++);\n        System.out.println(st.b);\n        System.out.println(a);\n        System.out.print(st.a);\n    }\n}</pre>",
+      "bodyText": "아래 Java 코드에서 출력되는 값을 순서대로 작성하시오.\n\n```java\nclass Static{\n\n    public int a = 20;\n    static int b = 0;\n\n}\n\npublic class Main{\n    public static void main(String[] args) {\n\n        int a;\n        a = 10;\n        Static.b = a;\n\n        Static st = new Static();\n\n        System.out.println(Static.b++);\n        System.out.println(st.b);\n        System.out.println(a);\n        System.out.print(st.a);\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번째 줄",
+          "accept": [
+            "10"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "10"
+        },
+        {
+          "label": "2번째 줄",
+          "accept": [
+            "11"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "11"
+        },
+        {
+          "label": "3번째 줄",
+          "accept": [
+            "10"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "10"
+        },
+        {
+          "label": "4번째 줄",
+          "accept": [
+            "20"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "20"
+        }
+      ],
+      "display": "10 / 11 / 10 / 20"
+    },
+    {
+      "id": "2023-1#2",
+      "num": 2,
+      "prompt": "다음 C언어 코드의 출력값을 순서대로 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nint main(){\n    char a[] = \"Art\";\n    char* p = NULL;\n    p = a;\n\n    printf(\"%s\\n\", a);\n    printf(\"%c\\n\", *p);\n    printf(\"%c\\n\", *a);\n    printf(\"%s\\n\", p);\n\n    for(int i = 0; a[i] != '\\0'; i++)\n    printf(\"%c\", a[i]);\n\n}</pre>",
+      "bodyText": "다음 C언어 코드의 출력값을 순서대로 작성하시오.\n\n```c\n#include <stdio.h>\n\nint main(){\n    char a[] = \"Art\";\n    char* p = NULL;\n    p = a;\n\n    printf(\"%s\\n\", a);\n    printf(\"%c\\n\", *p);\n    printf(\"%c\\n\", *a);\n    printf(\"%s\\n\", p);\n\n    for(int i = 0; a[i] != '\\0'; i++)\n    printf(\"%c\", a[i]);\n\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번째 줄",
+          "accept": [
+            "Art",
+            "art",
+            "ART"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "Art"
+        },
+        {
+          "label": "2번째 줄",
+          "accept": [
+            "A",
+            "a"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "A"
+        },
+        {
+          "label": "3번째 줄",
+          "accept": [
+            "A",
+            "a"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "A"
+        },
+        {
+          "label": "4번째 줄",
+          "accept": [
+            "Art",
+            "art",
+            "ART"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "Art"
+        },
+        {
+          "label": "5번째 줄",
+          "accept": [
+            "Art",
+            "art",
+            "ART"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "Art"
+        }
+      ],
+      "display": "Art / A / A / Art / Art"
+    },
+    {
+      "id": "2023-1#3",
+      "num": 3,
+      "prompt": "다음 C언어 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nint main(){\n\n    char* a = \"qwer\";\n    char* b = \"qwtety\";\n\n    for(int i = 0; a[i] != '\\0' ; i++){\n        for(int j = 0; b[j] != '\\0'; j++){\n            if(a[i] == b[j]) printf(\"%c\", a[i]);\n        }\n    }\n\n}</pre>",
+      "bodyText": "다음 C언어 코드의 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n\nint main(){\n\n    char* a = \"qwer\";\n    char* b = \"qwtety\";\n\n    for(int i = 0; a[i] != '\\0' ; i++){\n        for(int j = 0; b[j] != '\\0'; j++){\n            if(a[i] == b[j]) printf(\"%c\", a[i]);\n        }\n    }\n\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "qwe",
+            "QWE"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "qwe"
+        }
+      ],
+      "display": "qwe"
+    },
+    {
+      "id": "2023-1#4",
+      "num": 4,
+      "prompt": "다음 괄호 안에 들어가는 용어의 Full Name 또는 약자를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;)은/는 비동기적인 웹 애플리케이션의 제작을 위해 JavaScript와 XML을 이용한 비동기적 정보 교환 기법이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;)은/는 필요한 데이터만을 웹서버에 요청해서 받은 후 클라이언트에서 데이터에 대한 처리를 할 수 있다. 보통 SOAP이나 XML 기반의 웹 서비스 프로토콜이 사용되며, 웹 서버의 응답을 처리하기 위해 클라이언트 쪽에서는 자바스크립트를 쓴다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;)은/는 Google Map과 Google pages에서 사용한 기술에 기반하여 제작되었다.</div>",
+      "bodyText": "다음 괄호 안에 들어가는 용어의 Full Name 또는 약자를 작성하시오.\n\n(  )은/는 비동기적인 웹 애플리케이션의 제작을 위해 JavaScript와 XML을 이용한 비동기적 정보 교환 기법이다.\n\n(  )은/는 필요한 데이터만을 웹서버에 요청해서 받은 후 클라이언트에서 데이터에 대한 처리를 할 수 있다. 보통 SOAP이나 XML 기반의 웹 서비스 프로토콜이 사용되며, 웹 서버의 응답을 처리하기 위해 클라이언트 쪽에서는 자바스크립트를 쓴다.\n\n(  )은/는 Google Map과 Google pages에서 사용한 기술에 기반하여 제작되었다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ajax",
+            "asynchronous javascript and xml",
+            "ajax(asynchronous javascript and xml)",
+            "에이잭스"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "AJAX"
+        }
+      ],
+      "display": "AJAX (Asynchronous JavaScript and XML)"
+    },
+    {
+      "id": "2023-1#5",
+      "num": 5,
+      "prompt": "아래 표의 내용을 확인하여 괄호 안에 알맞은 용어를 각각 작성하시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>구분</th><th>내용</th></tr>\n<tr><td>(&nbsp;&nbsp;1&nbsp;&nbsp;)</td><td>- 회선교환 방식과 데이터그램 방식의 장점을 결합한 통신 기술이다.<br>- 처음 패킷으로 최적의 경로를 고정하고 경로가 고정되면 그 다음은 패킷으로 나누어 고속으로 전송할 수 있다.<br>- 통신기술에는 ATM이 있으며, 정해진 시간 안이나 다량의 데이터를 연속으로 보낼 때 적합하다.</td></tr>\n<tr><td>(&nbsp;&nbsp;2&nbsp;&nbsp;)</td><td>- 패킷교환 방식으로 동작하면서 IP 주소를 사용하는 인터넷을 의미한다.<br>- 각 전송패킷을 미리 정해진 경로 없이 독립적으로 처리하여 교환하는 방식이다.<br>- 특정 교환기의 고장 시 모든 패킷을 잃어버리는 가상회선과 달리, 그 경로를 피해서 전송할 수 있으므로 더욱 신뢰가 가능하다.<br>- 짧은 메시지의 패킷들을 전송할 때 효과적이고 재정렬 기능이 필요하다.</td></tr>\n</table>\n<div class=\"hint\">※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.</div>",
+      "bodyText": "아래 표의 내용을 확인하여 괄호 안에 알맞은 용어를 각각 작성하시오.\n\n| 구분 | 내용 |\n| --- | --- |\n| (  1  ) | - 회선교환 방식과 데이터그램 방식의 장점을 결합한 통신 기술이다. - 처음 패킷으로 최적의 경로를 고정하고 경로가 고정되면 그 다음은 패킷으로 나누어 고속으로 전송할 수 있다. - 통신기술에는 ATM이 있으며, 정해진 시간 안이나 다량의 데이터를 연속으로 보낼 때 적합하다. |\n| (  2  ) | - 패킷교환 방식으로 동작하면서 IP 주소를 사용하는 인터넷을 의미한다. - 각 전송패킷을 미리 정해진 경로 없이 독립적으로 처리하여 교환하는 방식이다. - 특정 교환기의 고장 시 모든 패킷을 잃어버리는 가상회선과 달리, 그 경로를 피해서 전송할 수 있으므로 더욱 신뢰가 가능하다. - 짧은 메시지의 패킷들을 전송할 때 효과적이고 재정렬 기능이 필요하다. |\n\n※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "가상회선",
+            "가상 회선",
+            "virtual circuit",
+            "가상회선방식",
+            "가상회선(virtual circuit)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "가상회선"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "데이터그램",
+            "datagram",
+            "데이터그램방식",
+            "데이터그램(datagram)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "데이터그램"
+        }
+      ],
+      "display": "(1) 가상회선 / (2) 데이터그램"
+    },
+    {
+      "id": "2023-1#6",
+      "num": 6,
+      "prompt": "아래 설명에 해당하는 알맞은 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">- 2계층(데이터링크 계층)에서 구현되는 터널링 기술 중 하나이다.<br>- L2F와 PPTP가 결합된 프로토콜로 VPN과 인터넷 서비스 제공자(ISP)가 이용한다.<br>- IPsec을 함께 사용하면 PPTP보다 훨씬 안전하지만 보안보다 익명화에 더 적합하다.</div>",
+      "bodyText": "아래 설명에 해당하는 알맞은 용어를 작성하시오.\n\n- 2계층(데이터링크 계층)에서 구현되는 터널링 기술 중 하나이다.\n- L2F와 PPTP가 결합된 프로토콜로 VPN과 인터넷 서비스 제공자(ISP)가 이용한다.\n- IPsec을 함께 사용하면 PPTP보다 훨씬 안전하지만 보안보다 익명화에 더 적합하다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "l2tp",
+            "layer 2 tunneling protocol",
+            "l2tp(layer 2 tunneling protocol)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "L2TP"
+        }
+      ],
+      "display": "L2TP (Layer 2 Tunneling Protocol)"
+    },
+    {
+      "id": "2023-1#7",
+      "num": 7,
+      "prompt": "아래 설명에서 괄호 안에 알맞은 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;) 네트워크 상의 다른 컴퓨터에 로그인하거나 원격 시스템에서 명령을 실행하고 다른 시스템으로 파일을 복사할 수 있도록 해주는 응용 프로그램 또는 그 프로토콜을 가리킨다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;) 보안 접속을 통한 rsh, rcp, rlogin, rexec, telnet, ftp 등을 제공하며, IP spoofing(IP 스푸핑, 아이피 위/변조 기법 중 하나)을 방지하기 위한 기능을 제공한다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;) 기본적으로 포트는 22번이다.</div>",
+      "bodyText": "아래 설명에서 괄호 안에 알맞은 용어를 작성하시오.\n\n(  ) 네트워크 상의 다른 컴퓨터에 로그인하거나 원격 시스템에서 명령을 실행하고 다른 시스템으로 파일을 복사할 수 있도록 해주는 응용 프로그램 또는 그 프로토콜을 가리킨다.\n\n(  ) 보안 접속을 통한 rsh, rcp, rlogin, rexec, telnet, ftp 등을 제공하며, IP spoofing(IP 스푸핑, 아이피 위/변조 기법 중 하나)을 방지하기 위한 기능을 제공한다.\n\n(  ) 기본적으로 포트는 22번이다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ssh",
+            "secure shell",
+            "ssh(secure shell)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "SSH"
+        }
+      ],
+      "display": "SSH (Secure SHell)"
+    },
+    {
+      "id": "2023-1#8",
+      "num": 8,
+      "prompt": "아래 표의 설명에 해당하는 악성 프로그램의 명칭을 각각 작성하시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>구분</th><th>내용</th></tr>\n<tr><td>(&nbsp;&nbsp;1&nbsp;&nbsp;)</td><td>- 감염된 컴퓨터 시스템에서 스스로 복제해 다른 컴퓨터로 복사본을 확산시킬 수 있는 악성 프로그램이다.<br>- 독자적으로 실행되며 다른 실행 프로그램이 필요하지 않으며, 파일 전송 기능을 착취하도록 설계된다.<br>- 자가 복제 및 네트워크를 통한 전파도 가능하다.</td></tr>\n<tr><td>(&nbsp;&nbsp;2&nbsp;&nbsp;)</td><td>- 정상적인 프로그램으로 가장해 사용자가 직접 컴퓨터에 설치하도록 위장하며, 백도어를 만들어 공격자가 침입할 수 있도록 만들거나 시스템을 파괴한다.<br>- 정상적인 프로그램으로 위장하여 시작부터 끝까지 램에 상주하며, 시스템 내부 정보를 공격자의 컴퓨터로 빼돌리는 프로그램이다.<br>- 좀비PC처럼 내부정보 유출뿐만 아니라 컨트롤까지 가능한 종류가 있고, 단순히 내부 데이터만 유출할 수 있는 타입도 있다.<br>- 감염된 후에 스스로를 복제하는 능력은 없다.</td></tr>\n<tr><td>(&nbsp;&nbsp;3&nbsp;&nbsp;)</td><td>- 대상(정상파일)을 감염시키는 형태로 실행되며, 감염시킬 대상이 존재하지 않을 때에는 실행되지 않으며 다른 정상파일로의 자기 복제 기능이 있다.<br>- 컴퓨터 시스템에 침입해 프로그램에 기생하며 시스템을 변경하거나 사용할 수 없도록 만드는 악성코드이다.<br>- 네트워크를 통해 전파되지 않으며 방식 및 위치에 따라 여러 형태로 나뉜다.</td></tr>\n</table>\n<div class=\"hint\">※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.</div>",
+      "bodyText": "아래 표의 설명에 해당하는 악성 프로그램의 명칭을 각각 작성하시오.\n\n| 구분 | 내용 |\n| --- | --- |\n| (  1  ) | - 감염된 컴퓨터 시스템에서 스스로 복제해 다른 컴퓨터로 복사본을 확산시킬 수 있는 악성 프로그램이다. - 독자적으로 실행되며 다른 실행 프로그램이 필요하지 않으며, 파일 전송 기능을 착취하도록 설계된다. - 자가 복제 및 네트워크를 통한 전파도 가능하다. |\n| (  2  ) | - 정상적인 프로그램으로 가장해 사용자가 직접 컴퓨터에 설치하도록 위장하며, 백도어를 만들어 공격자가 침입할 수 있도록 만들거나 시스템을 파괴한다. - 정상적인 프로그램으로 위장하여 시작부터 끝까지 램에 상주하며, 시스템 내부 정보를 공격자의 컴퓨터로 빼돌리는 프로그램이다. - 좀비PC처럼 내부정보 유출뿐만 아니라 컨트롤까지 가능한 종류가 있고, 단순히 내부 데이터만 유출할 수 있는 타입도 있다. - 감염된 후에 스스로를 복제하는 능력은 없다. |\n| (  3  ) | - 대상(정상파일)을 감염시키는 형태로 실행되며, 감염시킬 대상이 존재하지 않을 때에는 실행되지 않으며 다른 정상파일로의 자기 복제 기능이 있다. - 컴퓨터 시스템에 침입해 프로그램에 기생하며 시스템을 변경하거나 사용할 수 없도록 만드는 악성코드이다. - 네트워크를 통해 전파되지 않으며 방식 및 위치에 따라 여러 형태로 나뉜다. |\n\n※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "웜",
+            "worm",
+            "웜바이러스",
+            "웜(worm)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "웜"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "트로이목마",
+            "트로이 목마",
+            "trojan",
+            "trojan horse",
+            "트로이목마(trojan horse)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "트로이 목마"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "바이러스",
+            "virus",
+            "바이러스(virus)",
+            "컴퓨터바이러스"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "바이러스"
+        }
+      ],
+      "display": "(1) 웜 (Worm) / (2) 트로이 목마 (Trojan Horse) / (3) 바이러스 (Virus)"
+    },
+    {
+      "id": "2023-1#9",
+      "num": 9,
+      "prompt": "다음은 이진수를 십진수로 변환하는 코드이다. 괄호 (a), (b)에 들어갈 내용을 이어서 한 칸에 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nint main() {\n\n    int input = 101110;\n    int di = 1;\n    int sum = 0;\n\n    while (1) {\n\n        if (input == 0) break\n        else {\n\n          sum = sum + (input (a)(b)) * di;\n             di = di * 2;\n             input = input / 10;\n\n        }\n    }\n\n    printf(\"%d\", sum);\n\n    return 0;\n}</pre>\n<div class=\"hint\">※ (a)와 (b)에 들어갈 연산자와 피연산자를 이어서 한 칸에 작성한다 (연산자 뒤 공백 유무는 무관).</div>",
+      "bodyText": "다음은 이진수를 십진수로 변환하는 코드이다. 괄호 (a), (b)에 들어갈 내용을 이어서 한 칸에 작성하시오.\n\n```c\n#include <stdio.h>\n\nint main() {\n\n    int input = 101110;\n    int di = 1;\n    int sum = 0;\n\n    while (1) {\n\n        if (input == 0) break\n        else {\n\n          sum = sum + (input (a)(b)) * di;\n             di = di * 2;\n             input = input / 10;\n\n        }\n    }\n\n    printf(\"%d\", sum);\n\n    return 0;\n}\n```\n\n※ (a)와 (b)에 들어갈 연산자와 피연산자를 이어서 한 칸에 작성한다 (연산자 뒤 공백 유무는 무관).",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(a)(b)",
+          "accept": [
+            "%10",
+            "% 10",
+            "%5",
+            "% 5",
+            "%2",
+            "% 2",
+            "&1",
+            "& 1"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "% 10"
+        }
+      ],
+      "display": "(a) % , (b) 10  (%5, %2, &1 도 정답)"
+    },
+    {
+      "id": "2023-1#10",
+      "num": 10,
+      "prompt": "다음 설명의 괄호 안에 알맞은 프로토콜 명칭을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;)은/는 TCP/IP에서 IP 패킷을 처리할 때 발생되는 문제를 알려주는 프로토콜이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;) 프로토콜은 보통 다른 호스트나 게이트웨이와 연결된 네트워크에 문제가 있는지 확인하기 위한 목적으로 주로 사용된다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;)을/를 이용한 공격에는 (&nbsp;&nbsp;) Flooding이 있는데, ping 명령어를 통한 (&nbsp;&nbsp;) 패킷을 연속적으로 계속 보내어 서버가 요청에 대한 응답으로 인해 다른 작업을 하지 못하도록 하는 공격이다.</div>",
+      "bodyText": "다음 설명의 괄호 안에 알맞은 프로토콜 명칭을 작성하시오.\n\n(  )은/는 TCP/IP에서 IP 패킷을 처리할 때 발생되는 문제를 알려주는 프로토콜이다.\n\n(  ) 프로토콜은 보통 다른 호스트나 게이트웨이와 연결된 네트워크에 문제가 있는지 확인하기 위한 목적으로 주로 사용된다.\n\n(  )을/를 이용한 공격에는 (  ) Flooding이 있는데, ping 명령어를 통한 (  ) 패킷을 연속적으로 계속 보내어 서버가 요청에 대한 응답으로 인해 다른 작업을 하지 못하도록 하는 공격이다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "icmp",
+            "internet control message protocol",
+            "icmp(internet control message protocol)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ICMP"
+        }
+      ],
+      "display": "ICMP (Internet Control Message Protocol)"
+    },
+    {
+      "id": "2023-1#11",
+      "num": 11,
+      "prompt": "다음은 디자인 패턴에 관한 설명이다. 설명에 해당하는 패턴 이름을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">- 다른 무언가와 이어지는 인터페이스 역할을 하는 클래스를 의미한다.<br>- 실제 객체를 호출하면 행위를 중간에 가로채서 다른 동작을 수행하는 객체로 변경한다.<br>- 객체를 정교하게 제어해야 하거나 객체 참조가 필요한 경우 사용한다.<br>- 분리된 객체를 위임함으로써 대리 작업을 중간 단계에 삽입할 수도 있으며, 분리된 객체를 동적으로 연결함으로써 객체의 실행 시점을 관리할 수도 있다.</div>\n<div class=\"hint\">※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.</div>",
+      "bodyText": "다음은 디자인 패턴에 관한 설명이다. 설명에 해당하는 패턴 이름을 작성하시오.\n\n- 다른 무언가와 이어지는 인터페이스 역할을 하는 클래스를 의미한다.\n- 실제 객체를 호출하면 행위를 중간에 가로채서 다른 동작을 수행하는 객체로 변경한다.\n- 객체를 정교하게 제어해야 하거나 객체 참조가 필요한 경우 사용한다.\n- 분리된 객체를 위임함으로써 대리 작업을 중간 단계에 삽입할 수도 있으며, 분리된 객체를 동적으로 연결함으로써 객체의 실행 시점을 관리할 수도 있다.\n\n※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "proxy",
+            "프록시",
+            "proxy패턴",
+            "프록시패턴",
+            "proxy pattern",
+            "대리자"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Proxy"
+        }
+      ],
+      "display": "Proxy (프록시)"
+    },
+    {
+      "id": "2023-1#12",
+      "num": 12,
+      "prompt": "다음은 데이터베이스에 관련된 내용이다. 각 괄호 안에 알맞은 용어를 작성하시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>구분</th><th>내용</th></tr>\n<tr><td>(&nbsp;&nbsp;1&nbsp;&nbsp;)</td><td>- 셀 수 있는 수량의 순서 있는 열거이다.<br>- 어떤 요소의 집합, 혹은 테이블에서의 행을 가리키지만 일반적인 집합과는 달리 중복이 허용될 수 있다.<br>- 리스트와 동일하게 여러 객체를 모아서 담으며, 숫자, 문자, 객체, 배열, 튜플 안의 튜플 전부 가능하다.</td></tr>\n<tr><td>(&nbsp;&nbsp;2&nbsp;&nbsp;)</td><td>- 어느 한 시점에 릴레이션의 내용(상태), 즉 저장된 데이터 전체를 의미한다.<br>- 단순히 릴레이션 또는 릴레이션 외연(Relation Extension)이라고도 한다.</td></tr>\n<tr><td>(&nbsp;&nbsp;3&nbsp;&nbsp;)</td><td>- 특정 데이터 집합의 유니크(Unique)한 값의 개수이다.<br>- 전체 행에 대한 특정 컬럼의 중복 수치를 나타내는 지표이다.</td></tr>\n</table>\n<div class=\"hint\">※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.</div>",
+      "bodyText": "다음은 데이터베이스에 관련된 내용이다. 각 괄호 안에 알맞은 용어를 작성하시오.\n\n| 구분 | 내용 |\n| --- | --- |\n| (  1  ) | - 셀 수 있는 수량의 순서 있는 열거이다. - 어떤 요소의 집합, 혹은 테이블에서의 행을 가리키지만 일반적인 집합과는 달리 중복이 허용될 수 있다. - 리스트와 동일하게 여러 객체를 모아서 담으며, 숫자, 문자, 객체, 배열, 튜플 안의 튜플 전부 가능하다. |\n| (  2  ) | - 어느 한 시점에 릴레이션의 내용(상태), 즉 저장된 데이터 전체를 의미한다. - 단순히 릴레이션 또는 릴레이션 외연(Relation Extension)이라고도 한다. |\n| (  3  ) | - 특정 데이터 집합의 유니크(Unique)한 값의 개수이다. - 전체 행에 대한 특정 컬럼의 중복 수치를 나타내는 지표이다. |\n\n※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "튜플",
+            "tuple",
+            "튜플(tuple)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "튜플"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "릴레이션인스턴스",
+            "릴레이션 인스턴스",
+            "relation instance",
+            "인스턴스",
+            "릴레이션인스턴스(relation instance)",
+            "릴레이션외연"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "릴레이션 인스턴스"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "카디널리티",
+            "카디날리티",
+            "cardinality",
+            "카디널리티(cardinality)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "카디널리티"
+        }
+      ],
+      "display": "(1) 튜플 (Tuple) / (2) 릴레이션 인스턴스 (Relation Instance) / (3) 카디널리티 (Cardinality)"
+    },
+    {
+      "id": "2023-1#13",
+      "num": 13,
+      "prompt": "[학생] 테이블에서 학생 이름이 '민수'인 튜플을 삭제하는 SQL문을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>[학생 테이블]</b></div>\n<table class=\"tbl\">\n<tr><th>순번</th><th>학년</th><th>이름</th></tr>\n<tr><td>1</td><td>1</td><td>종현</td></tr>\n<tr><td>2</td><td>1</td><td>민수</td></tr>\n<tr><td>3</td><td>2</td><td>수연</td></tr>\n<tr><td>4</td><td>3</td><td>수지</td></tr>\n</table>\n<div class=\"hint\">[조건]<br>- 컬럼의 값이 문자열일 경우 작은따옴표('  ')를 표시하시오.<br>- SQL 마지막에 세미콜론(;)은 표기하지 않아도 관계 없습니다.</div>",
+      "bodyText": "[학생] 테이블에서 학생 이름이 '민수'인 튜플을 삭제하는 SQL문을 작성하시오.\n\n[학생 테이블]\n\n| 순번 | 학년 | 이름 |\n| --- | --- | --- |\n| 1 | 1 | 종현 |\n| 2 | 1 | 민수 |\n| 3 | 2 | 수연 |\n| 4 | 3 | 수지 |\n\n[조건]\n- 컬럼의 값이 문자열일 경우 작은따옴표('  ')를 표시하시오.\n- SQL 마지막에 세미콜론(;)은 표기하지 않아도 관계 없습니다.",
+      "sourceImages": [
+        "raw/2023-1/img00.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "delete from 학생 where 이름 = '민수'",
+            "delete from 학생 where 이름='민수'",
+            "delete from 학생 where 이름 ='민수'",
+            "delete from 학생 where 이름= '민수'",
+            "delete from 학생 where 이름 = '민수';"
+          ],
+          "normalize": "sql",
+          "validator": null,
+          "sampleAnswer": "DELETE FROM 학생 WHERE 이름 = '민수';"
+        }
+      ],
+      "display": "DELETE FROM 학생 WHERE 이름 = '민수';"
+    },
+    {
+      "id": "2023-1#14",
+      "num": 14,
+      "prompt": "다음 코드에서 괄호 (1), (2)에 들어갈 알맞은 값을 변수명으로 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public class Sort {\n\n    public static void swap(int[] arr, int idx1, int idx2){\n        int temp = arr[idx1];\n        arr[idx1] = arr[idx2];\n        arr[( 1 )] = temp;\n    }\n\n    public static void Usort(int[] array, int length){\n        for (int i = 0; i &lt; length; i++) {\n            for (int j = 0; j &lt; length - i - 1; j++) {\n                if (array[j] &gt; array[j + 1]) {\n                    swap(array, j, j + 1);\n                }\n            }\n        }\n    }\n\n    public static void main(String[] args) {\n        int[] item = new int[] { 5, 3, 8, 1, 2, 7 };\n        int nx = 6;\n        Usort(item, ( 2 ));\n\n        for (int data : item) {\n            System.out.print(data + \" \");\n        }\n    }\n\n}</pre>\n<div class=\"hint\">※ 출력 값 : 1 2 3 5 7 8 / 원본 자료에 따르면 코드가 실제 시험문제와 완전히 동일하지는 않으나 패턴은 같다.</div>",
+      "bodyText": "다음 코드에서 괄호 (1), (2)에 들어갈 알맞은 값을 변수명으로 작성하시오.\n\n```java\npublic class Sort {\n\n    public static void swap(int[] arr, int idx1, int idx2){\n        int temp = arr[idx1];\n        arr[idx1] = arr[idx2];\n        arr[( 1 )] = temp;\n    }\n\n    public static void Usort(int[] array, int length){\n        for (int i = 0; i < length; i++) {\n            for (int j = 0; j < length - i - 1; j++) {\n                if (array[j] > array[j + 1]) {\n                    swap(array, j, j + 1);\n                }\n            }\n        }\n    }\n\n    public static void main(String[] args) {\n        int[] item = new int[] { 5, 3, 8, 1, 2, 7 };\n        int nx = 6;\n        Usort(item, ( 2 ));\n\n        for (int data : item) {\n            System.out.print(data + \" \");\n        }\n    }\n\n}\n```\n\n※ 출력 값 : 1 2 3 5 7 8 / 원본 자료에 따르면 코드가 실제 시험문제와 완전히 동일하지는 않으나 패턴은 같다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "idx2"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "idx2"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "nx"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "nx"
+        }
+      ],
+      "display": "(1) idx2 / (2) nx"
+    },
+    {
+      "id": "2023-1#15",
+      "num": 15,
+      "prompt": "다음 Python 코드의 출력값에 포함되는 집합의 원소를 각각 작성하시오. (순서 무관)",
+      "bodyHtml": "<pre class=\"code\">a = {'한국', '중국', '일본'}\na.add('베트남')\na.add('중국')\na.remove('일본')\na.update({'홍콩', '한국', '태국'})\nprint(a)</pre>",
+      "bodyText": "다음 Python 코드의 출력값에 포함되는 집합의 원소를 각각 작성하시오. (순서 무관)\n\n```python\na = {'한국', '중국', '일본'}\na.add('베트남')\na.add('중국')\na.remove('일본')\na.update({'홍콩', '한국', '태국'})\nprint(a)\n```",
+      "sourceImages": [],
+      "answerMode": "unordered",
+      "fields": [
+        {
+          "label": "원소 1",
+          "accept": [
+            "한국",
+            "'한국'"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "한국"
+        },
+        {
+          "label": "원소 2",
+          "accept": [
+            "중국",
+            "'중국'"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "중국"
+        },
+        {
+          "label": "원소 3",
+          "accept": [
+            "베트남",
+            "'베트남'"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "베트남"
+        },
+        {
+          "label": "원소 4",
+          "accept": [
+            "홍콩",
+            "'홍콩'"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "홍콩"
+        },
+        {
+          "label": "원소 5",
+          "accept": [
+            "태국",
+            "'태국'"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "태국"
+        }
+      ],
+      "display": "{'한국', '중국', '베트남', '홍콩', '태국'} (집합이므로 출력 순서는 정해져 있지 않다)"
+    },
+    {
+      "id": "2023-1#16",
+      "num": 16,
+      "prompt": "다음 성적 테이블에서 과목별 점수의 평균이 90점 이상인 '과목이름', '최소점수', '최대점수'를 검색하고자 한다. [조건]을 참고하여 적합한 SQL문을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>[성적 테이블]</b></div>\n<table class=\"tbl\">\n<tr><th>순번</th><th>과목이름</th><th>점수</th></tr>\n<tr><td>1</td><td>데이터베이스</td><td>89</td></tr>\n<tr><td>2</td><td>데이터베이스</td><td>92</td></tr>\n<tr><td>3</td><td>네트워크</td><td>88</td></tr>\n<tr><td>4</td><td>소프트웨어</td><td>91</td></tr>\n<tr><td>5</td><td>네트워크</td><td>89</td></tr>\n<tr><td>6</td><td>소프트웨어</td><td>85</td></tr>\n</table>\n<div class=\"desc-box\"><b>[결과]</b></div>\n<table class=\"tbl\">\n<tr><th>과목이름</th><th>최소점수</th><th>최대점수</th></tr>\n<tr><td>데이터베이스</td><td>89</td><td>92</td></tr>\n</table>\n<div class=\"hint\">[조건]<br>- WHERE를 사용하지 말아야 한다.<br>- SELECT절에 별칭을 사용하여 작성해야 한다.<br>- SQL 구문 마지막에 세미콜론은 생략 가능하다.<br>- 반드시 GROUP BY와 HAVING을 사용해야 한다.<br>- 집계함수를 사용해야 한다.</div>",
+      "bodyText": "다음 성적 테이블에서 과목별 점수의 평균이 90점 이상인 '과목이름', '최소점수', '최대점수'를 검색하고자 한다. [조건]을 참고하여 적합한 SQL문을 작성하시오.\n\n[성적 테이블]\n\n| 순번 | 과목이름 | 점수 |\n| --- | --- | --- |\n| 1 | 데이터베이스 | 89 |\n| 2 | 데이터베이스 | 92 |\n| 3 | 네트워크 | 88 |\n| 4 | 소프트웨어 | 91 |\n| 5 | 네트워크 | 89 |\n| 6 | 소프트웨어 | 85 |\n\n[결과]\n\n| 과목이름 | 최소점수 | 최대점수 |\n| --- | --- | --- |\n| 데이터베이스 | 89 | 92 |\n\n[조건]\n- WHERE를 사용하지 말아야 한다.\n- SELECT절에 별칭을 사용하여 작성해야 한다.\n- SQL 구문 마지막에 세미콜론은 생략 가능하다.\n- 반드시 GROUP BY와 HAVING을 사용해야 한다.\n- 집계함수를 사용해야 한다.",
+      "sourceImages": [
+        "raw/2023-1/img01.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "SELECT 과목이름, MIN(점수) AS 최소점수, MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수) >= 90",
+            "SELECT 과목이름, MIN(점수) AS 최소점수, MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수)>=90",
+            "SELECT 과목이름, MIN(점수) AS 최소점수, MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수) >=90",
+            "SELECT 과목이름, MIN(점수) AS 최소점수, MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수)>= 90",
+            "SELECT 과목이름,MIN(점수) AS 최소점수,MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수) >= 90",
+            "SELECT 과목이름,MIN(점수) AS 최소점수,MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수)>=90",
+            "SELECT 과목이름,MIN(점수) AS 최소점수,MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수) >=90",
+            "SELECT 과목이름,MIN(점수) AS 최소점수,MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수)>= 90",
+            "SELECT 과목이름, MIN(점수) 최소점수, MAX(점수) 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수) >= 90",
+            "SELECT 과목이름, MIN(점수) 최소점수, MAX(점수) 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수)>=90",
+            "SELECT 과목이름, MIN(점수) 최소점수, MAX(점수) 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수) >=90",
+            "SELECT 과목이름, MIN(점수) 최소점수, MAX(점수) 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수)>= 90",
+            "SELECT 과목이름,MIN(점수) 최소점수,MAX(점수) 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수) >= 90",
+            "SELECT 과목이름,MIN(점수) 최소점수,MAX(점수) 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수)>=90",
+            "SELECT 과목이름,MIN(점수) 최소점수,MAX(점수) 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수) >=90",
+            "SELECT 과목이름,MIN(점수) 최소점수,MAX(점수) 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수)>= 90"
+          ],
+          "normalize": "sql",
+          "validator": null,
+          "sampleAnswer": "SELECT 과목이름, MIN(점수) AS 최소점수, MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수) >= 90"
+        }
+      ],
+      "display": "SELECT 과목이름, MIN(점수) AS 최소점수, MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수) >= 90"
+    },
+    {
+      "id": "2023-1#17",
+      "num": 17,
+      "prompt": "다음 Java 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">abstact class Vehicle {\n\n    String name;\n    abstract public String getName(String val);\n\n    public String getName() {\n            return \"Vehicle name: \" + name;\n    }\n}\n\n\n\nclass Car extends Vehicle {\n\n    public Car(String val) {\n            name=super.name=val;\n    }\n\n    public String getName(String val) {\n            return \"Car name:\" + val;\n    }\n\n    public String getName(byte val[]) {\n            return \"Car name:\" + val;\n    }\n}\n\n\npublic class Main {\n\n    public static void main(String[] args) {\n\n    Vehicle obj = new Car(\"Spark\");\n    System.out.println(obj.getName());\n\n    }\n}</pre>",
+      "bodyText": "다음 Java 코드의 출력값을 작성하시오.\n\n```java\nabstact class Vehicle {\n\n    String name;\n    abstract public String getName(String val);\n\n    public String getName() {\n            return \"Vehicle name: \" + name;\n    }\n}\n\n\n\nclass Car extends Vehicle {\n\n    public Car(String val) {\n            name=super.name=val;\n    }\n\n    public String getName(String val) {\n            return \"Car name:\" + val;\n    }\n\n    public String getName(byte val[]) {\n            return \"Car name:\" + val;\n    }\n}\n\n\npublic class Main {\n\n    public static void main(String[] args) {\n\n    Vehicle obj = new Car(\"Spark\");\n    System.out.println(obj.getName());\n\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "Vehicle name: Spark",
+            "vehicle name: spark",
+            "VEHICLE NAME: SPARK",
+            "Vehicle name : Spark",
+            "Vehicle Name: Spark"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "Vehicle name: Spark"
+        }
+      ],
+      "display": "Vehicle name: Spark"
+    },
+    {
+      "id": "2023-1#18",
+      "num": 18,
+      "prompt": "다음은 스키마와 관련된 내용이다. 각 괄호 안에 알맞은 답을 작성하시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>구분</th><th>내용</th></tr>\n<tr><td>(&nbsp;&nbsp;1&nbsp;&nbsp;) 스키마</td><td>- 사용자나 응용 프로그래머가 개인의 입장에서 필요한 데이터베이스의 논리적 구조를 정의한다.<br>- 전체 데이터베이스의 한 논리적인 부분으로 볼 수 있기 때문에 서브 스키마라고도 한다.<br>- 하나의 데이터베이스 시스템에는 여러 개가 존재할 수 있다.<br>- 하나를 여러 개의 응용 프로그램 혹은 사용자가 공유할 수 있다.</td></tr>\n<tr><td>(&nbsp;&nbsp;2&nbsp;&nbsp;) 스키마</td><td>- 데이터베이스의 전체적인 논리적 구조로, 모든 응용 프로그램이나 사용자들이 필요로 하는 데이터를 종합한 조직 전체의 데이터베이스로 하나만 존재한다.<br>- 개체 간의 관계(Relationship)와 제약 조건을 나타내고 데이터베이스의 접근 권한, 보안 및 무결성 규칙에 관한 명세를 정의한다.<br>- 데이터베이스 파일에 저장되는 데이터의 형태를 나타내는 것이다.<br>- 기관이나 조직체의 관점에서 데이터베이스를 정의한 것이다.</td></tr>\n<tr><td>(&nbsp;&nbsp;3&nbsp;&nbsp;) 스키마</td><td>- 물리적인 저장장치 입장에서 데이터가 저장되는 방법을 기술한 것이다.<br>- 실제 데이터베이스에 저장될 레코드의 물리적인 구조를 정의한다.<br>- 저장 데이터 항목의 표현방법, 내부 레코드의 물리적 순서, 인덱스 유/무 등을 나타낸다.<br>- 시스템 프로그래머나 시스템 설계자가 관리한다.</td></tr>\n</table>\n<div class=\"hint\">※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.</div>",
+      "bodyText": "다음은 스키마와 관련된 내용이다. 각 괄호 안에 알맞은 답을 작성하시오.\n\n| 구분 | 내용 |\n| --- | --- |\n| (  1  ) 스키마 | - 사용자나 응용 프로그래머가 개인의 입장에서 필요한 데이터베이스의 논리적 구조를 정의한다. - 전체 데이터베이스의 한 논리적인 부분으로 볼 수 있기 때문에 서브 스키마라고도 한다. - 하나의 데이터베이스 시스템에는 여러 개가 존재할 수 있다. - 하나를 여러 개의 응용 프로그램 혹은 사용자가 공유할 수 있다. |\n| (  2  ) 스키마 | - 데이터베이스의 전체적인 논리적 구조로, 모든 응용 프로그램이나 사용자들이 필요로 하는 데이터를 종합한 조직 전체의 데이터베이스로 하나만 존재한다. - 개체 간의 관계(Relationship)와 제약 조건을 나타내고 데이터베이스의 접근 권한, 보안 및 무결성 규칙에 관한 명세를 정의한다. - 데이터베이스 파일에 저장되는 데이터의 형태를 나타내는 것이다. - 기관이나 조직체의 관점에서 데이터베이스를 정의한 것이다. |\n| (  3  ) 스키마 | - 물리적인 저장장치 입장에서 데이터가 저장되는 방법을 기술한 것이다. - 실제 데이터베이스에 저장될 레코드의 물리적인 구조를 정의한다. - 저장 데이터 항목의 표현방법, 내부 레코드의 물리적 순서, 인덱스 유/무 등을 나타낸다. - 시스템 프로그래머나 시스템 설계자가 관리한다. |\n\n※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "외부",
+            "외부스키마",
+            "external",
+            "external schema",
+            "서브스키마"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "외부"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "개념",
+            "개념스키마",
+            "conceptual",
+            "conceptual schema"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "개념"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "내부",
+            "내부스키마",
+            "internal",
+            "internal schema"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "내부"
+        }
+      ],
+      "display": "(1) 외부 / (2) 개념 / (3) 내부"
+    },
+    {
+      "id": "2023-1#19",
+      "num": 19,
+      "prompt": "다음 제어 흐름 그래프가 분기 커버리지를 만족하기 위한 테스팅 순서를 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">[제어 흐름 그래프]<br>① POINTER = FALSE<br>② X > K ?  — YES면 ③, NO면 ④<br>③ POINTER = TRUE  → ④<br>④ X = X + 2<br>⑤ CALL SUB(X, POINTER, RESULT)<br>⑥ RESULT > 1 ?  — NO면 ⑦, YES면 ①로 되돌아감<br>⑦ PRINT RESULT</div>\n<div class=\"hint\">※ 분기 커버리지를 만족하는 테스트 경로 두 개를 모두, 노드 번호를 이어 쓴 형태로 쉼표(,)로 구분해 한 칸에 작성한다.</div>",
+      "bodyText": "다음 제어 흐름 그래프가 분기 커버리지를 만족하기 위한 테스팅 순서를 쓰시오.\n\n[제어 흐름 그래프]\n① POINTER = FALSE\n② X > K ?  — YES면 ③, NO면 ④\n③ POINTER = TRUE  → ④\n④ X = X + 2\n⑤ CALL SUB(X, POINTER, RESULT)\n⑥ RESULT > 1 ?  — NO면 ⑦, YES면 ①로 되돌아감\n⑦ PRINT RESULT\n\n※ 분기 커버리지를 만족하는 테스트 경로 두 개를 모두, 노드 번호를 이어 쓴 형태로 쉼표(,)로 구분해 한 칸에 작성한다.",
+      "sourceImages": [
+        "raw/2023-1/img02.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "1234561,124567",
+            "124567,1234561",
+            "1234567,124561",
+            "124561,1234567",
+            "1234561/124567",
+            "124567/1234561",
+            "1234567/124561",
+            "124561/1234567"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "1234561, 124567"
+        }
+      ],
+      "display": "1234561, 124567  (또는 1234567, 124561)"
+    },
+    {
+      "id": "2023-1#20",
+      "num": 20,
+      "prompt": "다음 Java 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class Parent {\n    int x = 100;\n\n    Parent() {\n        this(500);\n    }\n\n    Parent(int x) {\n        this.x = x;\n    }\n\n    int getX() {\n        return x;\n    }\n}\n\nclass Child extends Parent {\n    int x = 4000;\n\n    Child() {\n        this(5000);\n    }\n\n    Child(int x) {\n        this.x = x;\n    }\n}\n\npublic class Main {\n    public static void main(String[] args) {\n        Child obj = new Child();\n        System.out.println(obj.getX());\n    }\n}</pre>",
+      "bodyText": "다음 Java 코드의 출력값을 작성하시오.\n\n```java\nclass Parent {\n    int x = 100;\n\n    Parent() {\n        this(500);\n    }\n\n    Parent(int x) {\n        this.x = x;\n    }\n\n    int getX() {\n        return x;\n    }\n}\n\nclass Child extends Parent {\n    int x = 4000;\n\n    Child() {\n        this(5000);\n    }\n\n    Child(int x) {\n        this.x = x;\n    }\n}\n\npublic class Main {\n    public static void main(String[] args) {\n        Child obj = new Child();\n        System.out.println(obj.getX());\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "500"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "500"
+        }
+      ],
+      "display": "500"
+    }
+  ]
+}

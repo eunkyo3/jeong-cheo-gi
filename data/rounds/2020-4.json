@@ -1,0 +1,696 @@
+{
+  "round": "2020-4",
+  "title": "2020년 4회",
+  "sourceUrl": "https://chobopark.tistory.com/192",
+  "questions": [
+    {
+      "id": "2020-4#1",
+      "num": 1,
+      "prompt": "현재 IPv4의 확장형으로 IPv4가 가지고 있는 주소 고갈, 보안성, 이동성 지원 등의 문제점을 해결하기 위해서 개발된 128비트 주소체계를 갖는 차세대 인터넷 프로토콜은 무엇인가?",
+      "bodyHtml": "",
+      "bodyText": "현재 IPv4의 확장형으로 IPv4가 가지고 있는 주소 고갈, 보안성, 이동성 지원 등의 문제점을 해결하기 위해서 개발된 128비트 주소체계를 갖는 차세대 인터넷 프로토콜은 무엇인가?",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ipv6",
+            "ip version 6",
+            "internet protocol version 6",
+            "ipv6(internet protocol version 6)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "IPv6"
+        }
+      ],
+      "display": "IPv6 (Internet Protocol version 6)"
+    },
+    {
+      "id": "2020-4#2",
+      "num": 2,
+      "prompt": "목적에 따른 디자인 패턴의 유형에는 생성, 구조, (&nbsp;&nbsp;) 이/가 있다. 괄호 (&nbsp;&nbsp;) 안에 알맞은 유형을 쓰시오.",
+      "bodyHtml": "",
+      "bodyText": "목적에 따른 디자인 패턴의 유형에는 생성, 구조, (  ) 이/가 있다. 괄호 (  ) 안에 알맞은 유형을 쓰시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "행위",
+            "behavioral",
+            "행위(behavioral)",
+            "행위 패턴",
+            "behavior"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "행위"
+        }
+      ],
+      "display": "행위 (Behavioral)"
+    },
+    {
+      "id": "2020-4#3",
+      "num": 3,
+      "prompt": "다음은 판매와 관련된 다이어그램이다. 해당 다이어그램의 명칭을 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">폴더 모양의 도형 3개(ordering, pricing, products)가 점선 화살표로 연결되어 있고, 화살표에 &lt;&lt;import&gt;&gt; 스테레오타입이 표기되어 있다.</div>\n<pre class=\"code\">┌──────────┐                      ┌──────────┐\n│ ordering │ - - - - - - - - - -▶ │ pricing  │\n└──────────┘                      └──────────┘\n     ╲\n      ╲  &lt;&lt;import&gt;&gt;\n       ╲                          ┌──────────┐\n        ╲ - - - - - - - - - - - -▶│ products │\n                                  └──────────┘\n\n(폴더 모양 도형 3개, 점선 화살표(의존 관계), &lt;&lt;import&gt;&gt; 스테레오타입 표기)</pre>",
+      "bodyText": "다음은 판매와 관련된 다이어그램이다. 해당 다이어그램의 명칭을 쓰시오.\n\n폴더 모양의 도형 3개(ordering, pricing, products)가 점선 화살표로 연결되어 있고, 화살표에 <<import>> 스테레오타입이 표기되어 있다.\n\n```text\n┌──────────┐                      ┌──────────┐\n│ ordering │ - - - - - - - - - -▶ │ pricing  │\n└──────────┘                      └──────────┘\n     ╲\n      ╲  <<import>>\n       ╲                          ┌──────────┐\n        ╲ - - - - - - - - - - - -▶│ products │\n                                  └──────────┘\n\n(폴더 모양 도형 3개, 점선 화살표(의존 관계), <<import>> 스테레오타입 표기)\n```",
+      "sourceImages": [
+        "raw/2020-4/img00.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "패키지 다이어그램",
+            "패키지다이어그램",
+            "package diagram",
+            "패키지 다이어그램(package diagram)",
+            "패키지"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "패키지 다이어그램"
+        }
+      ],
+      "display": "패키지 다이어그램 (Package Diagram)"
+    },
+    {
+      "id": "2020-4#4",
+      "num": 4,
+      "prompt": "데이터베이스의 회복(Recovery) 기법 중 Rollback 시 Redo, Undo가 모두 실행되는 트랜잭션 처리법으로 트랜잭션 수행 중 갱신 결과를 바로 DB에 반영하는 기법은 무엇인가?",
+      "bodyHtml": "",
+      "bodyText": "데이터베이스의 회복(Recovery) 기법 중 Rollback 시 Redo, Undo가 모두 실행되는 트랜잭션 처리법으로 트랜잭션 수행 중 갱신 결과를 바로 DB에 반영하는 기법은 무엇인가?",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "즉각 갱신 회복 기법",
+            "즉각갱신회복기법",
+            "즉시 갱신 회복 기법",
+            "즉각 갱신 기법",
+            "즉시 갱신 기법",
+            "immediate update",
+            "즉각 갱신 회복 기법(immediate update)",
+            "즉각갱신"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "즉각 갱신 회복 기법"
+        }
+      ],
+      "display": "즉각 갱신 회복 기법 (Immediate Update)"
+    },
+    {
+      "id": "2020-4#5",
+      "num": 5,
+      "prompt": "다음은 n이 10일 때, 10을 2진수로 변환하는 자바 소스 코드이다. (1), (2)에 알맞은 값을 적으시오.",
+      "bodyHtml": "<div class=\"hint\">※ [출력결과] : 00001010</div>\n<pre class=\"code\">class good {\n\tpublic static void main (String[] args) {\n    \tint[]a = new int[8];\n        int i=0; int n=10;\n        while (  1.  ) {\n        \ta[i++] = (  2.  );\n            n /= 2;\n        }\n        for(i=7; i&gt;=0; i--){\n         System.out.print(a[i]);\n        }\n     }\n  }</pre>",
+      "bodyText": "다음은 n이 10일 때, 10을 2진수로 변환하는 자바 소스 코드이다. (1), (2)에 알맞은 값을 적으시오.\n\n※ [출력결과] : 00001010\n\n```java\nclass good {\n\tpublic static void main (String[] args) {\n    \tint[]a = new int[8];\n        int i=0; int n=10;\n        while (  1.  ) {\n        \ta[i++] = (  2.  );\n            n /= 2;\n        }\n        for(i=7; i>=0; i--){\n         System.out.print(a[i]);\n        }\n     }\n  }\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1",
+          "accept": [
+            "n > 0",
+            "n>0",
+            "0 < n",
+            "n >= 1",
+            "n>=1",
+            "1 <= n",
+            "i < 8",
+            "i<8",
+            "i <= 7",
+            "i<=7",
+            "n != 0"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "n > 0"
+        },
+        {
+          "label": "2",
+          "accept": [
+            "n%2",
+            "n % 2",
+            "n&1",
+            "n & 1"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "n%2"
+        }
+      ],
+      "display": "1. n > 0 (또는 n >= 1, i < 8, i <= 7) / 2. n%2 (또는 n&1)"
+    },
+    {
+      "id": "2020-4#6",
+      "num": 6,
+      "prompt": "다음은 자바 소스 코드이다. 출력 결과를 보고, (1), (2)에 알맞은 값을 적으시오.",
+      "bodyHtml": "<div class=\"hint\">※ [출력 결과]</div>\n<pre class=\"code\">1 4 7 10 13\n2 5 8 11 14\n3 6 9 12 15</pre>\n<pre class=\"code\">public class good {\n\tpublic static void main(String[] args) {\n    \tint[][]a = new int[(1.)][(2.)];\n        for(int i = 0; i &lt;3; i++){\n        for(int j=0; j &lt; 5; j++){\n        a[i][j] = j*3+(i+1);\n        \tSystem.out.print(a[i][j]+\"\");\n         }\n         System.out.println();\n       }\n     }\n   }</pre>",
+      "bodyText": "다음은 자바 소스 코드이다. 출력 결과를 보고, (1), (2)에 알맞은 값을 적으시오.\n\n※ [출력 결과]\n\n```text\n1 4 7 10 13\n2 5 8 11 14\n3 6 9 12 15\n```\n\n```java\npublic class good {\n\tpublic static void main(String[] args) {\n    \tint[][]a = new int[(1.)][(2.)];\n        for(int i = 0; i <3; i++){\n        for(int j=0; j < 5; j++){\n        a[i][j] = j*3+(i+1);\n        \tSystem.out.print(a[i][j]+\"\");\n         }\n         System.out.println();\n       }\n     }\n   }\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1",
+          "accept": [
+            "3"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "3"
+        },
+        {
+          "label": "2",
+          "accept": [
+            "5"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "5"
+        }
+      ],
+      "display": "1. 3 / 2. 5"
+    },
+    {
+      "id": "2020-4#7",
+      "num": 7,
+      "prompt": "스니핑(Sniffing)에 대하여 서술하시오.",
+      "bodyHtml": "",
+      "bodyText": "스니핑(Sniffing)에 대하여 서술하시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [],
+          "normalize": "default",
+          "validator": {
+            "type": "keywords",
+            "all": [],
+            "any": [
+              "도청",
+              "엿",
+              "가로채",
+              "가로챔",
+              "훔쳐",
+              "몰래",
+              "수집",
+              "캡처",
+              "캡쳐",
+              "수동",
+              "탈취"
+            ],
+            "minAny": 1
+          },
+          "sampleAnswer": "네트워크 패킷을 수집해 엿보는 수동적 공격"
+        }
+      ],
+      "display": "암호화되지 않은 패킷들을 수집하여 순서대로 재조합한 뒤 ID, PW와 같은 중요한 정보를 유출하기 위한 수동적인 형태의 공격"
+    },
+    {
+      "id": "2020-4#8",
+      "num": 8,
+      "prompt": "IP 패킷에서 외부의 공인 IP주소와 포트 주소에 해당하는 내부 IP주소를 재기록하여 라우터를 통해 네트워크 트래픽을 주고받는 기술은 무엇인가?",
+      "bodyHtml": "",
+      "bodyText": "IP 패킷에서 외부의 공인 IP주소와 포트 주소에 해당하는 내부 IP주소를 재기록하여 라우터를 통해 네트워크 트래픽을 주고받는 기술은 무엇인가?",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "nat",
+            "network address translation",
+            "network address transformation",
+            "nat(network address translation)",
+            "nat(network address transformation)",
+            "네트워크 주소 변환"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "NAT"
+        }
+      ],
+      "display": "NAT (Network Address Translation)"
+    },
+    {
+      "id": "2020-4#9",
+      "num": 9,
+      "prompt": "다음은 파이썬 소스 코드이다. 출력 결과를 쓰시오. (출력되는 각 줄을 순서대로 쓰시오)",
+      "bodyHtml": "<pre class=\"code\">lol = [[1,2,3],[4,5],[6,7,8,9]]\nprint(lol[0])\nprint(lol[2][1])\n\tfor sub in lol:\n   \tfor item in sub:\n        \tprint(item, end = '')\n      \tprint()</pre>",
+      "bodyText": "다음은 파이썬 소스 코드이다. 출력 결과를 쓰시오. (출력되는 각 줄을 순서대로 쓰시오)\n\n```python\nlol = [[1,2,3],[4,5],[6,7,8,9]]\nprint(lol[0])\nprint(lol[2][1])\n\tfor sub in lol:\n   \tfor item in sub:\n        \tprint(item, end = '')\n      \tprint()\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1행",
+          "accept": [
+            "[1, 2, 3]",
+            "[1,2,3]"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "[1, 2, 3]"
+        },
+        {
+          "label": "2행",
+          "accept": [
+            "7"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "7"
+        },
+        {
+          "label": "3행",
+          "accept": [
+            "123"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "123"
+        },
+        {
+          "label": "4행",
+          "accept": [
+            "45"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "45"
+        },
+        {
+          "label": "5행",
+          "accept": [
+            "6789"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "6789"
+        }
+      ],
+      "display": "[1, 2, 3] / 7 / 123 / 45 / 6789"
+    },
+    {
+      "id": "2020-4#10",
+      "num": 10,
+      "prompt": "분산 컴퓨팅 기술 기반의 데이터 위변조 방지 기술로 P2P방식을 기반으로 하여 소규모 데이터들이 연결되어 형성된 '블록'이라는 분산 데이터 저장 환경에 관리 대상 데이터를 저장함으로써 누구도 임의로 수정할 수 없고 누구나 변경의 결과를 열람할 수 있게끔 만드는 기술은 무엇인가?",
+      "bodyHtml": "",
+      "bodyText": "분산 컴퓨팅 기술 기반의 데이터 위변조 방지 기술로 P2P방식을 기반으로 하여 소규모 데이터들이 연결되어 형성된 '블록'이라는 분산 데이터 저장 환경에 관리 대상 데이터를 저장함으로써 누구도 임의로 수정할 수 없고 누구나 변경의 결과를 열람할 수 있게끔 만드는 기술은 무엇인가?",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "블록체인",
+            "blockchain",
+            "block chain",
+            "블록체인(blockchain)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "블록체인"
+        }
+      ],
+      "display": "블록체인 (Blockchain)"
+    },
+    {
+      "id": "2020-4#11",
+      "num": 11,
+      "prompt": "오픈 소스 기반으로 한 분산 컴퓨팅 플랫폼으로, 일반 PC급 컴퓨터들로 가상화된 대형 스토리지를 형성하고 그 안에 보관된 거대한 데이터 세트를 병렬로 처리할 수 있도록 개발된 자바 소프트웨어 프레임워크로 구글, 야후 등에 적용한 기술은 무엇인가?",
+      "bodyHtml": "",
+      "bodyText": "오픈 소스 기반으로 한 분산 컴퓨팅 플랫폼으로, 일반 PC급 컴퓨터들로 가상화된 대형 스토리지를 형성하고 그 안에 보관된 거대한 데이터 세트를 병렬로 처리할 수 있도록 개발된 자바 소프트웨어 프레임워크로 구글, 야후 등에 적용한 기술은 무엇인가?",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "하둡",
+            "hadoop",
+            "하둡(hadoop)",
+            "apache hadoop"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "하둡"
+        }
+      ],
+      "display": "하둡 (Hadoop)"
+    },
+    {
+      "id": "2020-4#12",
+      "num": 12,
+      "prompt": "이상 현상(Anomaly)의 종류 3가지를 쓰시오.",
+      "bodyHtml": "",
+      "bodyText": "이상 현상(Anomaly)의 종류 3가지를 쓰시오.",
+      "sourceImages": [],
+      "answerMode": "unordered",
+      "fields": [
+        {
+          "label": "1",
+          "accept": [
+            "삽입 이상",
+            "삽입이상",
+            "insertion anomaly",
+            "삽입 이상(insertion anomaly)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "삽입 이상"
+        },
+        {
+          "label": "2",
+          "accept": [
+            "삭제 이상",
+            "삭제이상",
+            "deletion anomaly",
+            "삭제 이상(deletion anomaly)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "삭제 이상"
+        },
+        {
+          "label": "3",
+          "accept": [
+            "갱신 이상",
+            "갱신이상",
+            "update anomaly",
+            "갱신 이상(update anomaly)",
+            "수정 이상"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "갱신 이상"
+        }
+      ],
+      "display": "삽입 이상(Insertion Anomaly) / 삭제 이상(Deletion Anomaly) / 갱신 이상(Update Anomaly)"
+    },
+    {
+      "id": "2020-4#13",
+      "num": 13,
+      "prompt": "다음은 프로세스 상태 전이도이다. (1), (2), (3)에 알맞은 상태를 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">아래는 프로세스 상태 전이도이다. 화살표 위의 글자는 전이 사건이다.</div>\n<pre class=\"code\">생성 ──────▶ (1.)\n(1.) ──디스패치──▶ (2.)\n(2.) ──타이머 런 아웃──▶ (1.)\n(2.) ──종료──▶ 완료\n(2.) ──입출력 발생──▶ (3.)\n(3.) ──웨이크 업──▶ (1.)</pre>",
+      "bodyText": "다음은 프로세스 상태 전이도이다. (1), (2), (3)에 알맞은 상태를 쓰시오.\n\n아래는 프로세스 상태 전이도이다. 화살표 위의 글자는 전이 사건이다.\n\n```text\n생성 ──────▶ (1.)\n(1.) ──디스패치──▶ (2.)\n(2.) ──타이머 런 아웃──▶ (1.)\n(2.) ──종료──▶ 완료\n(2.) ──입출력 발생──▶ (3.)\n(3.) ──웨이크 업──▶ (1.)\n```",
+      "sourceImages": [
+        "raw/2020-4/img01.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1",
+          "accept": [
+            "준비",
+            "ready",
+            "준비 상태",
+            "준비(ready)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "준비"
+        },
+        {
+          "label": "2",
+          "accept": [
+            "실행",
+            "run",
+            "running",
+            "실행 상태",
+            "실행(run)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "실행"
+        },
+        {
+          "label": "3",
+          "accept": [
+            "대기",
+            "wait",
+            "waiting",
+            "blocked",
+            "대기 상태",
+            "대기(wait)",
+            "보류"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "대기"
+        }
+      ],
+      "display": "1. 준비(Ready) / 2. 실행(Run) / 3. 대기(Wait)"
+    },
+    {
+      "id": "2020-4#14",
+      "num": 14,
+      "prompt": "테스트 오라클 중 특정한 몇 개의 입력값에 대해서만 기대하는 결과를 제공해주는 오라클은 무엇인가?",
+      "bodyHtml": "",
+      "bodyText": "테스트 오라클 중 특정한 몇 개의 입력값에 대해서만 기대하는 결과를 제공해주는 오라클은 무엇인가?",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "샘플링 오라클",
+            "샘플링오라클",
+            "sampling oracle",
+            "샘플링 오라클(sampling oracle)",
+            "샘플링"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "샘플링 오라클"
+        }
+      ],
+      "display": "샘플링 오라클 (Sampling Oracle)"
+    },
+    {
+      "id": "2020-4#15",
+      "num": 15,
+      "prompt": "점수에 따른 성적 부여가 잘 되었는지 테스트하고자 한다. 아래에 알맞은 테스트 기법은 무엇인가?",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>점수</th><th>성적</th></tr>\n<tr><td>0 ~ 59</td><td>가</td></tr>\n<tr><td>60 ~ 69</td><td>양</td></tr>\n<tr><td>70 ~ 79</td><td>미</td></tr>\n<tr><td>80 ~ 89</td><td>우</td></tr>\n<tr><td>90 ~ 100</td><td>수</td></tr>\n</table>\n<div class=\"hint\">※ [테스트 값] : -10점 / 30점 / 65점 / 75점 / 85점 / 95점 / 110점</div>",
+      "bodyText": "점수에 따른 성적 부여가 잘 되었는지 테스트하고자 한다. 아래에 알맞은 테스트 기법은 무엇인가?\n\n| 점수 | 성적 |\n| --- | --- |\n| 0 ~ 59 | 가 |\n| 60 ~ 69 | 양 |\n| 70 ~ 79 | 미 |\n| 80 ~ 89 | 우 |\n| 90 ~ 100 | 수 |\n\n※ [테스트 값] : -10점 / 30점 / 65점 / 75점 / 85점 / 95점 / 110점",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "동등분할 테스트",
+            "동등분할",
+            "동치분할",
+            "동치분할 테스트",
+            "equivalence partitioning",
+            "동등분할 기법",
+            "동치분할 검사",
+            "동등분할 검사",
+            "동등분할(equivalence partitioning)",
+            "동등 분할 테스트"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "동등분할 테스트"
+        }
+      ],
+      "display": "동등분할 테스트 (Equivalence Partitioning)"
+    },
+    {
+      "id": "2020-4#16",
+      "num": 16,
+      "prompt": "다음 조건을 만족하면서 학과별로 튜플 수가 얼마인지 구하는 SQL문을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">- 대소문자를 구분하지 않는다.<br>- WHERE 구문을 사용하지 않는다.<br>- GROUP BY 를 사용한다.<br>- 세미콜론(;)은 생략 가능하다.<br>- 별칭(AS)을 사용해야 한다. (별칭 사용 시 별칭은 작은 따옴표를 써야 함)<br>- 집계 함수를 사용해야 한다.</div>\n<div class=\"hint\">※ [학생] 테이블</div>\n<table class=\"tbl\">\n<tr><th>학과</th><th>학생</th></tr>\n<tr><td>전기</td><td>이순신</td></tr>\n<tr><td>컴퓨터</td><td>안중근</td></tr>\n<tr><td>컴퓨터</td><td>윤봉길</td></tr>\n<tr><td>전자</td><td>이봉창</td></tr>\n<tr><td>전자</td><td>강우규</td></tr>\n</table>\n<div class=\"hint\">※ [결과]</div>\n<table class=\"tbl\">\n<tr><th>학과</th><th>학과별튜플수</th></tr>\n<tr><td>전기</td><td>1</td></tr>\n<tr><td>컴퓨터</td><td>2</td></tr>\n<tr><td>전자</td><td>2</td></tr>\n</table>",
+      "bodyText": "다음 조건을 만족하면서 학과별로 튜플 수가 얼마인지 구하는 SQL문을 작성하시오.\n\n- 대소문자를 구분하지 않는다.\n- WHERE 구문을 사용하지 않는다.\n- GROUP BY 를 사용한다.\n- 세미콜론(;)은 생략 가능하다.\n- 별칭(AS)을 사용해야 한다. (별칭 사용 시 별칭은 작은 따옴표를 써야 함)\n- 집계 함수를 사용해야 한다.\n\n※ [학생] 테이블\n\n| 학과 | 학생 |\n| --- | --- |\n| 전기 | 이순신 |\n| 컴퓨터 | 안중근 |\n| 컴퓨터 | 윤봉길 |\n| 전자 | 이봉창 |\n| 전자 | 강우규 |\n\n※ [결과]\n\n| 학과 | 학과별튜플수 |\n| --- | --- |\n| 전기 | 1 |\n| 컴퓨터 | 2 |\n| 전자 | 2 |",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "SELECT 학과, COUNT(학과) AS 학과별튜플수 FROM 학생 GROUP BY 학과;",
+            "SELECT 학과, COUNT(*) AS 학과별튜플수 FROM 학생 GROUP BY 학과;",
+            "SELECT 학과, COUNT(학과) AS '학과별튜플수' FROM 학생 GROUP BY 학과;",
+            "SELECT 학과, COUNT(*) AS '학과별튜플수' FROM 학생 GROUP BY 학과;",
+            "SELECT 학과, COUNT(학과) AS \"학과별튜플수\" FROM 학생 GROUP BY 학과;",
+            "SELECT 학과, COUNT(*) AS \"학과별튜플수\" FROM 학생 GROUP BY 학과;",
+            "SELECT 학과, COUNT (학과) AS 학과별튜플수 FROM 학생 GROUP BY 학과;",
+            "SELECT 학과, COUNT (*) AS 학과별튜플수 FROM 학생 GROUP BY 학과;",
+            "SELECT 학과, COUNT (학과) AS '학과별튜플수' FROM 학생 GROUP BY 학과;",
+            "SELECT 학과, COUNT (*) AS '학과별튜플수' FROM 학생 GROUP BY 학과;",
+            "SELECT 학과, COUNT (학과) AS \"학과별튜플수\" FROM 학생 GROUP BY 학과;",
+            "SELECT 학과, COUNT (*) AS \"학과별튜플수\" FROM 학생 GROUP BY 학과;",
+            "SELECT 학과,COUNT(학과) AS 학과별튜플수 FROM 학생 GROUP BY 학과;",
+            "SELECT 학과,COUNT(*) AS 학과별튜플수 FROM 학생 GROUP BY 학과;",
+            "SELECT 학과,COUNT(학과) AS '학과별튜플수' FROM 학생 GROUP BY 학과;",
+            "SELECT 학과,COUNT(*) AS '학과별튜플수' FROM 학생 GROUP BY 학과;",
+            "SELECT 학과,COUNT(학과) AS \"학과별튜플수\" FROM 학생 GROUP BY 학과;",
+            "SELECT 학과,COUNT(*) AS \"학과별튜플수\" FROM 학생 GROUP BY 학과;",
+            "SELECT 학과,COUNT (학과) AS 학과별튜플수 FROM 학생 GROUP BY 학과;",
+            "SELECT 학과,COUNT (*) AS 학과별튜플수 FROM 학생 GROUP BY 학과;",
+            "SELECT 학과,COUNT (학과) AS '학과별튜플수' FROM 학생 GROUP BY 학과;",
+            "SELECT 학과,COUNT (*) AS '학과별튜플수' FROM 학생 GROUP BY 학과;",
+            "SELECT 학과,COUNT (학과) AS \"학과별튜플수\" FROM 학생 GROUP BY 학과;",
+            "SELECT 학과,COUNT (*) AS \"학과별튜플수\" FROM 학생 GROUP BY 학과;"
+          ],
+          "normalize": "sql",
+          "validator": null,
+          "sampleAnswer": "SELECT 학과, COUNT(학과) AS 학과별튜플수 FROM 학생 GROUP BY 학과;"
+        }
+      ],
+      "display": "SELECT 학과, COUNT(학과) AS 학과별튜플수 FROM 학생 GROUP BY 학과;"
+    },
+    {
+      "id": "2020-4#17",
+      "num": 17,
+      "prompt": "데니스 리치와 켄톰슨 등이 함께 벨 연구소를 통해 만든 운영체제이며, 90% 이상 C언어로 구현되어 있고, 시스템 프로그램이 모듈화되어 있어서 다른 하드웨어 기종으로 쉽게 이식 가능하며 계층적 트리 구조를 가짐으로써 통합적인 파일 관리가 용이한 운영체제는 무엇인가?",
+      "bodyHtml": "",
+      "bodyText": "데니스 리치와 켄톰슨 등이 함께 벨 연구소를 통해 만든 운영체제이며, 90% 이상 C언어로 구현되어 있고, 시스템 프로그램이 모듈화되어 있어서 다른 하드웨어 기종으로 쉽게 이식 가능하며 계층적 트리 구조를 가짐으로써 통합적인 파일 관리가 용이한 운영체제는 무엇인가?",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "유닉스",
+            "unix",
+            "유닉스(unix)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "유닉스"
+        }
+      ],
+      "display": "유닉스 (UNIX)"
+    },
+    {
+      "id": "2020-4#18",
+      "num": 18,
+      "prompt": "다음은 C언어 소스 코드이다. 출력값을 쓰시오. (출력되는 각 줄을 순서대로 쓰시오)",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nvoid main(){\n\tchar *p = \"KOREA\"\n    printf(\"%s\\n\" , p);\n    printf(\"%s\\n\" , p+3);\n    printf(\"%c\\n\" , *p);\n    printf(\"%c\\n\" , *(p+3));\n    printf(\"%c\\n\" , *p+2);</pre>",
+      "bodyText": "다음은 C언어 소스 코드이다. 출력값을 쓰시오. (출력되는 각 줄을 순서대로 쓰시오)\n\n```c\n#include <stdio.h>\n\nvoid main(){\n\tchar *p = \"KOREA\"\n    printf(\"%s\\n\" , p);\n    printf(\"%s\\n\" , p+3);\n    printf(\"%c\\n\" , *p);\n    printf(\"%c\\n\" , *(p+3));\n    printf(\"%c\\n\" , *p+2);\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1행",
+          "accept": [
+            "KOREA",
+            "korea"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "KOREA"
+        },
+        {
+          "label": "2행",
+          "accept": [
+            "EA",
+            "ea"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "EA"
+        },
+        {
+          "label": "3행",
+          "accept": [
+            "K",
+            "k"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "K"
+        },
+        {
+          "label": "4행",
+          "accept": [
+            "E",
+            "e"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "E"
+        },
+        {
+          "label": "5행",
+          "accept": [
+            "M",
+            "m"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "M"
+        }
+      ],
+      "display": "KOREA / EA / K / E / M"
+    },
+    {
+      "id": "2020-4#19",
+      "num": 19,
+      "prompt": "다음은 자바 소스 코드이다. 출력 결과를 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">class parent{\n\tpublic int compute(int num){\n    \tif(num &lt;=1) return num;\n        return compute(num-1) + compute(num-2);\n    }\n }\n\n class Child extends parent {\n \tpublic int compute(int num){\n    \tif(num&lt;=1) return num;\n        \treturn compute(num-1) + compute(num-3);\n        }\n   }\n\n  class good{\n  \tpublic static void main (String[] args){\n    parent obj = new Child();\n    System.out.print(obj.compute(4));\n   }\n }</pre>",
+      "bodyText": "다음은 자바 소스 코드이다. 출력 결과를 쓰시오.\n\n```java\nclass parent{\n\tpublic int compute(int num){\n    \tif(num <=1) return num;\n        return compute(num-1) + compute(num-2);\n    }\n }\n\n class Child extends parent {\n \tpublic int compute(int num){\n    \tif(num<=1) return num;\n        \treturn compute(num-1) + compute(num-3);\n        }\n   }\n\n  class good{\n  \tpublic static void main (String[] args){\n    parent obj = new Child();\n    System.out.print(obj.compute(4));\n   }\n }\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "1"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "1"
+        }
+      ],
+      "display": "1"
+    },
+    {
+      "id": "2020-4#20",
+      "num": 20,
+      "prompt": "정보보안에서 가용성(Availability)에 대하여 서술하시오.",
+      "bodyHtml": "",
+      "bodyText": "정보보안에서 가용성(Availability)에 대하여 서술하시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [],
+          "normalize": "default",
+          "validator": {
+            "type": "keywords",
+            "all": [],
+            "any": [
+              "서비스",
+              "지속",
+              "언제든",
+              "중단",
+              "자원",
+              "사용할 수 있",
+              "이용할 수 있",
+              "사용 가능",
+              "이용 가능",
+              "가용",
+              "접근할 수 있"
+            ],
+            "minAny": 1
+          },
+          "sampleAnswer": "권한을 가진 사용자가 서비스를 지속 사용하도록 보장"
+        }
+      ],
+      "display": "권한을 가진 사용자가 원하는 서비스를 지속적으로 사용할 수 있도록 보장하는 특성"
+    }
+  ]
+}

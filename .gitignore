@@ -1,0 +1,14 @@
+node_modules/
+data/secret.key
+data/raw/
+data/*.db
+*.db
+*.db-journal
+dist/
+*.db-wal
+*.db-shm
+data/app.json
+data/app.json.tmp-*
+data/reports.json
+data/reports.json.tmp-*
+.omc/

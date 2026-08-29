@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>랭킹 · 정처기 배틀</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="/css/ranking.css">
+</head>
+<body>
+
+<!-- 화면은 public/js/ranking.js 가 그린다. #nav 와 #view 만 비워 둔다. -->
+
+<nav class="topnav" id="nav"></nav>
+
+<div class="wrap">
+  <noscript>
+    <div class="banner err">이 페이지는 자바스크립트가 필요합니다. 브라우저에서 자바스크립트를 켜 주세요.</div>
+  </noscript>
+  <main id="view">
+    <div class="empty">불러오는 중…</div>
+  </main>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/ranking.js"></script>
+</body>
+</html>

@@ -1,0 +1,628 @@
+{
+  "round": "2023-3",
+  "title": "2023년 3회",
+  "sourceUrl": "https://chobopark.tistory.com/453",
+  "questions": [
+    {
+      "id": "2023-3#1",
+      "num": 1,
+      "prompt": "다음은 Java 코드이다. 올바른 출력 결과를 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public class main{\n    public static void main(String[] args) {\n        A b = new B();\n        b.paint();\n        b.draw();\n    }\n}\n\nclass A {\n    public void paint() {\n        System.out.print(\"A\");\n        draw();\n    }\n    public void draw() {\n        System.out.print(\"B\");\n        draw();\n    }\n}\n\nclass B extends A {\n    public void paint() {\n        super.draw();\n        System.out.print(\"C\");\n        this.draw();\n    }\n    public void draw() {\n        System.out.print(\"D\");\n    }\n}</pre>",
+      "bodyText": "다음은 Java 코드이다. 올바른 출력 결과를 작성하시오.\n\n```java\npublic class main{\n    public static void main(String[] args) {\n        A b = new B();\n        b.paint();\n        b.draw();\n    }\n}\n\nclass A {\n    public void paint() {\n        System.out.print(\"A\");\n        draw();\n    }\n    public void draw() {\n        System.out.print(\"B\");\n        draw();\n    }\n}\n\nclass B extends A {\n    public void paint() {\n        super.draw();\n        System.out.print(\"C\");\n        this.draw();\n    }\n    public void draw() {\n        System.out.print(\"D\");\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "BDCDD",
+            "bdcdd"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "BDCDD"
+        }
+      ],
+      "display": "BDCDD"
+    },
+    {
+      "id": "2023-3#2",
+      "num": 2,
+      "prompt": "다음 설명하는 용어를 보기에 맞게 골라 기호를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">사용자가 사용자 이름 및 암호와 같은 자격 증명을 공유하지 않고도 타사 애플리케이션이 데이터 또는 리소스에 액세스할 수 있도록 권한을 부여할 수 있는 개방형 표준 프로토콜이다.</div>\n<div class=\"desc-box\">사용자가 데이터에 대한 제어를 유지하면서 리소스에 대한 액세스 권한을 부여할 수 있는 안전하고 표준화된 방법을 제공하며, 액세스 토큰을 사용하여 타사 애플리케이션에 리소스에 대한 액세스 권한을 부여하는 메커니즘을 사용자에게 제공하는 방식으로 작동한다.</div>\n<div class=\"desc-box\">사용자가 응용 프로그램에 대한 액세스 권한을 부여하면 응용 프로그램은 사용자를 대신하여 사용자의 리소스 또는 데이터에 액세스하는 데 사용할 수 있는 액세스 토큰을 받는다.</div>\n<div class=\"desc-box\">암호와 같은 사용자의 자격 증명은 타사 응용 프로그램과 공유되지 않으며, 클라우드 스토리지 서비스, 온라인 마켓 플레이스 및 금융 서비스를 포함한 다른 많은 응용 프로그램 및 서비스에서도 사용된다.</div>\n<div class=\"desc-box\">Facebook, Twitter 및 LinkedIn과 같은 소셜 미디어 플랫폼에서 널리 사용되어 사용자가 소셜 미디어 데이터에 대한 액세스 권한을 타사 애플리케이션에 부여할 수 있도록 한다.</div>\n<div class=\"desc-box\">타사 애플리케이션에 대한 사용자 자격 증명의 노출을 최소화하여 향상된 보안, 간소화된 애플리케이션 개발, 사용자가 리소스에 대한 액세스 권한을 쉽게 부여하거나 취소할 수 있도록 하여 향상된 사용자 환경 등 여러 가지 이점을 제공한다.</div>\n<div class=\"boki\"><b>[보기]</b>\nㄱ. NFT&emsp;ㄴ. JWT&emsp;ㄷ. SAML&emsp;ㄹ. accessToken&emsp;ㅁ. SSO<br>ㅂ. OIDC&emsp;ㅅ. Autentication&emsp;ㅇ. OAuth&emsp;ㅈ. Cookie&emsp;ㅊ. Refresh Token</div>",
+      "bodyText": "다음 설명하는 용어를 보기에 맞게 골라 기호를 작성하시오.\n\n사용자가 사용자 이름 및 암호와 같은 자격 증명을 공유하지 않고도 타사 애플리케이션이 데이터 또는 리소스에 액세스할 수 있도록 권한을 부여할 수 있는 개방형 표준 프로토콜이다.\n\n사용자가 데이터에 대한 제어를 유지하면서 리소스에 대한 액세스 권한을 부여할 수 있는 안전하고 표준화된 방법을 제공하며, 액세스 토큰을 사용하여 타사 애플리케이션에 리소스에 대한 액세스 권한을 부여하는 메커니즘을 사용자에게 제공하는 방식으로 작동한다.\n\n사용자가 응용 프로그램에 대한 액세스 권한을 부여하면 응용 프로그램은 사용자를 대신하여 사용자의 리소스 또는 데이터에 액세스하는 데 사용할 수 있는 액세스 토큰을 받는다.\n\n암호와 같은 사용자의 자격 증명은 타사 응용 프로그램과 공유되지 않으며, 클라우드 스토리지 서비스, 온라인 마켓 플레이스 및 금융 서비스를 포함한 다른 많은 응용 프로그램 및 서비스에서도 사용된다.\n\nFacebook, Twitter 및 LinkedIn과 같은 소셜 미디어 플랫폼에서 널리 사용되어 사용자가 소셜 미디어 데이터에 대한 액세스 권한을 타사 애플리케이션에 부여할 수 있도록 한다.\n\n타사 애플리케이션에 대한 사용자 자격 증명의 노출을 최소화하여 향상된 보안, 간소화된 애플리케이션 개발, 사용자가 리소스에 대한 액세스 권한을 쉽게 부여하거나 취소할 수 있도록 하여 향상된 사용자 환경 등 여러 가지 이점을 제공한다.\n\n[보기]\nㄱ. NFT\nㄴ. JWT\nㄷ. SAML\nㄹ. accessToken\nㅁ. SSO\nㅂ. OIDC\nㅅ. Autentication\nㅇ. OAuth\nㅈ. Cookie\nㅊ. Refresh Token",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ㅇ",
+            "OAuth",
+            "ㅇ(OAuth)",
+            "ㅇ. OAuth",
+            "OAuth 2.0",
+            "오어스"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㅇ"
+        }
+      ],
+      "display": "ㅇ. OAuth"
+    },
+    {
+      "id": "2023-3#3",
+      "num": 3,
+      "prompt": "리눅스(Linux)에서 사용자에게 읽기/쓰기/실행 권한을 부여하고, 그룹에게는 읽기/실행을 부여하고, 그 이외에는 실행 권한을 test.txt 파일에 부여하기 위한 명령어는 다음과 같다. 빈칸에 들어갈 답을 작성하시오. (8진법 사용)",
+      "bodyHtml": "<pre class=\"code\">(    (1)    ) (    (2)    ) test.txt</pre>",
+      "bodyText": "리눅스(Linux)에서 사용자에게 읽기/쓰기/실행 권한을 부여하고, 그룹에게는 읽기/실행을 부여하고, 그 이외에는 실행 권한을 test.txt 파일에 부여하기 위한 명령어는 다음과 같다. 빈칸에 들어갈 답을 작성하시오. (8진법 사용)\n\n(    (1)    ) (    (2)    ) test.txt",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "chmod"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "chmod"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "751"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "751"
+        }
+      ],
+      "display": "(1) chmod / (2) 751"
+    },
+    {
+      "id": "2023-3#4",
+      "num": 4,
+      "prompt": "다음은 C 언어 코드이다. 알맞는 출력 결과를 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nint test(int n) {\n    int i, sum = 0;\n\n    for (i = 1; i &lt;= n / 2; i++){\n        if (n % i == 0)\n        sum += i;\n    }\n\n    if (n == sum)\n        return 1;\n\n    return 0;\n}\n\nint main(){\n    int i, sum=0;\n\n    for (i = 2; i &lt;= 100; i++){\n        if (test(i))\n        sum += i;\n    }\n\n    printf(\"%d \", sum);\n    return 0;\n}</pre>",
+      "bodyText": "다음은 C 언어 코드이다. 알맞는 출력 결과를 작성하시오.\n\n```c\n#include <stdio.h>\n\nint test(int n) {\n    int i, sum = 0;\n\n    for (i = 1; i <= n / 2; i++){\n        if (n % i == 0)\n        sum += i;\n    }\n\n    if (n == sum)\n        return 1;\n\n    return 0;\n}\n\nint main(){\n    int i, sum=0;\n\n    for (i = 2; i <= 100; i++){\n        if (test(i))\n        sum += i;\n    }\n\n    printf(\"%d \", sum);\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "34"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "34"
+        }
+      ],
+      "display": "34"
+    },
+    {
+      "id": "2023-3#5",
+      "num": 5,
+      "prompt": "C언어에서 구조체의 멤버에 접근하기 위해 괄호 안에 들어갈 기호를 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n#include &lt;stdlib.h&gt;\n\ntypedef struct Data{\n    char c;\n    int *numPtr;\n} Data;\n\nint main(){\n    int num = 10;\n    Data d1;\n    Data *d2 = malloc(sizeof(struct Data));\n\n    d1.numPtr = &amp;num;\n    d2 ( ) numPtr = &amp;num;\n\n    printf(\"%d\\n\", *d1.numPtr);\n    printf(\"%d\\n\", *d2 ( ) numPtr);\n\n    free(d2);\n    return 0;\n}</pre>\n<div class=\"desc-box\"><b>[출력결과]</b></div>\n<pre class=\"code\">10\n10</pre>",
+      "bodyText": "C언어에서 구조체의 멤버에 접근하기 위해 괄호 안에 들어갈 기호를 작성하시오.\n\n```c\n#include <stdio.h>\n#include <stdlib.h>\n\ntypedef struct Data{\n    char c;\n    int *numPtr;\n} Data;\n\nint main(){\n    int num = 10;\n    Data d1;\n    Data *d2 = malloc(sizeof(struct Data));\n\n    d1.numPtr = &num;\n    d2 ( ) numPtr = &num;\n\n    printf(\"%d\\n\", *d1.numPtr);\n    printf(\"%d\\n\", *d2 ( ) numPtr);\n\n    free(d2);\n    return 0;\n}\n```\n\n[출력결과]\n10\n10",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "->",
+            "→",
+            "- >"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "->"
+        }
+      ],
+      "display": "-> (화살표 연산자)"
+    },
+    {
+      "id": "2023-3#6",
+      "num": 6,
+      "prompt": "다음 빈칸에 들어갈 UNION 연산의 결과값을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>[테이블]</b></div>\n<table class=\"tbl\">\n<tr><th>T1</th></tr>\n<tr><td>3</td></tr>\n<tr><td>1</td></tr>\n<tr><td>4</td></tr>\n</table>\n<table class=\"tbl\">\n<tr><th>T2</th></tr>\n<tr><td>2</td></tr>\n<tr><td>4</td></tr>\n<tr><td>3</td></tr>\n</table>\n<div class=\"desc-box\"><b>[쿼리]</b></div>\n<pre class=\"code\">SELECT A FROM  T1\nUNION\nSELECT A FROM  T2\nORDER BY A DESC;</pre>\n<div class=\"desc-box\"><b>[결과 테이블]</b></div>\n<table class=\"tbl\">\n<tr><th>A</th></tr>\n<tr><td>(1)</td></tr>\n<tr><td>(2)</td></tr>\n<tr><td>(3)</td></tr>\n<tr><td>(4)</td></tr>\n</table>",
+      "bodyText": "다음 빈칸에 들어갈 UNION 연산의 결과값을 작성하시오.\n\n[테이블]\n\n| T1 |\n| --- |\n| 3 |\n| 1 |\n| 4 |\n\n| T2 |\n| --- |\n| 2 |\n| 4 |\n| 3 |\n\n[쿼리]\n\n```sql\nSELECT A FROM  T1\nUNION\nSELECT A FROM  T2\nORDER BY A DESC;\n```\n\n[결과 테이블]\n\n| A |\n| --- |\n| (1) |\n| (2) |\n| (3) |\n| (4) |",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "4"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "4"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "3"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "3"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "2"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "2"
+        },
+        {
+          "label": "(4)",
+          "accept": [
+            "1"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "1"
+        }
+      ],
+      "display": "(1) 4 / (2) 3 / (3) 2 / (4) 1"
+    },
+    {
+      "id": "2023-3#7",
+      "num": 7,
+      "prompt": "다음 설명은 서버 접근 통제의 유형이다. 괄호 안에 들어갈 용어를 작성하시오. (영어 약자로 작성하시오.)",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;(1)&nbsp;&nbsp;)은/는 규칙 기반(Rule-Based) 접근통제 정책으로, 객체에 포함된 정보의 허용 등급과 접근 정보에 대하여 주체가 갖는 접근 허가 권한에 근거하여 객체에 대한 접근을 제한하는 방법이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;(2)&nbsp;&nbsp;)은/는 중앙 관리자가 사용자와 시스템의 상호관계를 통제하며 조직 내 맡은 역할(Role)에 기초하여 자원에 대한 접근을 제한하는 방법이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;(3)&nbsp;&nbsp;)은/는 신분 기반(Identity-Based) 접근통제 정책으로, 주체나 그룹의 신분에 근거하여 객체에 대한 접근을 제한하는 방법이다.</div>",
+      "bodyText": "다음 설명은 서버 접근 통제의 유형이다. 괄호 안에 들어갈 용어를 작성하시오. (영어 약자로 작성하시오.)\n\n(  (1)  )은/는 규칙 기반(Rule-Based) 접근통제 정책으로, 객체에 포함된 정보의 허용 등급과 접근 정보에 대하여 주체가 갖는 접근 허가 권한에 근거하여 객체에 대한 접근을 제한하는 방법이다.\n\n(  (2)  )은/는 중앙 관리자가 사용자와 시스템의 상호관계를 통제하며 조직 내 맡은 역할(Role)에 기초하여 자원에 대한 접근을 제한하는 방법이다.\n\n(  (3)  )은/는 신분 기반(Identity-Based) 접근통제 정책으로, 주체나 그룹의 신분에 근거하여 객체에 대한 접근을 제한하는 방법이다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "MAC",
+            "Mandatory Access Control",
+            "강제접근통제",
+            "강제적 접근통제"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "MAC"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "RBAC",
+            "Role Based Access Control",
+            "Role-Based Access Control",
+            "역할기반접근통제"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "RBAC"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "DAC",
+            "Discretionary Access Control",
+            "임의접근통제",
+            "임의적 접근통제"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "DAC"
+        }
+      ],
+      "display": "(1) MAC (Mandatory Access Control) / (2) RBAC (Role Based Access Control) / (3) DAC (Discretionary Access Control)"
+    },
+    {
+      "id": "2023-3#8",
+      "num": 8,
+      "prompt": "다음 C언어 코드에 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nint f(int n) {\n    if(n&lt;=1) return 1;\n    else return n*f(n-1);\n}\n\nint main() {\n    printf(\"%d\", f(7));\n}</pre>",
+      "bodyText": "다음 C언어 코드에 알맞는 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n\nint f(int n) {\n    if(n<=1) return 1;\n    else return n*f(n-1);\n}\n\nint main() {\n    printf(\"%d\", f(7));\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "5040"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "5040"
+        }
+      ],
+      "display": "5040"
+    },
+    {
+      "id": "2023-3#9",
+      "num": 9,
+      "prompt": "다음 설명에 대해 괄호 안에 알맞는 용어를 작성하시오. (영어 약자로 작성하시오.)",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)은/는 자료를 일정한 크기로 정하여 순서대로 전송하는 자료의 전송 방식이다.</div>\n<div class=\"desc-box\">셀이라 부르는 고정 길이 패킷을 이용하여 처리가 단순하고 고속망에 적합하며, 연속적으로 셀을 보낼 때 다중화를 하지 않고 셀단위로 동기가 이루어지지만 경우에 따라 동기식 시간 분할 다중화를 사용하기도 한다.</div>\n<div class=\"desc-box\">가상 채널 (Virtual Channel) 기반의 연결 지향 서비스로 셀이라 부르는 고정 길이(53바이트) 패킷을 사용하며 통계적 다중화 방식을 이용한다.</div>",
+      "bodyText": "다음 설명에 대해 괄호 안에 알맞는 용어를 작성하시오. (영어 약자로 작성하시오.)\n\n(     )은/는 자료를 일정한 크기로 정하여 순서대로 전송하는 자료의 전송 방식이다.\n\n셀이라 부르는 고정 길이 패킷을 이용하여 처리가 단순하고 고속망에 적합하며, 연속적으로 셀을 보낼 때 다중화를 하지 않고 셀단위로 동기가 이루어지지만 경우에 따라 동기식 시간 분할 다중화를 사용하기도 한다.\n\n가상 채널 (Virtual Channel) 기반의 연결 지향 서비스로 셀이라 부르는 고정 길이(53바이트) 패킷을 사용하며 통계적 다중화 방식을 이용한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ATM",
+            "Asynchronous Transfer Mode",
+            "비동기전송모드",
+            "비동기 전달 모드"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ATM"
+        }
+      ],
+      "display": "ATM (Asynchronous Transfer Mode, 비동기 전송 모드)"
+    },
+    {
+      "id": "2023-3#10",
+      "num": 10,
+      "prompt": "다음은 C언어의 포인터 문제이다. 알맞는 출력값을 작성하시오. (출력 순서대로 1~5행)",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nint main() {\n    char* p = \"KOREA\";\n    printf(\"%s\\n\", p);\n    printf(\"%s\\n\", p+1);\n    printf(\"%c\\n\", *p);\n    printf(\"%c\\n\", *(p+3));\n    printf(\"%c\\n\", *p+4);\n}</pre>",
+      "bodyText": "다음은 C언어의 포인터 문제이다. 알맞는 출력값을 작성하시오. (출력 순서대로 1~5행)\n\n```c\n#include <stdio.h>\n\nint main() {\n    char* p = \"KOREA\";\n    printf(\"%s\\n\", p);\n    printf(\"%s\\n\", p+1);\n    printf(\"%c\\n\", *p);\n    printf(\"%c\\n\", *(p+3));\n    printf(\"%c\\n\", *p+4);\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1행",
+          "accept": [
+            "KOREA",
+            "korea"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "KOREA"
+        },
+        {
+          "label": "2행",
+          "accept": [
+            "OREA",
+            "orea"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "OREA"
+        },
+        {
+          "label": "3행",
+          "accept": [
+            "K",
+            "k"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "K"
+        },
+        {
+          "label": "4행",
+          "accept": [
+            "E",
+            "e"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "E"
+        },
+        {
+          "label": "5행",
+          "accept": [
+            "O",
+            "o"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "O"
+        }
+      ],
+      "display": "KOREA / OREA / K / E / O"
+    },
+    {
+      "id": "2023-3#11",
+      "num": 11,
+      "prompt": "다음은 Java 코드에 대한 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class Parent {\n    int compute(int num) {\n        if(num &lt;= 1)\n            return num;\n        return compute(num-1) + compute(num-2);\n    }\n}\n\nclass Child extends Parent {\n    int compute(int num) {\n        if(num &lt;= 1)\n            return num;\n        return compute(num-1) + compute(num-3);\n    }\n}\n\npublic class main {\n    public static void main(String args[]) {\n        Parent obj = new Child();\n        System.out.print(obj.compute(7));\n    }\n}</pre>",
+      "bodyText": "다음은 Java 코드에 대한 알맞는 출력값을 작성하시오.\n\n```java\nclass Parent {\n    int compute(int num) {\n        if(num <= 1)\n            return num;\n        return compute(num-1) + compute(num-2);\n    }\n}\n\nclass Child extends Parent {\n    int compute(int num) {\n        if(num <= 1)\n            return num;\n        return compute(num-1) + compute(num-3);\n    }\n}\n\npublic class main {\n    public static void main(String args[]) {\n        Parent obj = new Child();\n        System.out.print(obj.compute(7));\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "2"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "2"
+        }
+      ],
+      "display": "2"
+    },
+    {
+      "id": "2023-3#12",
+      "num": 12,
+      "prompt": "IP 패킷에서 외부의 공인 IP주소와 포트 주소에 해당하는 내부 IP주소를 재기록하여 라우터를 통해 네트워크 트래픽을 주고받는 기술은 무엇인가?",
+      "bodyHtml": "<div class=\"desc-box\">IP 패킷에서 외부의 공인 IP주소와 포트 주소에 해당하는 내부 IP주소를 재기록하여 라우터를 통해 네트워크 트래픽을 주고받는 기술은 무엇인가?</div>",
+      "bodyText": "IP 패킷에서 외부의 공인 IP주소와 포트 주소에 해당하는 내부 IP주소를 재기록하여 라우터를 통해 네트워크 트래픽을 주고받는 기술은 무엇인가?",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "NAT",
+            "Network Address Translation",
+            "Network Address Transformation",
+            "네트워크주소변환",
+            "NAT(Network Address Translation)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "NAT"
+        }
+      ],
+      "display": "NAT (Network Address Translation, 네트워크 주소 변환)"
+    },
+    {
+      "id": "2023-3#13",
+      "num": 13,
+      "prompt": "다음 자바 코드를 실행할 경우 에러가 발생된다. 에러가 발생하는 라인 번호를 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class Person {\n    private String name;\n    public Person(String val) {\n        name = val;\n    }\n    public static String get() {\n    return name;\n    }\n    public void print() {\n        System.out.println(name);\n    }\n}\npublic class main {\n    public static void main(String[] args) {\n        Person obj = new Person(\"Kim\");\n        obj.print();\n    }\n}</pre>",
+      "bodyText": "다음 자바 코드를 실행할 경우 에러가 발생된다. 에러가 발생하는 라인 번호를 작성하시오.\n\n```java\nclass Person {\n    private String name;\n    public Person(String val) {\n        name = val;\n    }\n    public static String get() {\n    return name;\n    }\n    public void print() {\n        System.out.println(name);\n    }\n}\npublic class main {\n    public static void main(String[] args) {\n        Person obj = new Person(\"Kim\");\n        obj.print();\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "7",
+            "7번",
+            "7행",
+            "7라인",
+            "7번째 줄",
+            "line 7"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "7"
+        }
+      ],
+      "display": "7 (7행 — static 메서드에서 인스턴스 변수 name 을 참조하여 컴파일 에러)"
+    },
+    {
+      "id": "2023-3#14",
+      "num": 14,
+      "prompt": "다음은 파이썬에 대한 문제이다. 밑줄친 부분에 알맞는 답을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">print(\"파이썬 입출력에 대한 문제입니다.\")\n\nnum1, num2 = input()._____()\nnum1 = int(num1)\nnum2 = int(num2)\nprint(num1,num2)\n\nnum3 = num1 + num2\nprint(num1 + \" + \"  + num2 + \" = \" + num3)</pre>\n<div class=\"hint\">※ 특이사항: 입력값은 2와 3이다.</div>\n<div class=\"desc-box\"><b>[출력화면]</b></div>\n<pre class=\"code\">파이썬 입출력에 대한 문제입니다.\n2 3\n2 + 3 = 5</pre>",
+      "bodyText": "다음은 파이썬에 대한 문제이다. 밑줄친 부분에 알맞는 답을 작성하시오.\n\n```python\nprint(\"파이썬 입출력에 대한 문제입니다.\")\n\nnum1, num2 = input()._____()\nnum1 = int(num1)\nnum2 = int(num2)\nprint(num1,num2)\n\nnum3 = num1 + num2\nprint(num1 + \" + \"  + num2 + \" = \" + num3)\n```\n\n※ 특이사항: 입력값은 2와 3이다.\n\n[출력화면]\n파이썬 입출력에 대한 문제입니다.\n2 3\n2 + 3 = 5",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "split",
+            "split()"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "split"
+        }
+      ],
+      "display": "split"
+    },
+    {
+      "id": "2023-3#15",
+      "num": 15,
+      "prompt": "다음은 판매와 관련된 다이어그램이다. 해당 다이어그램의 명칭을 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">아래 다이어그램은 ordering, pricing, products 라는 이름의 폴더 모양 요소 3개로 구성되어 있으며, ordering 에서 pricing 으로, 그리고 ordering 에서 products 로 각각 점선 화살표(의존 관계)가 연결되어 있다. 두 화살표 중 ordering → products 화살표에만 &lt;&lt;import&gt;&gt; 스테레오타입이 표기되어 있다.</div>\n<pre class=\"code\">ordering  ┈┈┈┈┈┈┈┈┈┈┈┈┈┈▶  pricing\nordering  ┈┈┈&lt;&lt;import&gt;&gt;┈┈┈▶  products</pre>",
+      "bodyText": "다음은 판매와 관련된 다이어그램이다. 해당 다이어그램의 명칭을 쓰시오.\n\n아래 다이어그램은 ordering, pricing, products 라는 이름의 폴더 모양 요소 3개로 구성되어 있으며, ordering 에서 pricing 으로, 그리고 ordering 에서 products 로 각각 점선 화살표(의존 관계)가 연결되어 있다. 두 화살표 중 ordering → products 화살표에만 <<import>> 스테레오타입이 표기되어 있다.\n\n```text\nordering  ┈┈┈┈┈┈┈┈┈┈┈┈┈┈▶  pricing\nordering  ┈┈┈<<import>>┈┈┈▶  products\n```",
+      "sourceImages": [
+        "raw/2023-3/img00.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "패키지",
+            "패키지 다이어그램",
+            "Package",
+            "Package Diagram",
+            "패키지 다이어그램(Package Diagram)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "패키지 다이어그램"
+        }
+      ],
+      "display": "패키지 다이어그램 (Package Diagram)"
+    },
+    {
+      "id": "2023-3#16",
+      "num": 16,
+      "prompt": "다음 설명에 알맞는 답을 보기에서 골라 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">시스템이나 시스템 구성요소(component) 또는 소프트웨어 프로그램의 입력값과 출력값이 특정 그룹으로 분류되며, 분류된 그룹내의 값들이 시스템에 의해 동일하게 취급된다는 특성을 이용하여 시험하는 기법</div>\n<div class=\"desc-box\">유사한 입력값들이 시스템을 거치면서 유사한 답변이 나온다는 것을 가정하여 테스트</div>\n<div class=\"desc-box\">하나의 값은 그 분할 내 모든 값을 대표하는 것으로 간주하는 기법</div>\n<div class=\"desc-box\">모든 입력값을 시험할 필요가 없게 하여 시험을 효율적으로 수행하도록 지원</div>\n<div class=\"desc-box\">일반적으로 경계값 분석기법(boundary value analysis)과 함께 테스트 케이스 도출하는데 사용</div>\n<div class=\"boki\"><b>[보기]</b>\nㄱ. Equivalence Partitioning&emsp;ㄴ. Statement Coverage&emsp;ㄷ. Boundary Value Analy&emsp;ㄹ. Branch Coverage<br>ㅁ. Error Guessing&emsp;ㅂ. Condition Coverage&emsp;ㅅ. Cause Effect Graph</div>",
+      "bodyText": "다음 설명에 알맞는 답을 보기에서 골라 작성하시오.\n\n시스템이나 시스템 구성요소(component) 또는 소프트웨어 프로그램의 입력값과 출력값이 특정 그룹으로 분류되며, 분류된 그룹내의 값들이 시스템에 의해 동일하게 취급된다는 특성을 이용하여 시험하는 기법\n\n유사한 입력값들이 시스템을 거치면서 유사한 답변이 나온다는 것을 가정하여 테스트\n\n하나의 값은 그 분할 내 모든 값을 대표하는 것으로 간주하는 기법\n\n모든 입력값을 시험할 필요가 없게 하여 시험을 효율적으로 수행하도록 지원\n\n일반적으로 경계값 분석기법(boundary value analysis)과 함께 테스트 케이스 도출하는데 사용\n\n[보기]\nㄱ. Equivalence Partitioning\nㄴ. Statement Coverage\nㄷ. Boundary Value Analy\nㄹ. Branch Coverage\nㅁ. Error Guessing\nㅂ. Condition Coverage\nㅅ. Cause Effect Graph",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ㄱ",
+            "Equivalence Partitioning",
+            "동치분할",
+            "동등분할",
+            "ㄱ(Equivalence Partitioning)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄱ"
+        }
+      ],
+      "display": "ㄱ. Equivalence Partitioning (동치 분할)"
+    },
+    {
+      "id": "2023-3#17",
+      "num": 17,
+      "prompt": "다음은 클라우드에 대한 유형 문제이다. 괄호 안에 알맞는 답을 보기에서 골라 작성하시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>계층</th><th>전통적인 IT</th><th>(1)</th><th>(2)</th><th>(3)</th></tr>\n<tr><td>애플리케이션</td><td>기업 관리</td><td>기업 관리</td><td>기업 관리</td><td>서비스로 제공</td></tr>\n<tr><td>데이터</td><td>기업 관리</td><td>기업 관리</td><td>기업 관리</td><td>서비스로 제공</td></tr>\n<tr><td>런타임</td><td>기업 관리</td><td>기업 관리</td><td>서비스로 제공</td><td>서비스로 제공</td></tr>\n<tr><td>미들웨어</td><td>기업 관리</td><td>기업 관리</td><td>서비스로 제공</td><td>서비스로 제공</td></tr>\n<tr><td>운영체제</td><td>기업 관리</td><td>기업 관리</td><td>서비스로 제공</td><td>서비스로 제공</td></tr>\n<tr><td>가상화</td><td>기업 관리</td><td>서비스로 제공</td><td>서비스로 제공</td><td>서비스로 제공</td></tr>\n<tr><td>서버</td><td>기업 관리</td><td>서비스로 제공</td><td>서비스로 제공</td><td>서비스로 제공</td></tr>\n<tr><td>스토리지</td><td>기업 관리</td><td>서비스로 제공</td><td>서비스로 제공</td><td>서비스로 제공</td></tr>\n<tr><td>네트워크</td><td>기업 관리</td><td>서비스로 제공</td><td>서비스로 제공</td><td>서비스로 제공</td></tr>\n</table>\n<div class=\"hint\">※ '기업 관리'는 기업(사용자)이 직접 관리하는 영역, '서비스로 제공'은 클라우드 사업자가 서비스로 제공하는 영역이다.</div>\n<div class=\"boki\"><b>[보기]</b>\nPaaS&emsp;SaaS&emsp;IaaS</div>",
+      "bodyText": "다음은 클라우드에 대한 유형 문제이다. 괄호 안에 알맞는 답을 보기에서 골라 작성하시오.\n\n| 계층 | 전통적인 IT | (1) | (2) | (3) |\n| --- | --- | --- | --- | --- |\n| 애플리케이션 | 기업 관리 | 기업 관리 | 기업 관리 | 서비스로 제공 |\n| 데이터 | 기업 관리 | 기업 관리 | 기업 관리 | 서비스로 제공 |\n| 런타임 | 기업 관리 | 기업 관리 | 서비스로 제공 | 서비스로 제공 |\n| 미들웨어 | 기업 관리 | 기업 관리 | 서비스로 제공 | 서비스로 제공 |\n| 운영체제 | 기업 관리 | 기업 관리 | 서비스로 제공 | 서비스로 제공 |\n| 가상화 | 기업 관리 | 서비스로 제공 | 서비스로 제공 | 서비스로 제공 |\n| 서버 | 기업 관리 | 서비스로 제공 | 서비스로 제공 | 서비스로 제공 |\n| 스토리지 | 기업 관리 | 서비스로 제공 | 서비스로 제공 | 서비스로 제공 |\n| 네트워크 | 기업 관리 | 서비스로 제공 | 서비스로 제공 | 서비스로 제공 |\n\n※ '기업 관리'는 기업(사용자)이 직접 관리하는 영역, '서비스로 제공'은 클라우드 사업자가 서비스로 제공하는 영역이다.\n\n[보기]\nPaaS\nSaaS\nIaaS",
+      "sourceImages": [
+        "raw/2023-3/img01.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "IaaS",
+            "Infrastructure as a Service",
+            "Infrastructure-as-a-Service",
+            "서비스형 인프라"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "IaaS"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "PaaS",
+            "Platform as a Service",
+            "Platform-as-a-Service",
+            "서비스형 플랫폼"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "PaaS"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "SaaS",
+            "Software as a Service",
+            "Software-as-a-Service",
+            "서비스형 소프트웨어"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "SaaS"
+        }
+      ],
+      "display": "(1) IaaS / (2) PaaS / (3) SaaS"
+    },
+    {
+      "id": "2023-3#18",
+      "num": 18,
+      "prompt": "다음은 프로토콜 종류에 관한 설명이다. 알맞는 답을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">최소 Hop count를 파악하여 라우팅하는 프로토콜이다.</div>\n<div class=\"desc-box\">거리와 방향으로 길을 찾아가는 Distance Vector 다이나믹 프로토콜이다.</div>\n<div class=\"desc-box\">최단거리 즉, Hop count가 적은 경로를 택하여 라우팅하는 프로토콜로 Routing Table에 인접 라우터 정보를 저장하여 경로를 결정한다.</div>\n<div class=\"desc-box\">최대 Hop count는 15로 거리가 짧기 때문에 IGP로 많이 이용하는 프로토콜이다.</div>",
+      "bodyText": "다음은 프로토콜 종류에 관한 설명이다. 알맞는 답을 작성하시오.\n\n최소 Hop count를 파악하여 라우팅하는 프로토콜이다.\n\n거리와 방향으로 길을 찾아가는 Distance Vector 다이나믹 프로토콜이다.\n\n최단거리 즉, Hop count가 적은 경로를 택하여 라우팅하는 프로토콜로 Routing Table에 인접 라우터 정보를 저장하여 경로를 결정한다.\n\n최대 Hop count는 15로 거리가 짧기 때문에 IGP로 많이 이용하는 프로토콜이다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "RIP",
+            "Routing Information Protocol",
+            "RIP(Routing Information Protocol)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "RIP"
+        }
+      ],
+      "display": "RIP (Routing Information Protocol)"
+    },
+    {
+      "id": "2023-3#19",
+      "num": 19,
+      "prompt": "다음은 관계 대수에 대한 내용이다. 보기에서 알맞는 기호를 골라 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. join : (&nbsp;&nbsp;1&nbsp;&nbsp;)<br>2. project : (&nbsp;&nbsp;2&nbsp;&nbsp;)<br>3. select : (&nbsp;&nbsp;3&nbsp;&nbsp;)<br>4. division : (&nbsp;&nbsp;4&nbsp;&nbsp;)</div>\n<div class=\"boki\"><b>[보기]</b>\nㄱ. &sigma;&emsp;ㄴ. &pi;&emsp;ㄷ. &#8904;&emsp;ㄹ. &divide;</div>",
+      "bodyText": "다음은 관계 대수에 대한 내용이다. 보기에서 알맞는 기호를 골라 작성하시오.\n\n1. join : (  1  )\n2. project : (  2  )\n3. select : (  3  )\n4. division : (  4  )\n\n[보기]\nㄱ. σ\nㄴ. π\nㄷ. ⋈\nㄹ. ÷",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1) join",
+          "accept": [
+            "ㄷ",
+            "⋈"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄷ"
+        },
+        {
+          "label": "(2) project",
+          "accept": [
+            "ㄴ",
+            "π"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄴ"
+        },
+        {
+          "label": "(3) select",
+          "accept": [
+            "ㄱ",
+            "σ"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄱ"
+        },
+        {
+          "label": "(4) division",
+          "accept": [
+            "ㄹ",
+            "÷"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄹ"
+        }
+      ],
+      "display": "(1) ㄷ (⋈) / (2) ㄴ (π) / (3) ㄱ (σ) / (4) ㄹ (÷)"
+    },
+    {
+      "id": "2023-3#20",
+      "num": 20,
+      "prompt": "다음은 데이터베이스에 관련된 문제이다. 괄호 안에 알맞는 답을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;) 무결성은 관계 데이터베이스 관계 모델에서 2개의 관련 있던 관계 변수(테이블) 간의 일관성(데이터 무결성)을 말한다.</div>\n<div class=\"desc-box\">종종 기본 키 또는 키가 아닌 후보 키와 외래 키의 조합으로 강제 적용된다.</div>\n<div class=\"desc-box\">외래 키가 선언된 관계 변수의 외래 키를 구성하는 속성(열)의 값은 그 관계 변수의 부모가 되는 관계 변수의 기본 키 값 또는 기본 키가 아닌 후보 키 값으로 존재해야 한다.</div>",
+      "bodyText": "다음은 데이터베이스에 관련된 문제이다. 괄호 안에 알맞는 답을 작성하시오.\n\n(     ) 무결성은 관계 데이터베이스 관계 모델에서 2개의 관련 있던 관계 변수(테이블) 간의 일관성(데이터 무결성)을 말한다.\n\n종종 기본 키 또는 키가 아닌 후보 키와 외래 키의 조합으로 강제 적용된다.\n\n외래 키가 선언된 관계 변수의 외래 키를 구성하는 속성(열)의 값은 그 관계 변수의 부모가 되는 관계 변수의 기본 키 값 또는 기본 키가 아닌 후보 키 값으로 존재해야 한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "참조",
+            "참조 무결성",
+            "Referential",
+            "Referential Integrity",
+            "참조무결성(Referential Integrity)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "참조"
+        }
+      ],
+      "display": "참조 (참조 무결성, Referential Integrity)"
+    }
+  ]
+}

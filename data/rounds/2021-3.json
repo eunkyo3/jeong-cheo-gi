@@ -1,0 +1,606 @@
+{
+  "round": "2021-3",
+  "title": "2021년 3회",
+  "sourceUrl": "https://chobopark.tistory.com/217",
+  "questions": [
+    {
+      "id": "2021-3#1",
+      "num": 1,
+      "prompt": "다음 Java 코드에 대한 알맞는 출력값을 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">class Connection {\n  private static Connection _inst = null;\n  private int count = 0;\n    static public Connection get() {\n      if(_inst == null) {\n      _inst = new Connection();\n      return _inst;\n      }\n    return _inst;\n    }\n  public void count() { count ++; }\n  public int getCount() { return count; }\n}\n\npublic class testcon {\n  public static void main(String[] args) {\n    Connection conn1 = Connection.get();\n    conn1.count();\n    Connection conn2 = Connection.get();\n    conn2.count();\n    Connection conn3 = Connection.get();\n    conn3.count();\n\n    System.out.print(conn1.getCount());\n  }\n}</pre>",
+      "bodyText": "다음 Java 코드에 대한 알맞는 출력값을 쓰시오.\n\n```java\nclass Connection {\n  private static Connection _inst = null;\n  private int count = 0;\n    static public Connection get() {\n      if(_inst == null) {\n      _inst = new Connection();\n      return _inst;\n      }\n    return _inst;\n    }\n  public void count() { count ++; }\n  public int getCount() { return count; }\n}\n\npublic class testcon {\n  public static void main(String[] args) {\n    Connection conn1 = Connection.get();\n    conn1.count();\n    Connection conn2 = Connection.get();\n    conn2.count();\n    Connection conn3 = Connection.get();\n    conn3.count();\n\n    System.out.print(conn1.getCount());\n  }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "3"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "3"
+        }
+      ],
+      "display": "3"
+    },
+    {
+      "id": "2021-3#2",
+      "num": 2,
+      "prompt": "다음은 정보 보호 기술인 AAA에 대한 설명이다. 각 설명에 맞는 답을 고르시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. 시스템을 접근하기 전에 접근 시도하는 사용자의 신원을 검증</div>\n<div class=\"desc-box\">2. 검증된 사용자에게 어떤 수준의 권한과 서비스를 허용</div>\n<div class=\"desc-box\">3. 사용자의 자원(시간, 정보, 위치 등)에 대한 사용 정보를 수집</div>\n<div class=\"hint\">※ 실제 기출문제에서는 답의 보기 중, A에 대한 보기가 주어집니다. (오답 중, Application 등..)</div>",
+      "bodyText": "다음은 정보 보호 기술인 AAA에 대한 설명이다. 각 설명에 맞는 답을 고르시오.\n\n1. 시스템을 접근하기 전에 접근 시도하는 사용자의 신원을 검증\n2. 검증된 사용자에게 어떤 수준의 권한과 서비스를 허용\n3. 사용자의 자원(시간, 정보, 위치 등)에 대한 사용 정보를 수집\n\n※ 실제 기출문제에서는 답의 보기 중, A에 대한 보기가 주어집니다. (오답 중, Application 등..)",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "Authentication",
+            "authentication",
+            "인증"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Authentication"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "Authorization",
+            "authorization",
+            "인가",
+            "권한 부여"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Authorization"
+        },
+        {
+          "label": "3번",
+          "accept": [
+            "Accounting",
+            "accounting",
+            "계정",
+            "과금"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Accounting"
+        }
+      ],
+      "display": "1. Authentication / 2. Authorization / 3. Accounting"
+    },
+    {
+      "id": "2021-3#3",
+      "num": 3,
+      "prompt": "GRANT의 기능에 대해 간략하게 약술하시오.",
+      "bodyHtml": "<div class=\"desc-box\">SQL 의 DCL(데이터 제어어) 가운데 GRANT 명령어가 하는 일을 한두 문장으로 설명한다.</div>",
+      "bodyText": "GRANT의 기능에 대해 간략하게 약술하시오.\n\nSQL 의 DCL(데이터 제어어) 가운데 GRANT 명령어가 하는 일을 한두 문장으로 설명한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [],
+          "normalize": "default",
+          "validator": {
+            "type": "keywords",
+            "all": [
+              "권한"
+            ],
+            "any": [
+              "권한을부여",
+              "권한부여",
+              "부여하는",
+              "부여하며",
+              "부여한다",
+              "부여할",
+              "부여함",
+              "부여해",
+              "허가",
+              "준다",
+              "주는",
+              "줄수",
+              "할당",
+              "제공"
+            ],
+            "minAny": 1
+          },
+          "sampleAnswer": "사용자에게 접속 권한과 객체 생성 권한을 부여하는 명령어"
+        }
+      ],
+      "display": "사용자(User)에게 접속권한, 오브젝트 생성권한, DBA 권한 등을 부여할 수 있는 명령어"
+    },
+    {
+      "id": "2021-3#4",
+      "num": 4,
+      "prompt": "다음 중, 설명에 대한 괄호 (&nbsp;) 안에 들어가는 내용에 대해 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;) 스푸핑은 근거리 통신망 하에서 (&nbsp;&nbsp;) 메시지를 이용하여 상대방의 데이터 패킷을 중간에서 가로채는 중간자 공격 기법이다. 이 공격은 데이터 링크 상의 프로토콜인 (&nbsp;&nbsp;)를 이용하기 때문에 근거리상의 통신에서만 사용할 수 있는 공격이다.</div>\n<div class=\"hint\">※ 실제 시험에서는 설명과 함께 동작과정 이미지가 있습니다.</div>",
+      "bodyText": "다음 중, 설명에 대한 괄호 (  ) 안에 들어가는 내용에 대해 작성하시오.\n\n(  ) 스푸핑은 근거리 통신망 하에서 (  ) 메시지를 이용하여 상대방의 데이터 패킷을 중간에서 가로채는 중간자 공격 기법이다. 이 공격은 데이터 링크 상의 프로토콜인 (  )를 이용하기 때문에 근거리상의 통신에서만 사용할 수 있는 공격이다.\n\n※ 실제 시험에서는 설명과 함께 동작과정 이미지가 있습니다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ARP",
+            "arp",
+            "Address Resolution Protocol",
+            "ARP(Address Resolution Protocol)",
+            "주소 결정 프로토콜"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ARP"
+        }
+      ],
+      "display": "ARP (Address Resolution Protocol)"
+    },
+    {
+      "id": "2021-3#5",
+      "num": 5,
+      "prompt": "다음은 Coupling에 대한 설명이다. 설명에 대한 Coupling 종류를 영문으로 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">어떤 모듈이 다른 모듈의 내부 논리 조직을 제어하기 위한 목적으로 제어 신호를 이용하여 통신하는 경우의 결합도</div>\n<div class=\"desc-box\">하위 모듈에서 상위 모듈로 제어 신호가 이동하여 상위 모듈에게 처리 명령을 부여하는 권리 전도 현상이 발생</div>",
+      "bodyText": "다음은 Coupling에 대한 설명이다. 설명에 대한 Coupling 종류를 영문으로 작성하시오.\n\n- 어떤 모듈이 다른 모듈의 내부 논리 조직을 제어하기 위한 목적으로 제어 신호를 이용하여 통신하는 경우의 결합도\n- 하위 모듈에서 상위 모듈로 제어 신호가 이동하여 상위 모듈에게 처리 명령을 부여하는 권리 전도 현상이 발생",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "control",
+            "Control",
+            "control coupling",
+            "제어 결합도",
+            "제어결합도",
+            "제어"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "control"
+        }
+      ],
+      "display": "control (제어 결합도, Control Coupling)"
+    },
+    {
+      "id": "2021-3#6",
+      "num": 6,
+      "prompt": "OSI 7 Layer의 설명으로 해당되는 설명의 답을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. 물리계층을 통해 송수신되는 정보의 오류와 흐름을 관리하여 안전한 정보의 전달을 수행할 수 있도록 도와주는 역할</div>\n<div class=\"desc-box\">2. 데이터를 목적지까지 가장 안전하고 빠르게 전달하는 기능</div>\n<div class=\"desc-box\">3. 수신자에서 데이터의 압축을 풀수 있는 방식으로 된 데이터 압축</div>",
+      "bodyText": "OSI 7 Layer의 설명으로 해당되는 설명의 답을 작성하시오.\n\n1. 물리계층을 통해 송수신되는 정보의 오류와 흐름을 관리하여 안전한 정보의 전달을 수행할 수 있도록 도와주는 역할\n2. 데이터를 목적지까지 가장 안전하고 빠르게 전달하는 기능\n3. 수신자에서 데이터의 압축을 풀수 있는 방식으로 된 데이터 압축",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "데이터링크",
+            "데이터 링크",
+            "데이터링크 계층",
+            "데이터 링크 계층",
+            "datalink",
+            "data link",
+            "data link layer"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "데이터링크"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "네트워크",
+            "네트워크 계층",
+            "network",
+            "network layer"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "네트워크"
+        },
+        {
+          "label": "3번",
+          "accept": [
+            "표현",
+            "표현 계층",
+            "presentation",
+            "presentation layer"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "표현"
+        }
+      ],
+      "display": "1. 데이터링크 (계층) / 2. 네트워크 (계층) / 3. 표현 (계층)"
+    },
+    {
+      "id": "2021-3#7",
+      "num": 7,
+      "prompt": "다음 중, 설명에 대한 괄호 (&nbsp;) 안에 들어갈 알맞는 보기를 고르시오.",
+      "bodyHtml": "<div class=\"desc-box\">눈에 보이지 않는 것을 개념적으로 표현하는 것이 '추상화'라하며, 이는 실세계의 복잡한 상황을 간결하고 명확하게 개념화(槪念化)하는 것이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;1&nbsp;&nbsp;)은 클래스들 사이의 전체 또는 부분 같은 관계를 나타내는 것이고,</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;2&nbsp;&nbsp;)은 한 클래스가 다른 클래스를 포함하는 상위 개념일 때 IS-A관계라하며, 일반화 관계로 모델링한다.</div>\n<div class=\"hint\">※ 실제 기출문제에서는 답에 대한 영어용어의 보기가 주어집니다.</div>",
+      "bodyText": "다음 중, 설명에 대한 괄호 (  ) 안에 들어갈 알맞는 보기를 고르시오.\n\n눈에 보이지 않는 것을 개념적으로 표현하는 것이 '추상화'라하며, 이는 실세계의 복잡한 상황을 간결하고 명확하게 개념화(槪念化)하는 것이다.\n\n(  1  )은 클래스들 사이의 전체 또는 부분 같은 관계를 나타내는 것이고,\n(  2  )은 한 클래스가 다른 클래스를 포함하는 상위 개념일 때 IS-A관계라하며, 일반화 관계로 모델링한다.\n\n※ 실제 기출문제에서는 답에 대한 영어용어의 보기가 주어집니다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "Aggregation",
+            "aggregation",
+            "집약 관계",
+            "집약관계",
+            "집합 관계",
+            "집합관계"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Aggregation"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "Generalization",
+            "generalization",
+            "일반화",
+            "일반화 관계",
+            "일반화관계"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Generalization"
+        }
+      ],
+      "display": "1. Aggregation (집약 관계) / 2. Generalization (일반화 관계)"
+    },
+    {
+      "id": "2021-3#8",
+      "num": 8,
+      "prompt": "다음은 테스트케이스의 구성요소에 대한 설명이다. 괄호 (&nbsp;) 안에 들어갈 알맞는 보기를 고르시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>식별자 ID</th><th>테스트 항목</th><th>(&nbsp;&nbsp;)</th><th>(&nbsp;&nbsp;)</th><th>(&nbsp;&nbsp;)</th></tr>\n<tr><td>DS-45S-21</td><td>로그인 기능</td><td>사용자 초기 화면</td><td>사용자 아이디 (Test11)<br>비밀번호 (test@#@!#)</td><td>로그인 성공</td></tr>\n<tr><td>DS-45S-25</td><td>로그인 기능</td><td>사용자 초기 화면</td><td>사용자 아이디 (Test11)<br>비밀번호 (\"\")</td><td>로그인 실패</td></tr>\n</table>\n<div class=\"hint\">※ 표의 빈 괄호 열은 왼쪽부터 차례로 (1), (2), (3) 입니다. 실제 기출문제에서는 답에 대한 보기가 주어집니다.</div>",
+      "bodyText": "다음은 테스트케이스의 구성요소에 대한 설명이다. 괄호 (  ) 안에 들어갈 알맞는 보기를 고르시오.\n\n| 식별자 ID | 테스트 항목 | (  ) | (  ) | (  ) |\n| --- | --- | --- | --- | --- |\n| DS-45S-21 | 로그인 기능 | 사용자 초기 화면 | 사용자 아이디 (Test11) / 비밀번호 (test@#@!#) | 로그인 성공 |\n| DS-45S-25 | 로그인 기능 | 사용자 초기 화면 | 사용자 아이디 (Test11) / 비밀번호 (\"\") | 로그인 실패 |\n\n※ 표의 빈 괄호 열은 왼쪽부터 차례로 (1), (2), (3) 입니다. 실제 기출문제에서는 답에 대한 보기가 주어집니다.",
+      "sourceImages": [
+        "raw/2021-3/img00.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "테스트 조건",
+            "테스트조건",
+            "조건",
+            "test condition"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "테스트 조건"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "테스트 데이터",
+            "테스트데이터",
+            "데이터",
+            "test data"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "테스트 데이터"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "예상 결과",
+            "예상결과",
+            "기대 결과",
+            "기대결과",
+            "expected result"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "예상 결과"
+        }
+      ],
+      "display": "(1) 테스트 조건 / (2) 테스트 데이터 / (3) 예상 결과"
+    },
+    {
+      "id": "2021-3#9",
+      "num": 9,
+      "prompt": "다음 중, 설명에 대한 괄호 (&nbsp;) 안에 들어갈 알맞는 보기를 고르시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;)를 통해 요구사항 명세를 입력 조건과 출력 조건 간의 논리적 관계로 표현하고, 이를 기반으로 테스트케이스를 도출한다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;)의 ‘원인(causes)’은 입력 조건을 의미하고 ‘결과(effects)’는 입력 조건의 결과를 의미하며, 원인과 결과 간의 논리적 관계를 AND, OR, NOT 같은 boolean 연산자를 사용하여 표현한다.</div>\n<div class=\"hint\">※ 실제 기출문제에서는 답에 대한 보기 중, 영문 보기가 주어집니다.</div>",
+      "bodyText": "다음 중, 설명에 대한 괄호 (  ) 안에 들어갈 알맞는 보기를 고르시오.\n\n(  )를 통해 요구사항 명세를 입력 조건과 출력 조건 간의 논리적 관계로 표현하고, 이를 기반으로 테스트케이스를 도출한다.\n(  )의 '원인(causes)'은 입력 조건을 의미하고 '결과(effects)'는 입력 조건의 결과를 의미하며, 원인과 결과 간의 논리적 관계를 AND, OR, NOT 같은 boolean 연산자를 사용하여 표현한다.\n\n※ 실제 기출문제에서는 답에 대한 보기 중, 영문 보기가 주어집니다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "cause effect graph",
+            "cause-effect graph",
+            "cause effect graphing",
+            "cause-effect graphing",
+            "원인-결과 그래프",
+            "원인 결과 그래프",
+            "원인효과그래프",
+            "원인-효과 그래프"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "cause effect graph"
+        }
+      ],
+      "display": "cause effect graph (원인-결과 그래프)"
+    },
+    {
+      "id": "2021-3#10",
+      "num": 10,
+      "prompt": "다음 중, 설명에 대한 괄호 (&nbsp;) 안에 들어갈 알맞는 보기를 고르시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;)는 블록 암호의 일종으로, 미국 NBS (National Bureau of Standards, 현재 NIST)에서 국가 표준으로 정한 암호이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;)는 64비트 평문을 64비트 암호문으로 암호화하는 대칭키 암호 알고리즘이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;)의 키는 7비트마다 오류검출을 위한 정보가 1비트씩 들어가기 때문에 실질적으로는 56비트이다.</div>",
+      "bodyText": "다음 중, 설명에 대한 괄호 (  ) 안에 들어갈 알맞는 보기를 고르시오.\n\n(  )는 블록 암호의 일종으로, 미국 NBS (National Bureau of Standards, 현재 NIST)에서 국가 표준으로 정한 암호이다.\n(  )는 64비트 평문을 64비트 암호문으로 암호화하는 대칭키 암호 알고리즘이다.\n(  )의 키는 7비트마다 오류검출을 위한 정보가 1비트씩 들어가기 때문에 실질적으로는 56비트이다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "DES",
+            "des",
+            "Data Encryption Standard",
+            "DES(Data Encryption Standard)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "DES"
+        }
+      ],
+      "display": "DES (Data Encryption Standard)"
+    },
+    {
+      "id": "2021-3#11",
+      "num": 11,
+      "prompt": "다음 Java 코드에 대한 알맞는 출력값을 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">public class testco {\n public static void main(String[] args) {\n  int a = 3, b = 4, c = 3, d = 5;\n  if((a == 2 | a == c) &amp; !(c &gt; d) &amp; (1 == b ^ c != d)) {\n   a = b + c;\n    if(7 == b ^ c != a) {\n     System.out.println(a);\n    } else {\n    System.out.println(b);\n    }\n  } else {\n    a = c + d;\n    if(7 == c ^ d != a) {\n    System.out.println(a);\n    } else {\n    System.out.println(d);\n    }\n  }\n }\n}</pre>",
+      "bodyText": "다음 Java 코드에 대한 알맞는 출력값을 쓰시오.\n\n```java\npublic class testco {\n public static void main(String[] args) {\n  int a = 3, b = 4, c = 3, d = 5;\n  if((a == 2 | a == c) & !(c > d) & (1 == b ^ c != d)) {\n   a = b + c;\n    if(7 == b ^ c != a) {\n     System.out.println(a);\n    } else {\n    System.out.println(b);\n    }\n  } else {\n    a = c + d;\n    if(7 == c ^ d != a) {\n    System.out.println(a);\n    } else {\n    System.out.println(d);\n    }\n  }\n }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "7"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "7"
+        }
+      ],
+      "display": "7"
+    },
+    {
+      "id": "2021-3#12",
+      "num": 12,
+      "prompt": "다음 C언어에 대한 알맞는 출력값을 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nint main(){\nint *arr[3];\nint a = 12, b = 24, c = 36;\narr[0] = &amp;a;\narr[1] = &amp;b;\narr[2] = &amp;c;\n\nprintf(\"%d\\n\", *arr[1] + **arr + 1);\n\n}</pre>",
+      "bodyText": "다음 C언어에 대한 알맞는 출력값을 쓰시오.\n\n```c\n#include <stdio.h>\n\nint main(){\nint *arr[3];\nint a = 12, b = 24, c = 36;\narr[0] = &a;\narr[1] = &b;\narr[2] = &c;\n\nprintf(\"%d\\n\", *arr[1] + **arr + 1);\n\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "37"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "37"
+        }
+      ],
+      "display": "37"
+    },
+    {
+      "id": "2021-3#13",
+      "num": 13,
+      "prompt": "다음은, 테이블에서 조건값을 실행한 화면이다. 이에 대한 알맞는 결과값을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">&lt;T1&gt;</div>\n<table class=\"tbl\">\n<tr><th>CODE</th><th>NAME</th></tr>\n<tr><td>3258</td><td>smith</td></tr>\n<tr><td>4324</td><td>allen</td></tr>\n<tr><td>5432</td><td>scott</td></tr>\n</table>\n<div class=\"desc-box\">&lt;T2&gt;</div>\n<table class=\"tbl\">\n<tr><th>NO</th><th>RULE</th></tr>\n<tr><td>12</td><td>s%</td></tr>\n<tr><td>32</td><td>%t%</td></tr>\n</table>\n<div class=\"desc-box\">&lt;실행값&gt;</div>\n<pre class=\"code\">SELECT COUNT(*) CNT FROM T1 A\nCROSS JOIN T2 B\nWHERE A.NAME LIKE B.RULE;</pre>",
+      "bodyText": "다음은, 테이블에서 조건값을 실행한 화면이다. 이에 대한 알맞는 결과값(CNT)을 작성하시오.\n\n<T1>\n| CODE | NAME |\n| --- | --- |\n| 3258 | smith |\n| 4324 | allen |\n| 5432 | scott |\n\n<T2>\n| NO | RULE |\n| --- | --- |\n| 12 | s% |\n| 32 | %t% |\n\n<실행값>\n```sql\nSELECT COUNT(*) CNT FROM T1 A\nCROSS JOIN T2 B\nWHERE A.NAME LIKE B.RULE;\n```",
+      "sourceImages": [
+        "raw/2021-3/img01.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "4"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "4"
+        }
+      ],
+      "display": "4"
+    },
+    {
+      "id": "2021-3#14",
+      "num": 14,
+      "prompt": "다음 파이썬 코드이다. 알맞는 출력값을 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">a,b = 100, 200\nprint(a==b)</pre>",
+      "bodyText": "다음 파이썬 코드이다. 알맞는 출력값을 쓰시오.\n\n```python\na,b = 100, 200\nprint(a==b)\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "False"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "False"
+        }
+      ],
+      "display": "False (앞글자를 대문자로 표기하는 것이 포인트)"
+    },
+    {
+      "id": "2021-3#15",
+      "num": 15,
+      "prompt": "다음 중, 설명에 대한 괄호 (&nbsp;) 안에 들어갈 알맞는 답을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;) 다이어그램은 문제 해결을 위한 도메인 구조를 나타내어 보이지 않는 도메인 안의 개념과 같은 추상적인 개념을 기술하기 위해 나타낸 것이다.</div>\n<div class=\"desc-box\">또한 소프트웨어의 설계 혹은 완성된 소프트웨어의 구현 설명을 목적으로 사용할 수 있다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;) 다이어그램의 형식은 (&nbsp;&nbsp;)를 포함하여 속성(attribute)과 메서드(method)가 있다.</div>",
+      "bodyText": "다음 중, 설명에 대한 괄호 (  ) 안에 들어갈 알맞는 답을 작성하시오.\n\n(  ) 다이어그램은 문제 해결을 위한 도메인 구조를 나타내어 보이지 않는 도메인 안의 개념과 같은 추상적인 개념을 기술하기 위해 나타낸 것이다.\n또한 소프트웨어의 설계 혹은 완성된 소프트웨어의 구현 설명을 목적으로 사용할 수 있다.\n(  ) 다이어그램의 형식은 (  )를 포함하여 속성(attribute)과 메서드(method)가 있다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "클래스",
+            "class",
+            "클래스 다이어그램",
+            "class diagram"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "클래스"
+        }
+      ],
+      "display": "클래스 (Class)"
+    },
+    {
+      "id": "2021-3#16",
+      "num": 16,
+      "prompt": "다음 중, 설명에 대한 괄호 (&nbsp;) 안에 들어갈 알맞는 보기를 고르시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;) 패턴은 객체지향 디자인 패턴이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;)는 부모(상위) 클래스에 알려지지 않은 구체 클래스를 생성하는 패턴이며, 자식(하위) 클래스가 어떤 객체를 생성할지를 결정하도록 하는 패턴이기도 하다.</div>\n<div class=\"desc-box\">부모(상위) 클래스 코드에 구체 클래스 이름을 감추기 위한 방법으로도 사용한다.</div>\n<div class=\"hint\">※ 실제 기출문제에서는 답에 대한 보기 중, 영문 보기가 주어집니다.</div>",
+      "bodyText": "다음 중, 설명에 대한 괄호 (  ) 안에 들어갈 알맞는 보기를 고르시오.\n\n(  ) 패턴은 객체지향 디자인 패턴이다.\n(  )는 부모(상위) 클래스에 알려지지 않은 구체 클래스를 생성하는 패턴이며, 자식(하위) 클래스가 어떤 객체를 생성할지를 결정하도록 하는 패턴이기도 하다.\n부모(상위) 클래스 코드에 구체 클래스 이름을 감추기 위한 방법으로도 사용한다.\n\n※ 실제 기출문제에서는 답에 대한 보기 중, 영문 보기가 주어집니다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "Factory method",
+            "factory method",
+            "factory method pattern",
+            "팩토리 메소드",
+            "팩토리 메서드",
+            "팩토리 메소드 패턴"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Factory method"
+        }
+      ],
+      "display": "Factory method (팩토리 메소드)"
+    },
+    {
+      "id": "2021-3#17",
+      "num": 17,
+      "prompt": "다음 C언어에 대한 알맞는 출력값을 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nstruct jsu {\n  char name[12];\n  int os, db, hab, hhab;\n};\n\nint main(){\nstruct jsu st[3] = {{\"데이터1\", 95, 88},\n                    {\"데이터2\", 84, 91},\n                    {\"데이터3\", 86, 75}};\nstruct jsu* p;\n\np = &amp;st[0];\n\n(p + 1)-&gt;hab = (p + 1)-&gt;os + (p + 2)-&gt;db;\n(p + 1)-&gt;hhab = (p+1)-&gt;hab + p-&gt;os + p-&gt;db;\n\nprintf(\"%d\\n\", (p+1)-&gt;hab + (p+1)-&gt;hhab);\n}</pre>",
+      "bodyText": "다음 C언어에 대한 알맞는 출력값을 쓰시오.\n\n```c\n#include <stdio.h>\n\nstruct jsu {\n  char name[12];\n  int os, db, hab, hhab;\n};\n\nint main(){\nstruct jsu st[3] = {{\"데이터1\", 95, 88},\n                    {\"데이터2\", 84, 91},\n                    {\"데이터3\", 86, 75}};\nstruct jsu* p;\n\np = &st[0];\n\n(p + 1)->hab = (p + 1)->os + (p + 2)->db;\n(p + 1)->hhab = (p+1)->hab + p->os + p->db;\n\nprintf(\"%d\\n\", (p+1)->hab + (p+1)->hhab);\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "501"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "501"
+        }
+      ],
+      "display": "501"
+    },
+    {
+      "id": "2021-3#18",
+      "num": 18,
+      "prompt": "다음은, 파일 구조(File Structures)에 대한 설명이다. 괄호 (&nbsp;) 안에 들어갈 알맞는 답을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">파일구조는 파일을 구성하는 레코드들이 보조기억장치에 편성되는 방식으로 접근 방식에 따라 방식이 달라진다.</div>\n<div class=\"desc-box\">접근 방법중, 레코드들을 키-값 순으로 정렬하여 기록하고, 레코드의 키 항목만을 모은 (&nbsp;&nbsp;)을 구성하여 편성하는 방식이 있으며, 레코드를 참조할 때는 (&nbsp;&nbsp;)이 가르키는 주소를 사용하여 직접 참조할 수 있다. 파일 구조에는 순차 접근, (&nbsp;&nbsp;) 접근, 해싱 접근이 있다.</div>",
+      "bodyText": "다음은, 파일 구조(File Structures)에 대한 설명이다. 괄호 (  ) 안에 들어갈 알맞는 답을 작성하시오.\n\n파일구조는 파일을 구성하는 레코드들이 보조기억장치에 편성되는 방식으로 접근 방식에 따라 방식이 달라진다.\n접근 방법중, 레코드들을 키-값 순으로 정렬하여 기록하고, 레코드의 키 항목만을 모은 (  )을 구성하여 편성하는 방식이 있으며, 레코드를 참조할 때는 (  )이 가르키는 주소를 사용하여 직접 참조할 수 있다. 파일 구조에는 순차 접근, (  ) 접근, 해싱 접근이 있다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "인덱스",
+            "색인",
+            "index",
+            "인덱스(색인)",
+            "索引"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "인덱스"
+        }
+      ],
+      "display": "인덱스 (색인, Index)"
+    },
+    {
+      "id": "2021-3#19",
+      "num": 19,
+      "prompt": "다음 설명에 대한 알맞는 답을 영문약어로 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;)는 사용자가 그래픽을 통해 컴퓨터와 정보를 교환하는 환경을 말한다. 이전까지 사용자 인터페이스는 키보드를 통해 명령어로 작업을 수행시켰지만 (&nbsp;&nbsp;)에서는 키보드 뿐만 아니라 마우스 등을 이용하여 화면의 메뉴 중 하나를 선택하여 작업을 수행한다. 화면에 아이콘을 띄어 마우스를 이용하여 화면에 있는 아이콘을 클릭하여 작업을 수행하는 방식이다. 대표적으로는 마이크로소프트의 Windows, 애플의 Mac 운영체제 등이 있다.</div>",
+      "bodyText": "다음 설명에 대한 알맞는 답을 영문약어로 작성하시오.\n\n(  )는 사용자가 그래픽을 통해 컴퓨터와 정보를 교환하는 환경을 말한다. 이전까지 사용자 인터페이스는 키보드를 통해 명령어로 작업을 수행시켰지만 (  )에서는 키보드 뿐만 아니라 마우스 등을 이용하여 화면의 메뉴 중 하나를 선택하여 작업을 수행한다. 화면에 아이콘을 띄어 마우스를 이용하여 화면에 있는 아이콘을 클릭하여 작업을 수행하는 방식이다. 대표적으로는 마이크로소프트의 Windows, 애플의 Mac 운영체제 등이 있다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "GUI",
+            "gui",
+            "Graphical User Interface",
+            "GUI(Graphical User Interface)",
+            "그래픽 사용자 인터페이스"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "GUI"
+        }
+      ],
+      "display": "GUI (Graphical User Interface)"
+    },
+    {
+      "id": "2021-3#20",
+      "num": 20,
+      "prompt": "다음은 소프트웨어 통합 테스트에 대한 설명이다. 괄호 (&nbsp;) 안에 들어갈 알맞는 답을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;1&nbsp;&nbsp;) 방식은 이름에서도 알 수 있듯이, 하위 모듈부터 시작하여 상위 모듈로 테스트를 진행하는 방식이며, 이 방식을 사용하기 위해서는 (&nbsp;&nbsp;2&nbsp;&nbsp;)가 필요하다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;2&nbsp;&nbsp;)는 이미 존재하는 하위 모듈과 존재하지 않은 상위 모듈에 대한 인터페이스 역할을 한다.</div>",
+      "bodyText": "다음은 소프트웨어 통합 테스트에 대한 설명이다. 괄호 (  ) 안에 들어갈 알맞는 답을 작성하시오.\n\n(  1  ) 방식은 이름에서도 알 수 있듯이, 하위 모듈부터 시작하여 상위 모듈로 테스트를 진행하는 방식이며, 이 방식을 사용하기 위해서는 (  2  )가 필요하다.\n(  2  )는 이미 존재하는 하위 모듈과 존재하지 않은 상위 모듈에 대한 인터페이스 역할을 한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "상향식",
+            "상향식 통합 테스트",
+            "상향식 접근법",
+            "bottom up",
+            "bottom-up",
+            "bottom up approach"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "상향식"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "테스트 드라이버",
+            "테스트드라이버",
+            "드라이버",
+            "test driver",
+            "driver"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "테스트 드라이버"
+        }
+      ],
+      "display": "(1) 상향식 / (2) 테스트 드라이버"
+    }
+  ]
+}

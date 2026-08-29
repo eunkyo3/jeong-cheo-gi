@@ -1,0 +1,600 @@
+{
+  "round": "2024-3",
+  "title": "2024년 3회",
+  "sourceUrl": "https://chobopark.tistory.com/495",
+  "questions": [
+    {
+      "id": "2024-3#1",
+      "num": 1,
+      "prompt": "다음은 Java 코드에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public class Main{\n  static String[] s = new String[3];\n\n  static void func(String[]s, int size){\n    for(int i=1; i&lt;size; i++){\n      if(s[i-1].equals(s[i])){\n        System.out.print(\"O\");\n      }else{\n        System.out.print(\"N\");\n      }\n    }\n      for (String m : s){\n        System.out.print(m);\n      }\n    }\n\n\n  public static void main(String[] args){\n    s[0] = \"A\";\n    s[1] = \"A\";\n    s[2] = new String(\"A\");\n\n    func(s, 3);\n  }\n}</pre>",
+      "bodyText": "다음은 Java 코드에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.\n\n```java\npublic class Main{\n  static String[] s = new String[3];\n\n  static void func(String[]s, int size){\n    for(int i=1; i<size; i++){\n      if(s[i-1].equals(s[i])){\n        System.out.print(\"O\");\n      }else{\n        System.out.print(\"N\");\n      }\n    }\n      for (String m : s){\n        System.out.print(m);\n      }\n    }\n\n\n  public static void main(String[] args){\n    s[0] = \"A\";\n    s[1] = \"A\";\n    s[2] = new String(\"A\");\n\n    func(s, 3);\n  }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "OOAAA",
+            "ooaaa"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "OOAAA"
+        }
+      ],
+      "display": "OOAAA"
+    },
+    {
+      "id": "2024-3#2",
+      "num": 2,
+      "prompt": "다음은 파이썬에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">def func(lst):\n  for i in range(len(lst) //2):\n    lst[i], lst[-i-1] = lst[-i-1], lst[i]\n\nlst = [1,2,3,4,5,6]\nfunc(lst)\nprint(sum(lst[::2]) - sum(lst[1::2]))</pre>",
+      "bodyText": "다음은 파이썬에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.\n\n```python\ndef func(lst):\n  for i in range(len(lst) //2):\n    lst[i], lst[-i-1] = lst[-i-1], lst[i]\n\nlst = [1,2,3,4,5,6]\nfunc(lst)\nprint(sum(lst[::2]) - sum(lst[1::2]))\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "3"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "3"
+        }
+      ],
+      "display": "3"
+    },
+    {
+      "id": "2024-3#3",
+      "num": 3,
+      "prompt": "아래의 employee 테이블과 project 테이블을 참고하여 보기의 SQL 명령어에 알맞는 출력 값을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>[employee]</b></div>\n<table class=\"tbl\">\n<tr><th>no</th><th>first_name</th><th>last_name</th><th>project_id</th></tr>\n<tr><td>1</td><td>John</td><td>Doe</td><td>10</td></tr>\n<tr><td>2</td><td>Jim</td><td>Carry</td><td>20</td></tr>\n<tr><td>3</td><td>Rachel</td><td>Redmond</td><td>10</td></tr>\n</table>\n<div class=\"desc-box\"><b>[project]</b></div>\n<table class=\"tbl\">\n<tr><th>project_id</th><th>name</th></tr>\n<tr><td>10</td><td>Alpha</td></tr>\n<tr><td>20</td><td>Beta</td></tr>\n<tr><td>10</td><td>Gamma</td></tr>\n</table>\n<pre class=\"code\">SELECT\n    count(*)\nFROM employee AS e JOIN project AS p ON e.project_id = p.project_id\nWHERE p.name IN (\n    SELECT name FROM project p WHERE p.project_id IN (\n        SELECT project_id FROM employee GROUP BY project_id HAVING count(*) &lt; 2\n    )\n);</pre>",
+      "bodyText": "아래의 employee 테이블과 project 테이블을 참고하여 보기의 SQL 명령어에 알맞는 출력 값을 작성하시오.\n\n[employee]\n| no | first_name | last_name | project_id |\n| --- | --- | --- | --- |\n| 1 | John | Doe | 10 |\n| 2 | Jim | Carry | 20 |\n| 3 | Rachel | Redmond | 10 |\n\n[project]\n| project_id | name |\n| --- | --- |\n| 10 | Alpha |\n| 20 | Beta |\n| 10 | Gamma |\n\n```sql\nSELECT\n    count(*)\nFROM employee AS e JOIN project AS p ON e.project_id = p.project_id\nWHERE p.name IN (\n    SELECT name FROM project p WHERE p.project_id IN (\n        SELECT project_id FROM employee GROUP BY project_id HAVING count(*) < 2\n    )\n);\n```",
+      "sourceImages": [
+        "raw/2024-3/img00.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "1"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "1"
+        }
+      ],
+      "display": "1"
+    },
+    {
+      "id": "2024-3#4",
+      "num": 4,
+      "prompt": "다음은 운영체제 페이지 참조 순서이다. 할당된 프레임의 수가 3개일 때 LRU 알고리즘의 페이지 부재 횟수를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">페이지 참조 순서 : 7 0 1 2 0 3 0 4 2 3 0 3 2 1 2 0 1 7 0 1</div>",
+      "bodyText": "다음은 운영체제 페이지 참조 순서이다. 할당된 프레임의 수가 3개일 때 LRU 알고리즘의 페이지 부재 횟수를 작성하시오.\n\n페이지 참조 순서 : 7 0 1 2 0 3 0 4 2 3 0 3 2 1 2 0 1 7 0 1",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "페이지 부재 횟수",
+          "accept": [
+            "12",
+            "12회"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "12"
+        }
+      ],
+      "display": "12"
+    },
+    {
+      "id": "2024-3#5",
+      "num": 5,
+      "prompt": "다음은 네트워크 취약점에 대한 문제이다. 아래 내용을 보고 알맞는 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">IP나 ICMP의 특성을 악용하여 엄청난 양의 데이터를 한 사이트에 집중적으로 보냄으로써 네트워크의 일부를 불능 상태로 만드는 공격이다.</div>\n<div class=\"desc-box\">여러 호스트가 특정 대상에게 다량의 ICMP Echo Reply 를 보내게 하여 서비스거부(DoS)를 유발시키는 보안공격이다.</div>\n<div class=\"desc-box\">공격 대상 호스트는 다량으로 유입되는 패킷으로 인해 서비스 불능 상태에 빠진다.</div>",
+      "bodyText": "다음은 네트워크 취약점에 대한 문제이다. 아래 내용을 보고 알맞는 용어를 작성하시오.\n\nIP나 ICMP의 특성을 악용하여 엄청난 양의 데이터를 한 사이트에 집중적으로 보냄으로써 네트워크의 일부를 불능 상태로 만드는 공격이다.\n\n여러 호스트가 특정 대상에게 다량의 ICMP Echo Reply 를 보내게 하여 서비스거부(DoS)를 유발시키는 보안공격이다.\n\n공격 대상 호스트는 다량으로 유입되는 패킷으로 인해 서비스 불능 상태에 빠진다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "스머프",
+            "Smurf",
+            "스머핑",
+            "Smurfing",
+            "스머프 공격",
+            "Smurf Attack",
+            "스머프(Smurf)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "스머프"
+        }
+      ],
+      "display": "스머프(Smurf) 또는 스머핑(Smurfing)"
+    },
+    {
+      "id": "2024-3#6",
+      "num": 6,
+      "prompt": "다음은 GoF 디자인 패턴과 관련된 문제이다. 괄호 안에 알맞는 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;&nbsp;&nbsp;) 패턴은 클래스나 객체들이 서로 상호작용하는 방법이나 책임 분배 방법을 정의하는 패턴이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;&nbsp;&nbsp;) 패턴은 객체들 간의 통신 방법을 정의하고 알고리즘을 캡슐화하여 객체 간의 결합도를 낮춘다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;&nbsp;&nbsp;) 패턴은 Chain of Responsibility나 Command 또는 Observer 패턴이 있다.</div>",
+      "bodyText": "다음은 GoF 디자인 패턴과 관련된 문제이다. 괄호 안에 알맞는 용어를 작성하시오.\n\n(    ) 패턴은 클래스나 객체들이 서로 상호작용하는 방법이나 책임 분배 방법을 정의하는 패턴이다.\n\n(    ) 패턴은 객체들 간의 통신 방법을 정의하고 알고리즘을 캡슐화하여 객체 간의 결합도를 낮춘다.\n\n(    ) 패턴은 Chain of Responsibility나 Command 또는 Observer 패턴이 있다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "행위",
+            "행위패턴",
+            "Behavioral",
+            "Behavioral Pattern",
+            "행위 패턴(Behavioral)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "행위"
+        }
+      ],
+      "display": "행위 (Behavioral) 패턴"
+    },
+    {
+      "id": "2024-3#7",
+      "num": 7,
+      "prompt": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nint func(){\n static int x =0;\n  x+=2;\n  return x;\n}\n\nint main(){\n  int x = 1;\n  int sum=0;\n  for(int i=0;i&lt;4;i++) {\n    x++;\n    sum+=func();\n  }\n  printf(\"%d\", sum);\n\n  return 0;\n}</pre>",
+      "bodyText": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n\nint func(){\n static int x =0;\n  x+=2;\n  return x;\n}\n\nint main(){\n  int x = 1;\n  int sum=0;\n  for(int i=0;i<4;i++) {\n    x++;\n    sum+=func();\n  }\n  printf(\"%d\", sum);\n\n  return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "20"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "20"
+        }
+      ],
+      "display": "20"
+    },
+    {
+      "id": "2024-3#8",
+      "num": 8,
+      "prompt": "다음은 무결성 제약조건에 대한 문제이다. 아래 표에서 어떠한 (       ) 무결성을 위반하였는지 작성하시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>StudentID (PK)</th><th>Name</th><th>Age</th><th>Major</th></tr>\n<tr><td>101</td><td>Alice</td><td>20</td><td>Computer Science</td></tr>\n<tr><td>102</td><td>Bob</td><td>21</td><td>Mathematics</td></tr>\n<tr><td>101</td><td>David</td><td>23</td><td>Chemistry</td></tr>\n<tr><td>NULL</td><td>Eve</td><td>22</td><td>Biology</td></tr>\n</table>\n<div class=\"hint\">※ StudentID 가 기본 키(PK)이다.</div>",
+      "bodyText": "다음은 무결성 제약조건에 대한 문제이다. 아래 표에서 어떠한 (       ) 무결성을 위반하였는지 작성하시오.\n\n| StudentID (PK) | Name | Age | Major |\n| --- | --- | --- | --- |\n| 101 | Alice | 20 | Computer Science |\n| 102 | Bob | 21 | Mathematics |\n| 101 | David | 23 | Chemistry |\n| NULL | Eve | 22 | Biology |\n\n※ StudentID 가 기본 키(PK)이다.",
+      "sourceImages": [
+        "raw/2024-3/img01.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "개체",
+            "개체 무결성",
+            "엔티티",
+            "Entity",
+            "Entity Integrity",
+            "개체무결성(Entity Integrity)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "개체"
+        }
+      ],
+      "display": "개체 (Entity) 무결성"
+    },
+    {
+      "id": "2024-3#9",
+      "num": 9,
+      "prompt": "다음은 URL 구조에 관한 문제이다. 아래 보기의 순서대로 URL에 해당하는 번호를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">아래 URL 은 다섯 개의 구간 (1)~(5) 로 나뉘어 표시되어 있다.</div>\n<pre class=\"code\">(1)        (2)          (3)         (4)     (5)\n┌─┐   ┌────────────┐ ┌────────┐ ┌─────────┐ ┌──┐\nfoo://localhost:8080/over/there?name=ferret#nose</pre>\n<div class=\"boki\"><b>[보기]</b>\nquery : 서버에 전달할 추가 데이터<br>path : 서버 내의 특정 자원을 가리키는 경로<br>scheme : 리소스에 접근하는 방법이나 프로토콜<br>authority : 사용자 정보, 호스트명, 포트 번호<br>fragment : 특정 문서 내의 위치</div>",
+      "bodyText": "다음은 URL 구조에 관한 문제이다. 아래 보기의 순서대로 URL에 해당하는 번호를 작성하시오.\n\n아래 URL 은 다섯 개의 구간 (1)~(5) 로 나뉘어 표시되어 있다.\n\n```text\n(1)        (2)          (3)         (4)     (5)\n┌─┐   ┌────────────┐ ┌────────┐ ┌─────────┐ ┌──┐\nfoo://localhost:8080/over/there?name=ferret#nose\n```\n\n[보기]\nquery : 서버에 전달할 추가 데이터\npath : 서버 내의 특정 자원을 가리키는 경로\nscheme : 리소스에 접근하는 방법이나 프로토콜\nauthority : 사용자 정보, 호스트명, 포트 번호\nfragment : 특정 문서 내의 위치",
+      "sourceImages": [
+        "raw/2024-3/img02.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "query",
+          "accept": [
+            "4",
+            "(4)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "4"
+        },
+        {
+          "label": "path",
+          "accept": [
+            "3",
+            "(3)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "3"
+        },
+        {
+          "label": "scheme",
+          "accept": [
+            "1",
+            "(1)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "1"
+        },
+        {
+          "label": "authority",
+          "accept": [
+            "2",
+            "(2)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "2"
+        },
+        {
+          "label": "fragment",
+          "accept": [
+            "5",
+            "(5)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "5"
+        }
+      ],
+      "display": "query 4 / path 3 / scheme 1 / authority 2 / fragment 5  →  43125"
+    },
+    {
+      "id": "2024-3#10",
+      "num": 10,
+      "prompt": "다음은 파이썬에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">def func(value):\n    if type(value) == type(100):\n        return 100\n    elif type(value) == type(\"\"):\n        return len(value)\n    else:\n        return 20\n\n\na = '100.0'\nb = 100.0\nc = (100, 200)\n\nprint(func(a) + func(b) + func(c))</pre>",
+      "bodyText": "다음은 파이썬에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.\n\n```python\ndef func(value):\n    if type(value) == type(100):\n        return 100\n    elif type(value) == type(\"\"):\n        return len(value)\n    else:\n        return 20\n\n\na = '100.0'\nb = 100.0\nc = (100, 200)\n\nprint(func(a) + func(b) + func(c))\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "45"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "45"
+        }
+      ],
+      "display": "45"
+    },
+    {
+      "id": "2024-3#11",
+      "num": 11,
+      "prompt": "다음은 Java 코드에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public class Main{\n  public static void main(String[] args){\n    Base a =  new Derivate();\n    Derivate b = new Derivate();\n\n    System.out.print(a.getX() + a.x + b.getX() + b.x);\n  }\n}\n\n\nclass Base{\n  int x = 3;\n\n  int getX(){\n     return x * 2;\n  }\n}\n\nclass Derivate extends Base{\n  int x = 7;\n\n  int getX(){\n     return x * 3;\n  }\n}</pre>",
+      "bodyText": "다음은 Java 코드에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.\n\n```java\npublic class Main{\n  public static void main(String[] args){\n    Base a =  new Derivate();\n    Derivate b = new Derivate();\n\n    System.out.print(a.getX() + a.x + b.getX() + b.x);\n  }\n}\n\n\nclass Base{\n  int x = 3;\n\n  int getX(){\n     return x * 2;\n  }\n}\n\nclass Derivate extends Base{\n  int x = 7;\n\n  int getX(){\n     return x * 3;\n  }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "52"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "52"
+        }
+      ],
+      "display": "52"
+    },
+    {
+      "id": "2024-3#12",
+      "num": 12,
+      "prompt": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nstruct Node {\n int value;\n struct Node* next;\n};\n\nvoid func(struct Node* node){\n  while(node != NULL &amp;&amp; node-&gt;next != NULL){\n     int t = node-&gt;value;\n     node-&gt;value = node-&gt;next-&gt;value;\n     node-&gt;next-&gt;value = t;\n     node = node-&gt;next-&gt;next;\n  }\n}\n\nint main(){\n  struct Node n1 = {1, NULL};\n  struct Node n2 = {2, NULL};\n  struct Node n3 = {3, NULL};\n\n  n1.next = &amp;n3;\n  n3.next = &amp;n2;\n\n  func(&amp;n1);\n\n  struct Node* current = &amp;n1;\n\n  while(current != NULL){\n    printf(\"%d\", current-&gt;value);\n    current = current-&gt;next;\n }\n\n return 0;\n\n}</pre>",
+      "bodyText": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n\nstruct Node {\n int value;\n struct Node* next;\n};\n\nvoid func(struct Node* node){\n  while(node != NULL && node->next != NULL){\n     int t = node->value;\n     node->value = node->next->value;\n     node->next->value = t;\n     node = node->next->next;\n  }\n}\n\nint main(){\n  struct Node n1 = {1, NULL};\n  struct Node n2 = {2, NULL};\n  struct Node n3 = {3, NULL};\n\n  n1.next = &n3;\n  n3.next = &n2;\n\n  func(&n1);\n\n  struct Node* current = &n1;\n\n  while(current != NULL){\n    printf(\"%d\", current->value);\n    current = current->next;\n }\n\n return 0;\n\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "312"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "312"
+        }
+      ],
+      "display": "312"
+    },
+    {
+      "id": "2024-3#13",
+      "num": 13,
+      "prompt": "다음은 테스트 커버리지에 대한 문제이다. 아래 내용에 알맞는 답을 보기에서 골라 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. 테스트를 통해 프로그램의 모든 문장을 최소한 한 번씩 실행했는지를 측정</div>\n<div class=\"desc-box\">2. 프로그램 내의 모든 분기(조건문)의 각 분기를 최소한 한 번씩 실행했는지를 측정</div>\n<div class=\"desc-box\">3. 복합 조건 내의 각 개별 조건이 참과 거짓으로 평가되는 경우를 모두 테스트했는지를 측정</div>\n<div class=\"boki\"><b>[보기]</b>\nㄱ. 조건&emsp;ㄴ. 경로&emsp;ㄷ. 결정&emsp;ㄹ. 분기<br>ㅁ. 함수&emsp;ㅂ. 문장&emsp;ㅅ. 루프</div>",
+      "bodyText": "다음은 테스트 커버리지에 대한 문제이다. 아래 내용에 알맞는 답을 보기에서 골라 작성하시오.\n\n1. 테스트를 통해 프로그램의 모든 문장을 최소한 한 번씩 실행했는지를 측정\n\n2. 프로그램 내의 모든 분기(조건문)의 각 분기를 최소한 한 번씩 실행했는지를 측정\n\n3. 복합 조건 내의 각 개별 조건이 참과 거짓으로 평가되는 경우를 모두 테스트했는지를 측정\n\n[보기]\nㄱ. 조건\nㄴ. 경로\nㄷ. 결정\nㄹ. 분기\nㅁ. 함수\nㅂ. 문장\nㅅ. 루프",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "ㅂ",
+            "문장",
+            "문장 커버리지",
+            "Statement",
+            "Statement Coverage"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "문장"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "ㄹ",
+            "분기",
+            "분기 커버리지",
+            "Branch",
+            "Branch Coverage"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "분기"
+        },
+        {
+          "label": "3번",
+          "accept": [
+            "ㄱ",
+            "조건",
+            "조건 커버리지",
+            "Condition",
+            "Condition Coverage"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "조건"
+        }
+      ],
+      "display": "1. 문장(ㅂ) / 2. 분기(ㄹ) / 3. 조건(ㄱ)"
+    },
+    {
+      "id": "2024-3#14",
+      "num": 14,
+      "prompt": "아래는 UML 클래스의 관계에 관한 문제이다. 보기를 보고 알맞는 관계를 선택하여 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">(1)  차 ─── 타이어 / 바퀴 / 엔진        (실선으로 연결)\n\n(2)  차 ◁─── 버스 / 택시 / 승용차       (속이 빈 삼각형 화살표가 '차' 를 가리킴)\n\n(3)  텔레비전 ┈┈▶ 리모콘                (점선 화살표)</pre>\n<div class=\"boki\"><b>[보기]</b>\nㄱ. 의존&emsp;ㄴ. 연관&emsp;ㄷ. 일반화</div>",
+      "bodyText": "아래는 UML 클래스의 관계에 관한 문제이다. 보기를 보고 알맞는 관계를 선택하여 작성하시오.\n\n```text\n(1)  차 ─── 타이어 / 바퀴 / 엔진        (실선으로 연결)\n\n(2)  차 ◁─── 버스 / 택시 / 승용차       (속이 빈 삼각형 화살표가 '차' 를 가리킴)\n\n(3)  텔레비전 ┈┈▶ 리모콘                (점선 화살표)\n```\n\n[보기]\nㄱ. 의존\nㄴ. 연관\nㄷ. 일반화",
+      "sourceImages": [
+        "raw/2024-3/img03.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "ㄴ",
+            "연관",
+            "연관관계",
+            "Association"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "연관"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "ㄷ",
+            "일반화",
+            "일반화관계",
+            "Generalization"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "일반화"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "ㄱ",
+            "의존",
+            "의존관계",
+            "Dependency"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "의존"
+        }
+      ],
+      "display": "(1) 연관 (2) 일반화 (3) 의존"
+    },
+    {
+      "id": "2024-3#15",
+      "num": 15,
+      "prompt": "다음은 데이터베이스에 관한 문제이다. 아래 내용을 읽고 알맞는 답을 보기에서 찾아 골라 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(1) 다른 테이블, 릴레이션의 기본 키를 참조하는 속성 또는 속성들의 집합</div>\n<div class=\"desc-box\">(2) 테이블에서 각 행을 유일하게 식별할 수 있는 최소한의 속성들의 집합</div>\n<div class=\"desc-box\">(3) 후보 키 중에서 선정된 기본 키를 제외한 나머지 후보 키</div>\n<div class=\"desc-box\">(4) 테이블에서 각 행을 유일하게 식별할 수 있는 속성들의 집합</div>\n<div class=\"boki\"><b>[보기]</b>\nㄱ. 슈퍼키&emsp;ㄴ. 외래키&emsp;ㄷ. 대체키&emsp;ㄹ. 후보키</div>",
+      "bodyText": "다음은 데이터베이스에 관한 문제이다. 아래 내용을 읽고 알맞는 답을 보기에서 찾아 골라 작성하시오.\n\n(1) 다른 테이블, 릴레이션의 기본 키를 참조하는 속성 또는 속성들의 집합\n\n(2) 테이블에서 각 행을 유일하게 식별할 수 있는 최소한의 속성들의 집합\n\n(3) 후보 키 중에서 선정된 기본 키를 제외한 나머지 후보 키\n\n(4) 테이블에서 각 행을 유일하게 식별할 수 있는 속성들의 집합\n\n[보기]\nㄱ. 슈퍼키\nㄴ. 외래키\nㄷ. 대체키\nㄹ. 후보키",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "ㄴ",
+            "외래키",
+            "외래 키",
+            "Foreign Key",
+            "FK"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "외래키"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "ㄹ",
+            "후보키",
+            "후보 키",
+            "Candidate Key"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "후보키"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "ㄷ",
+            "대체키",
+            "대체 키",
+            "Alternate Key"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "대체키"
+        },
+        {
+          "label": "(4)",
+          "accept": [
+            "ㄱ",
+            "슈퍼키",
+            "슈퍼 키",
+            "Super Key"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "슈퍼키"
+        }
+      ],
+      "display": "(1) 외래키 (2) 후보키 (3) 대체키 (4) 슈퍼키"
+    },
+    {
+      "id": "2024-3#16",
+      "num": 16,
+      "prompt": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nvoid func(int** arr, int size){\n  for(int i=0; i&lt;size; i++){\n     *(*arr + i) = (*(*arr+i) + i) % size;\n  }\n}\n\nint main(){\n  int arr[] = {3,1, 4, 1, 5};\n  int* p = arr;\n  int** pp = &amp;p;\n  int num = 6;\n\n  func(pp, 5);\n  num = arr[2];\n  printf(\"%d\", num);\n\n  return 0;\n}</pre>",
+      "bodyText": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n\nvoid func(int** arr, int size){\n  for(int i=0; i<size; i++){\n     *(*arr + i) = (*(*arr+i) + i) % size;\n  }\n}\n\nint main(){\n  int arr[] = {3,1, 4, 1, 5};\n  int* p = arr;\n  int** pp = &p;\n  int num = 6;\n\n  func(pp, 5);\n  num = arr[2];\n  printf(\"%d\", num);\n\n  return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "1"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "1"
+        }
+      ],
+      "display": "1"
+    },
+    {
+      "id": "2024-3#17",
+      "num": 17,
+      "prompt": "다음 아래 내용을 보고 알맞는 용어를 작성하시오. (3글자로 작성)",
+      "bodyHtml": "<div class=\"desc-box\">공용 네트워크를 통해 사설 네트워크를 확장하는 기술이다.</div>\n<div class=\"desc-box\">사용자의 IP 주소를 숨기고, 사용자가 어디에서 접속하는지를 추적하기 어렵게 만든다.</div>\n<div class=\"desc-box\">종류로는 IPsec 또는 SSL, L2TP 등이 있다.</div>",
+      "bodyText": "다음 아래 내용을 보고 알맞는 용어를 작성하시오. (3글자로 작성)\n\n공용 네트워크를 통해 사설 네트워크를 확장하는 기술이다.\n\n사용자의 IP 주소를 숨기고, 사용자가 어디에서 접속하는지를 추적하기 어렵게 만든다.\n\n종류로는 IPsec 또는 SSL, L2TP 등이 있다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "VPN",
+            "Virtual Private Network",
+            "가상사설망",
+            "VPN(Virtual Private Network)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "VPN"
+        }
+      ],
+      "display": "VPN (Virtual Private Network, 가상 사설망)"
+    },
+    {
+      "id": "2024-3#18",
+      "num": 18,
+      "prompt": "다음은 Java 코드에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public class ExceptionHandling {\n  public static void main(String[] args) {\n      int sum = 0;\n      try {\n          func();\n      } catch (NullPointerException e) {\n          sum = sum + 1;\n      } catch (Exception e) {\n          sum = sum + 10;\n      } finally {\n          sum = sum + 100;\n      }\n      System.out.print(sum);\n  }\n\n  static void func() throws Exception {\n      throw new NullPointerException();\n  }\n}</pre>",
+      "bodyText": "다음은 Java 코드에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.\n\n```java\npublic class ExceptionHandling {\n  public static void main(String[] args) {\n      int sum = 0;\n      try {\n          func();\n      } catch (NullPointerException e) {\n          sum = sum + 1;\n      } catch (Exception e) {\n          sum = sum + 10;\n      } finally {\n          sum = sum + 100;\n      }\n      System.out.print(sum);\n  }\n\n  static void func() throws Exception {\n      throw new NullPointerException();\n  }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "101"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "101"
+        }
+      ],
+      "display": "101"
+    },
+    {
+      "id": "2024-3#19",
+      "num": 19,
+      "prompt": "다음은 Java 코드에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class Main {\n\n  public static class Collection&lt;T&gt;{\n    T value;\n\n    public Collection(T t){\n        value = t;\n    }\n\n    public void print(){\n       new Printer().print(value);\n    }\n\n   class Printer{\n      void print(Integer a){\n        System.out.print(\"A\" + a);\n      }\n      void print(Object a){\n        System.out.print(\"B\" + a);\n      }\n      void print(Number a){\n        System.out.print(\"C\" + a);\n      }\n   }\n }\n\n  public static void main(String[] args) {\n      new Collection&lt;&gt;(0).print();\n  }\n\n}</pre>",
+      "bodyText": "다음은 Java 코드에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.\n\n```java\nclass Main {\n\n  public static class Collection<T>{\n    T value;\n\n    public Collection(T t){\n        value = t;\n    }\n\n    public void print(){\n       new Printer().print(value);\n    }\n\n   class Printer{\n      void print(Integer a){\n        System.out.print(\"A\" + a);\n      }\n      void print(Object a){\n        System.out.print(\"B\" + a);\n      }\n      void print(Number a){\n        System.out.print(\"C\" + a);\n      }\n   }\n }\n\n  public static void main(String[] args) {\n      new Collection<>(0).print();\n  }\n\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "B0",
+            "b0"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "B0"
+        }
+      ],
+      "display": "B0"
+    },
+    {
+      "id": "2024-3#20",
+      "num": 20,
+      "prompt": "다음은 네트워크에 대한 문제이다. 아래 내용을 보고 알맞는 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">중앙 관리나 고정된 인프라 없이 임시로 구성되는 네트워크이다.</div>\n<div class=\"desc-box\">일반적으로 무선 통신을 통해 노드들이 직접 연결되어 데이터를 주고받는다.</div>\n<div class=\"desc-box\">긴급 구조, 긴급 회의, 군사적인 상황 등에서 유용하게 활용될 수 있다.</div>\n<div class=\"boki\"><b>[보기]</b>\nㄱ. Infrastructure Network&emsp;ㄴ. Firmware Network&emsp;ㄷ. Peer-to-Peer Network&emsp;ㄹ. Ad-hoc Network<br>ㅁ. Mesh Network&emsp;ㅂ. Sensor Network&emsp;ㅅ. Virtual Private Network</div>",
+      "bodyText": "다음은 네트워크에 대한 문제이다. 아래 내용을 보고 알맞는 용어를 작성하시오.\n\n중앙 관리나 고정된 인프라 없이 임시로 구성되는 네트워크이다.\n\n일반적으로 무선 통신을 통해 노드들이 직접 연결되어 데이터를 주고받는다.\n\n긴급 구조, 긴급 회의, 군사적인 상황 등에서 유용하게 활용될 수 있다.\n\n[보기]\nㄱ. Infrastructure Network\nㄴ. Firmware Network\nㄷ. Peer-to-Peer Network\nㄹ. Ad-hoc Network\nㅁ. Mesh Network\nㅂ. Sensor Network\nㅅ. Virtual Private Network",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ㄹ",
+            "Ad-hoc Network",
+            "Ad hoc Network",
+            "애드혹",
+            "애드혹 네트워크",
+            "Adhoc",
+            "ㄹ. Ad-hoc Network"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄹ"
+        }
+      ],
+      "display": "ㄹ. Ad-hoc Network (애드혹 네트워크)"
+    }
+  ]
+}

@@ -1,0 +1,808 @@
+{
+  "round": "2023-2",
+  "title": "2023년 2회",
+  "sourceUrl": "https://chobopark.tistory.com/420",
+  "questions": [
+    {
+      "id": "2023-2#1",
+      "num": 1,
+      "prompt": "다음 C언어 코드에서 보기의 조건에 맞도록 괄호 안에 알맞은 코드를 작성하시오.",
+      "bodyHtml": "<div class=\"boki\"><b>[보기]</b>\n입력값이 54321일 경우 출력값이 43215로 출력되어야 한다.</div>\n<pre class=\"code\">int main(void) {\n\n    int n[5];\n    int i;\n\n    for (i = 0; i &lt; 5; i++) {\n        printf(\"숫자를 입력해주세요 : \");\n        scanf(\"%d\", &amp;n[i]);\n    }\n\n    for (i = 0; i &lt; 5; i++) {\n        printf(\"%d\", (            ) );\n    }\n\n  return 0;\n\n}</pre>",
+      "bodyText": "다음 C언어 코드에서 보기의 조건에 맞도록 괄호 안에 알맞은 코드를 작성하시오.\n\n[보기]\n입력값이 54321일 경우 출력값이 43215로 출력되어야 한다.\n\n```c\nint main(void) {\n\n    int n[5];\n    int i;\n\n    for (i = 0; i < 5; i++) {\n        printf(\"숫자를 입력해주세요 : \");\n        scanf(\"%d\", &n[i]);\n    }\n\n    for (i = 0; i < 5; i++) {\n        printf(\"%d\", (            ) );\n    }\n\n  return 0;\n\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "n[(i+1)%5]",
+            "n[(i + 1) % 5]",
+            "n[(i+1) % 5]"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "n[(i+1) % 5]"
+        }
+      ],
+      "display": "n[(i+1) % 5]"
+    },
+    {
+      "id": "2023-2#2",
+      "num": 2,
+      "prompt": "다음 Java 코드에서, 가지고 있는 돈이 총 4620원일 때 1000원·500원·100원·10원의 지폐 및 동전 개수를 구하도록 괄호 안을 각각 작성하시오.",
+      "bodyHtml": "<div class=\"boki\"><b>[보기]</b>\n아래 주어진 항목들만 사용하여 괄호 안의 코드를 작성한다.<br>변수 : m<br>연산자 : / , %<br>괄호 : [ , ] , ( , )<br>정수 : 1000, 500, 100, 10</div>\n<pre class=\"code\">public class Problem{\n    public static void main(String[] args){\n m = 4620;\n\n a = (              );\n b = (              );\n c = (              );\n d = (              );\n\n System.out.println(a); //천원짜리     4장 출력\n System.out.println(b); //오백원짜리  1개 출력\n System.out.println(c); //백원짜리     1개 출력\n System.out.println(d); //십원짜리     2개 출력\n    }\n}</pre>",
+      "bodyText": "다음 Java 코드에서, 가지고 있는 돈이 총 4620원일 때 1000원·500원·100원·10원의 지폐 및 동전 개수를 구하도록 괄호 안을 각각 작성하시오.\n\n[보기]\n아래 주어진 항목들만 사용하여 괄호 안의 코드를 작성한다.\n변수 : m\n연산자 : / , %\n괄호 : [ , ] , ( , )\n정수 : 1000, 500, 100, 10\n\n```java\npublic class Problem{\n    public static void main(String[] args){\n m = 4620;\n\n a = (              );\n b = (              );\n c = (              );\n d = (              );\n\n System.out.println(a); //천원짜리     4장 출력\n System.out.println(b); //오백원짜리  1개 출력\n System.out.println(c); //백원짜리     1개 출력\n System.out.println(d); //십원짜리     2개 출력\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "a",
+          "accept": [
+            "m/1000",
+            "m / 1000"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "m / 1000"
+        },
+        {
+          "label": "b",
+          "accept": [
+            "(m%1000)/500",
+            "(m % 1000) / 500",
+            "m%1000/500"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "(m % 1000) / 500"
+        },
+        {
+          "label": "c",
+          "accept": [
+            "(m%500)/100",
+            "(m % 500) / 100",
+            "m%500/100"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "(m % 500) / 100"
+        },
+        {
+          "label": "d",
+          "accept": [
+            "(m%100)/10",
+            "(m % 100) / 10",
+            "m%100/10"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "(m % 100) / 10"
+        }
+      ],
+      "display": "a = m / 1000 / b = (m % 1000) / 500 / c = (m % 500) / 100 / d = (m % 100) / 10"
+    },
+    {
+      "id": "2023-2#3",
+      "num": 3,
+      "prompt": "다음 C언어 코드의 출력값을 순서대로 작성하시오.",
+      "bodyHtml": "<div class=\"boki\"><b>[보기]</b>\n입력값은 홍길동, 김철수, 박영희 순서로 주어진다.</div>\n<pre class=\"code\">#include&lt;stdlio.h&gt;\n#include&lt;stdlib.h&gt;\nchar n[30];\nchar *test() {\n    printf(입력하세요 : );\n    gets(n);\n    return n;\n}\n\nint main()\n\n{\n    char * test1;\n    char * test2;\n    char * test3;\n\n    test1 = test();\n    test2 = test();\n    test3 = test();\n\n    printf(%s\\n,test1);\n    printf(%s\\n,test2);\n    printf(%s,test3);\n\n}</pre>",
+      "bodyText": "다음 C언어 코드의 출력값을 순서대로 작성하시오.\n\n[보기]\n입력값은 홍길동, 김철수, 박영희 순서로 주어진다.\n\n```c\n#include<stdlio.h>\n#include<stdlib.h>\nchar n[30];\nchar *test() {\n    printf(입력하세요 : );\n    gets(n);\n    return n;\n}\n\nint main()\n\n{\n    char * test1;\n    char * test2;\n    char * test3;\n\n    test1 = test();\n    test2 = test();\n    test3 = test();\n\n    printf(%s\\n,test1);\n    printf(%s\\n,test2);\n    printf(%s,test3);\n\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번째 줄",
+          "accept": [
+            "박영희"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "박영희"
+        },
+        {
+          "label": "2번째 줄",
+          "accept": [
+            "박영희"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "박영희"
+        },
+        {
+          "label": "3번째 줄",
+          "accept": [
+            "박영희"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "박영희"
+        }
+      ],
+      "display": "박영희 / 박영희 / 박영희"
+    },
+    {
+      "id": "2023-2#4",
+      "num": 4,
+      "prompt": "다음은 테이블에 데이터를 삽입하기 위한 과정이다. 보기의 조건에 맞게 데이터 삽입을 위한 SQL문을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">CREATE TABLE 학생 (\n  학번 int,\n  이름 varchar(20),\n  학년 int,\n  전공 varchar(30),\n  전화번호varchar(20)\n);</pre>\n<div class=\"desc-box\"><b>[결과값] &lt;학생&gt;</b></div>\n<table class=\"tbl\">\n<tr><th>학번</th><th>이름</th><th>학년</th><th>전공</th><th>전화번호</th></tr>\n<tr><td>9830287</td><td>뉴진스</td><td>3</td><td>경영학개론</td><td>010-1234-1234</td></tr>\n</table>\n<div class=\"hint\">[조건]<br>- 문자열일 경우 작은따옴표로 표시한다.</div>",
+      "bodyText": "다음은 테이블에 데이터를 삽입하기 위한 과정이다. 보기의 조건에 맞게 데이터 삽입을 위한 SQL문을 작성하시오.\n\n```sql\nCREATE TABLE 학생 (\n  학번 int,\n  이름 varchar(20),\n  학년 int,\n  전공 varchar(30),\n  전화번호varchar(20)\n);\n```\n\n[결과값] <학생>\n\n| 학번 | 이름 | 학년 | 전공 | 전화번호 |\n| --- | --- | --- | --- | --- |\n| 9830287 | 뉴진스 | 3 | 경영학개론 | 010-1234-1234 |\n\n[조건]\n- 문자열일 경우 작은따옴표로 표시한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "INSERT INTO 학생(학번,이름,학년,전공,전화번호) VALUES(9830287,'뉴진스',3,'경영학개론','010-1234-1234')",
+            "INSERT INTO 학생 (학번,이름,학년,전공,전화번호) VALUES (9830287,'뉴진스',3,'경영학개론','010-1234-1234')",
+            "INSERT INTO 학생(학번,이름,학년,전공,전화번호) VALUES(9830287, '뉴진스', 3, '경영학개론', '010-1234-1234')",
+            "INSERT INTO 학생 (학번,이름,학년,전공,전화번호) VALUES (9830287, '뉴진스', 3, '경영학개론', '010-1234-1234')",
+            "INSERT INTO 학생(학번, 이름, 학년, 전공, 전화번호) VALUES(9830287,'뉴진스',3,'경영학개론','010-1234-1234')",
+            "INSERT INTO 학생 (학번, 이름, 학년, 전공, 전화번호) VALUES (9830287,'뉴진스',3,'경영학개론','010-1234-1234')",
+            "INSERT INTO 학생(학번, 이름, 학년, 전공, 전화번호) VALUES(9830287, '뉴진스', 3, '경영학개론', '010-1234-1234')",
+            "INSERT INTO 학생 (학번, 이름, 학년, 전공, 전화번호) VALUES (9830287, '뉴진스', 3, '경영학개론', '010-1234-1234')"
+          ],
+          "normalize": "sql",
+          "validator": null,
+          "sampleAnswer": "INSERT INTO 학생(학번,이름,학년,전공,전화번호) VALUES(9830287,'뉴진스',3,'경영학개론','010-1234-1234');"
+        }
+      ],
+      "display": "INSERT INTO 학생(학번,이름,학년,전공,전화번호) VALUES(9830287,'뉴진스',3,'경영학개론','010-1234-1234');"
+    },
+    {
+      "id": "2023-2#5",
+      "num": 5,
+      "prompt": "다음 C언어 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nvoid main(){\n    int n[3] = {73, 95, 82};\n    int sum = 0;\n\n    for(int i=0;i&lt;3;i++){\n        sum += n[i];\n    }\n\n    switch(sum/30){\n        case 10:\n        case 9: printf(\"A\");\n        case 8: printf(\"B\");\n        case 7:\n        case 6: printf(\"C\");\n        default: printf(\"D\");\n    }\n}</pre>",
+      "bodyText": "다음 C언어 코드의 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n\nvoid main(){\n    int n[3] = {73, 95, 82};\n    int sum = 0;\n\n    for(int i=0;i<3;i++){\n        sum += n[i];\n    }\n\n    switch(sum/30){\n        case 10:\n        case 9: printf(\"A\");\n        case 8: printf(\"B\");\n        case 7:\n        case 6: printf(\"C\");\n        default: printf(\"D\");\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "BCD",
+            "bcd"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "BCD"
+        }
+      ],
+      "display": "BCD"
+    },
+    {
+      "id": "2023-2#6",
+      "num": 6,
+      "prompt": "다음은 테스트 커버리지에 대한 설명이다. 보기에서 알맞은 기호를 고르시오.",
+      "bodyHtml": "<div class=\"desc-box\">- 프로그램 내에 있는 결정포인트 내의 모든 각 개별 조건식에 대한 모든 가능한 결과(참/거짓)에 대해 적어도 한 번 수행한다.<br>- 소프트웨어 테스트 수행 시 소스코드를 어느 수준까지 수행하였는가를 나타내는 기준을 나타낸다.<br>- 실제 업무에서는 다양한 툴을 사용하여 테스팅을 수행한다.<br>- True/False에 충분한 영향을 줄 수 없는 경우가 발생 가능한 한계점을 지닌다.</div>\n<div class=\"boki\"><b>[보기]</b>\nㄱ. 구문 커버리지&emsp;ㄴ. 경로 커버리지&emsp;ㄷ. 조건/결정 커버리지&emsp;ㄹ. 변형 조건/결정 커버리지<br>ㅂ. 다중 조건 커버리지&emsp;ㅅ. 결정 커버리지&emsp;ㅇ. 조건 커버리지</div>",
+      "bodyText": "다음은 테스트 커버리지에 대한 설명이다. 보기에서 알맞은 기호를 고르시오.\n\n- 프로그램 내에 있는 결정포인트 내의 모든 각 개별 조건식에 대한 모든 가능한 결과(참/거짓)에 대해 적어도 한 번 수행한다.\n- 소프트웨어 테스트 수행 시 소스코드를 어느 수준까지 수행하였는가를 나타내는 기준을 나타낸다.\n- 실제 업무에서는 다양한 툴을 사용하여 테스팅을 수행한다.\n- True/False에 충분한 영향을 줄 수 없는 경우가 발생 가능한 한계점을 지닌다.\n\n[보기]\nㄱ. 구문 커버리지\nㄴ. 경로 커버리지\nㄷ. 조건/결정 커버리지\nㄹ. 변형 조건/결정 커버리지\nㅂ. 다중 조건 커버리지\nㅅ. 결정 커버리지\nㅇ. 조건 커버리지",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ㅇ",
+            "조건커버리지",
+            "조건 커버리지",
+            "condition coverage",
+            "조건커버리지(condition coverage)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㅇ"
+        }
+      ],
+      "display": "ㅇ. 조건 커버리지 (Condition Coverage)"
+    },
+    {
+      "id": "2023-2#7",
+      "num": 7,
+      "prompt": "다음 C언어 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nint main(){\n\n    int c = 0;\n\n    for(int i = 1; i &lt;=2023; i++) {\n      if(i%4 == 0) c++;\n    }\n    printf(\"%d\", c);\n}</pre>",
+      "bodyText": "다음 C언어 코드의 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n\nint main(){\n\n    int c = 0;\n\n    for(int i = 1; i <=2023; i++) {\n      if(i%4 == 0) c++;\n    }\n    printf(\"%d\", c);\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "505"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "505"
+        }
+      ],
+      "display": "505"
+    },
+    {
+      "id": "2023-2#8",
+      "num": 8,
+      "prompt": "다음 설명에 해당하는 알맞은 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">- 소프트웨어에서 워터마크 삭제 등과 같이 소프트웨어가 불법으로 변경(unauthorized modifications)되었을 경우, 그 소프트웨어가 정상 수행되지 않게 하는 기법이다.<br>- 소프트웨어 변조 공격을 방어하기 위해 프로그램에 변조검증코드(tamper-proofing code)를 삽입하는 것도 한 방법으로, 변조검증코드의 용도는 첫째 프로그램이 변경되었는지를 탐지하는 것이고, 둘째는 변조가 탐지되었다면 프로그램이 실행되지 않게 한다.<br>- 소프트웨어의 위변조 방지 역공학 기술의 일종으로 디지털 콘텐츠의 관련 산업이나 전자상거래 또는 보호해야 할 소프트웨어가 있는 다양한 산업 분야에 적용된다.</div>",
+      "bodyText": "다음 설명에 해당하는 알맞은 용어를 작성하시오.\n\n- 소프트웨어에서 워터마크 삭제 등과 같이 소프트웨어가 불법으로 변경(unauthorized modifications)되었을 경우, 그 소프트웨어가 정상 수행되지 않게 하는 기법이다.\n- 소프트웨어 변조 공격을 방어하기 위해 프로그램에 변조검증코드(tamper-proofing code)를 삽입하는 것도 한 방법으로, 변조검증코드의 용도는 첫째 프로그램이 변경되었는지를 탐지하는 것이고, 둘째는 변조가 탐지되었다면 프로그램이 실행되지 않게 한다.\n- 소프트웨어의 위변조 방지 역공학 기술의 일종으로 디지털 콘텐츠의 관련 산업이나 전자상거래 또는 보호해야 할 소프트웨어가 있는 다양한 산업 분야에 적용된다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "템퍼프루핑",
+            "탬퍼프루핑",
+            "템퍼 프루핑",
+            "tamper proofing",
+            "tamperproofing",
+            "tamper-proofing",
+            "템퍼프루핑(tamper proofing)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "템퍼프루핑"
+        }
+      ],
+      "display": "템퍼프루핑 (Tamper Proofing)"
+    },
+    {
+      "id": "2023-2#9",
+      "num": 9,
+      "prompt": "다음 C언어 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n#define MAX_SIZE 10\n\nint isWhat[MAX_SIZE];\nint point= -1;\n\nint isEmpty() {\n    if (point == -1) return 1;\n    return 0;\n}\n\nint isFull() {\n    if (point == 10) return 1;\n    return 0;\n}\n\nvoid into(int num) {\n    if (point &gt;= 10) printf(\"Full\");\n    else isWhat[++point] = num;\n}\n\nint take() {\n    if (isEmpty() == 1) printf(\"Empty\");\n    else return isWhat[point--];\n    return 0;\n}\n\nint main(int argc, char const *argv[]){\n    int e;\n    into(5); into(2);\n\n    while(!isEmpty()){\n        printf(\"%d\", take());\n        into(4); into(1); printf(\"%d\", take());\n        into(3); printf(\"%d\", take()); printf(\"%d\", take());\n        into(6); printf(\"%d\", take()); printf(\"%d\", take());\n    }\n\n    return 0;\n}</pre>",
+      "bodyText": "다음 C언어 코드의 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n#define MAX_SIZE 10\n\nint isWhat[MAX_SIZE];\nint point= -1;\n\nint isEmpty() {\n    if (point == -1) return 1;\n    return 0;\n}\n\nint isFull() {\n    if (point == 10) return 1;\n    return 0;\n}\n\nvoid into(int num) {\n    if (point >= 10) printf(\"Full\");\n    else isWhat[++point] = num;\n}\n\nint take() {\n    if (isEmpty() == 1) printf(\"Empty\");\n    else return isWhat[point--];\n    return 0;\n}\n\nint main(int argc, char const *argv[]){\n    int e;\n    into(5); into(2);\n\n    while(!isEmpty()){\n        printf(\"%d\", take());\n        into(4); into(1); printf(\"%d\", take());\n        into(3); printf(\"%d\", take()); printf(\"%d\", take());\n        into(6); printf(\"%d\", take()); printf(\"%d\", take());\n    }\n\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "213465"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "213465"
+        }
+      ],
+      "display": "213465"
+    },
+    {
+      "id": "2023-2#10",
+      "num": 10,
+      "prompt": "데이터베이스 설계 순서에 관한 내용이다. 보기를 이용하여 괄호 안에 알맞은 내용을 순서대로 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>[데이터베이스 설계 단계]</b>\n(&nbsp;&nbsp;1&nbsp;&nbsp;) &rarr; (&nbsp;&nbsp;2&nbsp;&nbsp;) &rarr; (&nbsp;&nbsp;3&nbsp;&nbsp;) &rarr; (&nbsp;&nbsp;4&nbsp;&nbsp;) &rarr; (&nbsp;&nbsp;5&nbsp;&nbsp;)</div>\n<div class=\"boki\"><b>[보기]</b>\n구현, 요구조건 분석, 개념적 설계, 물리적 설계, 논리적 설계</div>",
+      "bodyText": "데이터베이스 설계 순서에 관한 내용이다. 보기를 이용하여 괄호 안에 알맞은 내용을 순서대로 작성하시오.\n\n[데이터베이스 설계 단계]\n(  1  ) → (  2  ) → (  3  ) → (  4  ) → (  5  )\n\n[보기]\n구현, 요구조건 분석, 개념적 설계, 물리적 설계, 논리적 설계",
+      "sourceImages": [
+        "raw/2023-2/img00.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "요구조건분석",
+            "요구조건 분석",
+            "요구사항분석",
+            "요구분석"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "요구조건 분석"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "개념적설계",
+            "개념적 설계",
+            "개념설계"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "개념적 설계"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "논리적설계",
+            "논리적 설계",
+            "논리설계"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "논리적 설계"
+        },
+        {
+          "label": "(4)",
+          "accept": [
+            "물리적설계",
+            "물리적 설계",
+            "물리설계"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "물리적 설계"
+        },
+        {
+          "label": "(5)",
+          "accept": [
+            "구현",
+            "구현단계"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "구현"
+        }
+      ],
+      "display": "(1) 요구조건 분석 / (2) 개념적 설계 / (3) 논리적 설계 / (4) 물리적 설계 / (5) 구현"
+    },
+    {
+      "id": "2023-2#11",
+      "num": 11,
+      "prompt": "다음은 디자인 패턴에 관한 설명이다. 보기에서 알맞은 답을 각각 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1.<br>- 생성자가 여러 차례 호출되더라도 실제로 생성되는 객체는 하나이고, 최초 생성 이후에 호출된 생성자는 최초의 생성자가 생성한 객체를 리턴한다.<br>- 주로 공통된 객체를 여러 개 생성해서 사용하는 DBCP(DataBase Connection Pool)와 같은 상황에서 많이 사용한다.<br>2.<br>- 호스트 객체의 내부 상태에 접근할 수 있는 방법을 제공하여 호스트 객체에 연산을 추가할 수 있도록 한다.<br>- 이 패턴은 보통 합성 구조의 원소들과 상호 작용하는 데 사용되며, 기존 코드를 변경하지 않고 새로운 기능을 추가하는 방법이다.</div>\n<div class=\"boki\"><b>[보기]</b></div>\n<table class=\"tbl\">\n<tr><th>생성패턴</th><th>구조패턴</th><th>행위패턴</th></tr>\n<tr><td>Singleton</td><td>Adapter</td><td>Observer</td></tr>\n<tr><td>Factory Method</td><td>Bridge</td><td>Strategy</td></tr>\n<tr><td>Builder</td><td>Decorator</td><td>Visitor</td></tr>\n</table>",
+      "bodyText": "다음은 디자인 패턴에 관한 설명이다. 보기에서 알맞은 답을 각각 작성하시오.\n\n1.\n- 생성자가 여러 차례 호출되더라도 실제로 생성되는 객체는 하나이고, 최초 생성 이후에 호출된 생성자는 최초의 생성자가 생성한 객체를 리턴한다.\n- 주로 공통된 객체를 여러 개 생성해서 사용하는 DBCP(DataBase Connection Pool)와 같은 상황에서 많이 사용한다.\n2.\n- 호스트 객체의 내부 상태에 접근할 수 있는 방법을 제공하여 호스트 객체에 연산을 추가할 수 있도록 한다.\n- 이 패턴은 보통 합성 구조의 원소들과 상호 작용하는 데 사용되며, 기존 코드를 변경하지 않고 새로운 기능을 추가하는 방법이다.\n\n[보기]\n\n| 생성패턴 | 구조패턴 | 행위패턴 |\n| --- | --- | --- |\n| Singleton | Adapter | Observer |\n| Factory Method | Bridge | Strategy |\n| Builder | Decorator | Visitor |",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1",
+          "accept": [
+            "singleton",
+            "싱글톤",
+            "싱글턴",
+            "singleton패턴",
+            "싱글톤패턴"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Singleton"
+        },
+        {
+          "label": "2",
+          "accept": [
+            "visitor",
+            "비지터",
+            "방문자",
+            "visitor패턴",
+            "비지터패턴"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Visitor"
+        }
+      ],
+      "display": "1. Singleton / 2. Visitor"
+    },
+    {
+      "id": "2023-2#12",
+      "num": 12,
+      "prompt": "다음 설명에 해당하는 답을 보기에서 골라 각각 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;1&nbsp;&nbsp;) Code는 데이터 전송 시 1비트의 에러를 정정할 수 있는 오류정정부호의 일종으로, 미국 Bell 연구소의 Hamming에 의해 고안되었다. 선형블록부호 및 순회부호에 속한다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;2&nbsp;&nbsp;)은/는 송신측이 전송할 문자나 프레임에 부가적 정보(Redundancy)를 첨가하여 전송하고, 수신측이 이 부가적 정보를 이용하여 에러 검출 및 에러 정정을 하는 방식이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;3&nbsp;&nbsp;)은/는 데이터 전송 과정에서 오류가 발생하면 송신 측에 재전송을 요구하는 방식이다. 오류를 검출하는 방법은 Parity 검사와 CRC, 블록 합 검사 등이 있다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;4&nbsp;&nbsp;)은/는 데이터가 저장장치 내의 한 장소에서 다른 장소로 이동되거나 컴퓨터들 간에 전송될 때, 데이터가 유실 또는 손상되었는지 여부를 점검하는 기술과 관련된 용어이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;5&nbsp;&nbsp;)은/는 네트워크 등을 통하여 데이터를 전송할 때 전송된 데이터에 오류가 있는지를 확인하기 위한 체크값을 결정하는 방식을 말한다.</div>\n<div class=\"boki\"><b>[보기]</b>\nEAC, FEC, hamming, CRC, PDS, parity, BEC</div>",
+      "bodyText": "다음 설명에 해당하는 답을 보기에서 골라 각각 작성하시오.\n\n(  1  ) Code는 데이터 전송 시 1비트의 에러를 정정할 수 있는 오류정정부호의 일종으로, 미국 Bell 연구소의 Hamming에 의해 고안되었다. 선형블록부호 및 순회부호에 속한다.\n\n(  2  )은/는 송신측이 전송할 문자나 프레임에 부가적 정보(Redundancy)를 첨가하여 전송하고, 수신측이 이 부가적 정보를 이용하여 에러 검출 및 에러 정정을 하는 방식이다.\n\n(  3  )은/는 데이터 전송 과정에서 오류가 발생하면 송신 측에 재전송을 요구하는 방식이다. 오류를 검출하는 방법은 Parity 검사와 CRC, 블록 합 검사 등이 있다.\n\n(  4  )은/는 데이터가 저장장치 내의 한 장소에서 다른 장소로 이동되거나 컴퓨터들 간에 전송될 때, 데이터가 유실 또는 손상되었는지 여부를 점검하는 기술과 관련된 용어이다.\n\n(  5  )은/는 네트워크 등을 통하여 데이터를 전송할 때 전송된 데이터에 오류가 있는지를 확인하기 위한 체크값을 결정하는 방식을 말한다.\n\n[보기]\nEAC, FEC, hamming, CRC, PDS, parity, BEC",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "hamming",
+            "해밍",
+            "hamming code",
+            "해밍코드"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "hamming"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "fec",
+            "forward error correction",
+            "전진에러수정",
+            "순방향오류정정"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "FEC"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "bec",
+            "backward error correction",
+            "후진에러수정",
+            "역방향오류정정"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "BEC"
+        },
+        {
+          "label": "(4)",
+          "accept": [
+            "parity",
+            "패리티",
+            "parity bit",
+            "패리티비트",
+            "패리티검사"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "parity"
+        },
+        {
+          "label": "(5)",
+          "accept": [
+            "crc",
+            "cyclic redundancy check",
+            "순환중복검사",
+            "crc(cyclic redundancy check)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "CRC"
+        }
+      ],
+      "display": "1. hamming / 2. FEC / 3. BEC / 4. parity / 5. CRC"
+    },
+    {
+      "id": "2023-2#13",
+      "num": 13,
+      "prompt": "다음은 HDLC 프로토콜에 대한 설명이다. 보기에서 알맞은 답을 골라 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;1&nbsp;&nbsp;) 프레임은 Seq, Next, P/F의 필드를 가진다. 또한 맨 처음 비트를 0으로 가진다. Seq는 송신용 순서번호를 가지고 있다. Next는 응답용 순서번호를 가진다. P/F는 P가 1로 설정된 경우 주국에서 종국에 데이터 전송을 허용하는 것을 의미하고, F가 1로 설정된 경우 종국에서 주국으로 데이터 전송을 하는 것을 의미한다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;2&nbsp;&nbsp;) 프레임은 맨 앞의 필드가 1로 되어 있어 정보 프레임이 아니라는 것을 나타내고 다음 비트가 0으로 나와 있다. Type의 경우에는 2비트를 가지고 있어 4가지의 종류로 나누어진다. 데이터를 보내는 역할이 아니라 응답의 기능을 수행하므로 Seq에 대한 값은 필요가 없고 다음 프레임을 요구하는 Next만 존재한다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;3&nbsp;&nbsp;) 프레임은 순서 번호가 없는 프레임을 의미한다. 첫 번째 비트와 두 번째 비트가 모두 1로 설정되어 있다. 여러 종류를 가지고 있는데 Type의 2비트와 Modifier의 3비트를 합쳐 5비트를 통해 종류를 나눈다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;4&nbsp;&nbsp;)은/는 두 호스트 모두 혼합국으로 동작한다. 양쪽에서 명령과 응답을 전송할 수 있다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;5&nbsp;&nbsp;)은/는 불균형 모드로 주국의 허락 없이 종국에서 데이터를 전송할 수 있다.</div>\n<div class=\"boki\"><b>[보기]</b>\nㄱ. 연결제어&emsp;ㄴ. 감독&emsp;ㄷ. 정보&emsp;ㄹ. 양방향 응답&emsp;ㅁ. 익명&emsp;ㅂ. 비번호<br>ㅅ. 릴레이&emsp;ㅇ. 동기균형&emsp;ㅈ. 동기응답&emsp;ㅊ. 비동기균형&emsp;ㅋ. 비동기응답</div>",
+      "bodyText": "다음은 HDLC 프로토콜에 대한 설명이다. 보기에서 알맞은 답을 골라 작성하시오.\n\n(  1  ) 프레임은 Seq, Next, P/F의 필드를 가진다. 또한 맨 처음 비트를 0으로 가진다. Seq는 송신용 순서번호를 가지고 있다. Next는 응답용 순서번호를 가진다. P/F는 P가 1로 설정된 경우 주국에서 종국에 데이터 전송을 허용하는 것을 의미하고, F가 1로 설정된 경우 종국에서 주국으로 데이터 전송을 하는 것을 의미한다.\n\n(  2  ) 프레임은 맨 앞의 필드가 1로 되어 있어 정보 프레임이 아니라는 것을 나타내고 다음 비트가 0으로 나와 있다. Type의 경우에는 2비트를 가지고 있어 4가지의 종류로 나누어진다. 데이터를 보내는 역할이 아니라 응답의 기능을 수행하므로 Seq에 대한 값은 필요가 없고 다음 프레임을 요구하는 Next만 존재한다.\n\n(  3  ) 프레임은 순서 번호가 없는 프레임을 의미한다. 첫 번째 비트와 두 번째 비트가 모두 1로 설정되어 있다. 여러 종류를 가지고 있는데 Type의 2비트와 Modifier의 3비트를 합쳐 5비트를 통해 종류를 나눈다.\n\n(  4  )은/는 두 호스트 모두 혼합국으로 동작한다. 양쪽에서 명령과 응답을 전송할 수 있다.\n\n(  5  )은/는 불균형 모드로 주국의 허락 없이 종국에서 데이터를 전송할 수 있다.\n\n[보기]\nㄱ. 연결제어\nㄴ. 감독\nㄷ. 정보\nㄹ. 양방향 응답\nㅁ. 익명\nㅂ. 비번호\nㅅ. 릴레이\nㅇ. 동기균형\nㅈ. 동기응답\nㅊ. 비동기균형\nㅋ. 비동기응답",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "ㄷ",
+            "정보",
+            "정보프레임",
+            "information"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄷ"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "ㄴ",
+            "감독",
+            "감독프레임",
+            "supervisory"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄴ"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "ㅂ",
+            "비번호",
+            "비번호프레임",
+            "unnumbered"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㅂ"
+        },
+        {
+          "label": "(4)",
+          "accept": [
+            "ㅊ",
+            "비동기균형",
+            "비동기 균형",
+            "abm",
+            "비동기균형모드"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㅊ"
+        },
+        {
+          "label": "(5)",
+          "accept": [
+            "ㅋ",
+            "비동기응답",
+            "비동기 응답",
+            "arm",
+            "비동기응답모드"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㅋ"
+        }
+      ],
+      "display": "1. ㄷ (정보) / 2. ㄴ (감독) / 3. ㅂ (비번호) / 4. ㅊ (비동기균형) / 5. ㅋ (비동기응답)"
+    },
+    {
+      "id": "2023-2#14",
+      "num": 14,
+      "prompt": "다음 Java 코드의 출력값을 순서대로 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public class Main{\n    public static void main(String[] args) {\n\n        String str1 = 'Programming';\n        String str2 = 'Programming';\n        String str3 = new String('Programming');\n\n        println(str1==str2)\n        println(str1==str3)\n        println(str1.equals(str3))\n        print(str2.equals(str3))\n    }\n}</pre>",
+      "bodyText": "다음 Java 코드의 출력값을 순서대로 작성하시오.\n\n```java\npublic class Main{\n    public static void main(String[] args) {\n\n        String str1 = 'Programming';\n        String str2 = 'Programming';\n        String str3 = new String('Programming');\n\n        println(str1==str2)\n        println(str1==str3)\n        println(str1.equals(str3))\n        print(str2.equals(str3))\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번째 줄",
+          "accept": [
+            "true"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "true"
+        },
+        {
+          "label": "2번째 줄",
+          "accept": [
+            "false"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "false"
+        },
+        {
+          "label": "3번째 줄",
+          "accept": [
+            "true"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "true"
+        },
+        {
+          "label": "4번째 줄",
+          "accept": [
+            "true"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "true"
+        }
+      ],
+      "display": "true / false / true / true"
+    },
+    {
+      "id": "2023-2#15",
+      "num": 15,
+      "prompt": "다음 보기는 암호화 알고리즘에 대한 내용이다. 대칭키와 비대칭키에 해당하는 알고리즘을 각각 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">대칭키 : (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)\n비대칭키 : (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div>\n<div class=\"boki\"><b>[보기]</b>\nDES, RSA, AES, ECC, ARIA, SEED</div>\n<div class=\"hint\">※ 해당하는 알고리즘을 쉼표(,)로 구분하여 한 칸에 모두 작성한다.</div>",
+      "bodyText": "다음 보기는 암호화 알고리즘에 대한 내용이다. 대칭키와 비대칭키에 해당하는 알고리즘을 각각 작성하시오.\n\n대칭키 : (      )\n비대칭키 : (      )\n\n[보기]\nDES, RSA, AES, ECC, ARIA, SEED\n\n※ 해당하는 알고리즘을 쉼표(,)로 구분하여 한 칸에 모두 작성한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "대칭키",
+          "accept": [
+            "DES,AES,ARIA,SEED",
+            "DES/AES/ARIA/SEED",
+            "DESAESARIASEED",
+            "DES,AES,SEED,ARIA",
+            "DES/AES/SEED/ARIA",
+            "DESAESSEEDARIA",
+            "DES,ARIA,AES,SEED",
+            "DES/ARIA/AES/SEED",
+            "DESARIAAESSEED",
+            "DES,ARIA,SEED,AES",
+            "DES/ARIA/SEED/AES",
+            "DESARIASEEDAES",
+            "DES,SEED,AES,ARIA",
+            "DES/SEED/AES/ARIA",
+            "DESSEEDAESARIA",
+            "DES,SEED,ARIA,AES",
+            "DES/SEED/ARIA/AES",
+            "DESSEEDARIAAES",
+            "AES,DES,ARIA,SEED",
+            "AES/DES/ARIA/SEED",
+            "AESDESARIASEED",
+            "AES,DES,SEED,ARIA",
+            "AES/DES/SEED/ARIA",
+            "AESDESSEEDARIA",
+            "AES,ARIA,DES,SEED",
+            "AES/ARIA/DES/SEED",
+            "AESARIADESSEED",
+            "AES,ARIA,SEED,DES",
+            "AES/ARIA/SEED/DES",
+            "AESARIASEEDDES",
+            "AES,SEED,DES,ARIA",
+            "AES/SEED/DES/ARIA",
+            "AESSEEDDESARIA",
+            "AES,SEED,ARIA,DES",
+            "AES/SEED/ARIA/DES",
+            "AESSEEDARIADES",
+            "ARIA,DES,AES,SEED",
+            "ARIA/DES/AES/SEED",
+            "ARIADESAESSEED",
+            "ARIA,DES,SEED,AES",
+            "ARIA/DES/SEED/AES",
+            "ARIADESSEEDAES",
+            "ARIA,AES,DES,SEED",
+            "ARIA/AES/DES/SEED",
+            "ARIAAESDESSEED",
+            "ARIA,AES,SEED,DES",
+            "ARIA/AES/SEED/DES",
+            "ARIAAESSEEDDES",
+            "ARIA,SEED,DES,AES",
+            "ARIA/SEED/DES/AES",
+            "ARIASEEDDESAES",
+            "ARIA,SEED,AES,DES",
+            "ARIA/SEED/AES/DES",
+            "ARIASEEDAESDES",
+            "SEED,DES,AES,ARIA",
+            "SEED/DES/AES/ARIA",
+            "SEEDDESAESARIA",
+            "SEED,DES,ARIA,AES",
+            "SEED/DES/ARIA/AES",
+            "SEEDDESARIAAES",
+            "SEED,AES,DES,ARIA",
+            "SEED/AES/DES/ARIA",
+            "SEEDAESDESARIA",
+            "SEED,AES,ARIA,DES",
+            "SEED/AES/ARIA/DES",
+            "SEEDAESARIADES",
+            "SEED,ARIA,DES,AES",
+            "SEED/ARIA/DES/AES",
+            "SEEDARIADESAES",
+            "SEED,ARIA,AES,DES",
+            "SEED/ARIA/AES/DES",
+            "SEEDARIAAESDES"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "DES, AES, ARIA, SEED"
+        },
+        {
+          "label": "비대칭키",
+          "accept": [
+            "RSA,ECC",
+            "RSA/ECC",
+            "RSAECC",
+            "ECC,RSA",
+            "ECC/RSA",
+            "ECCRSA"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "RSA, ECC"
+        }
+      ],
+      "display": "대칭키 : DES, AES, ARIA, SEED / 비대칭키 : RSA, ECC"
+    },
+    {
+      "id": "2023-2#16",
+      "num": 16,
+      "prompt": "다음 괄호 안에 알맞은 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;)(이)란 임의의 크기를 가진 데이터(Key)를 고정된 크기의 데이터(Value)로 변화시켜 저장하는 것이다.</div>\n<div class=\"desc-box\">키에 대한 (&nbsp;&nbsp;) 값을 사용하여 값을 저장하고, 키-값 쌍의 개수에 따라 동적으로 크기가 증가한다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;) 값 자체를 index로 사용하기 때문에 평균 시간복잡도가 O(1)로 매우 빠르다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;) 함수는 임의의 길이의 데이터를 고정된 길이의 데이터로 매핑하는 함수이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;) 함수는 큰 파일에서 중복되는 레코드를 찾을 수 있기 때문에 데이터베이스 검색이나 테이블 검색의 속도를 가속할 수 있다.</div>",
+      "bodyText": "다음 괄호 안에 알맞은 용어를 작성하시오.\n\n(  )(이)란 임의의 크기를 가진 데이터(Key)를 고정된 크기의 데이터(Value)로 변화시켜 저장하는 것이다.\n\n키에 대한 (  ) 값을 사용하여 값을 저장하고, 키-값 쌍의 개수에 따라 동적으로 크기가 증가한다.\n\n(  ) 값 자체를 index로 사용하기 때문에 평균 시간복잡도가 O(1)로 매우 빠르다.\n\n(  ) 함수는 임의의 길이의 데이터를 고정된 길이의 데이터로 매핑하는 함수이다.\n\n(  ) 함수는 큰 파일에서 중복되는 레코드를 찾을 수 있기 때문에 데이터베이스 검색이나 테이블 검색의 속도를 가속할 수 있다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "해시",
+            "해쉬",
+            "해싱",
+            "해슁",
+            "hash",
+            "hashing",
+            "해시(hash)",
+            "해시함수",
+            "해쉬함수"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "해시"
+        }
+      ],
+      "display": "해시 (Hash) / 해싱 (Hashing)"
+    },
+    {
+      "id": "2023-2#17",
+      "num": 17,
+      "prompt": "다음 SQL문의 괄호 안에 알맞은 단어를 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">DROP VIEW 학생 (         )</pre>\n<div class=\"desc-box\">학생 테이블을 참조하는 다른 VIEW나 제약 조건까지 모두 삭제되어야 한다.</div>",
+      "bodyText": "다음 SQL문의 괄호 안에 알맞은 단어를 작성하시오.\n\n```sql\nDROP VIEW 학생 (         )\n```\n\n학생 테이블을 참조하는 다른 VIEW나 제약 조건까지 모두 삭제되어야 한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "cascade"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "CASCADE"
+        }
+      ],
+      "display": "CASCADE (대소문자 무관)"
+    },
+    {
+      "id": "2023-2#18",
+      "num": 18,
+      "prompt": "다음 코드는 선택정렬 구현에 관한 문제이다. 오름차순으로 정렬할 경우 빈칸에 알맞은 연산자를 보기에서 골라 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include\nint main() {\n    int E[] = {64, 25, 12, 22, 11};\n    int n = sizeof(E) / sizeof(E[0]);\n    int i = 0;\n    do {\n        int j = i + 1;\n        do {\n            if (E[i] (     ) E[j]) {\n                int tmp = E[i];\n                E[i] = E[j];\n                E[j] = tmp;\n            }\n            j++;\n        } while (j &lt; n);\n        i++;\n    } while (i &lt; n-1);\n    for(int i=0; i&lt;=4; i++)\n        printf(\"%d \", E[i]);\n}</pre>\n<div class=\"boki\"><b>[보기]</b>\n&lt;, &lt;=, =&gt;, &gt;, ==, /, %</div>",
+      "bodyText": "다음 코드는 선택정렬 구현에 관한 문제이다. 오름차순으로 정렬할 경우 빈칸에 알맞은 연산자를 보기에서 골라 작성하시오.\n\n```c\n#include\nint main() {\n    int E[] = {64, 25, 12, 22, 11};\n    int n = sizeof(E) / sizeof(E[0]);\n    int i = 0;\n    do {\n        int j = i + 1;\n        do {\n            if (E[i] (     ) E[j]) {\n                int tmp = E[i];\n                E[i] = E[j];\n                E[j] = tmp;\n            }\n            j++;\n        } while (j < n);\n        i++;\n    } while (i < n-1);\n    for(int i=0; i<=4; i++)\n        printf(\"%d \", E[i]);\n}\n```\n\n[보기]\n<, <=, =>, >, ==, /, %",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            ">"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": ">"
+        }
+      ],
+      "display": ">"
+    },
+    {
+      "id": "2023-2#19",
+      "num": 19,
+      "prompt": "다음 Python 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">a = \"engineer information processing\"\nb = a[:3]\nc = a[4:6]\nd = a[28:]\ne=b+c+d\nprint(e)</pre>",
+      "bodyText": "다음 Python 코드의 출력값을 작성하시오.\n\n```python\na = \"engineer information processing\"\nb = a[:3]\nc = a[4:6]\nd = a[28:]\ne=b+c+d\nprint(e)\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "engneing",
+            "ENGNEING"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "engneing"
+        }
+      ],
+      "display": "engneing"
+    },
+    {
+      "id": "2023-2#20",
+      "num": 20,
+      "prompt": "다음 설명에 해당하는 알맞은 용어를 각각 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1.<br>- 하향식 테스트 시 상위 모듈은 존재하나 하위 모듈이 없는 경우의 테스트를 위해 임시 제공되는 모듈이다.<br>- 특별한 목적의 소프트웨어를 구현하는 것으로 컴포넌트를 개발하거나 테스트할 때 사용된다.<br>- 서버-클라이언트 구조에서 서버만 구현된 상태로 테스트를 해보고 싶을 때, 단순히 값만 넘겨주는 가상의 클라이언트를 만들어서 테스트할 수 있다.<br>2.<br>- 상향식 테스트 시 상위 모듈 없이 하위 모듈이 존재할 때 하위 모듈 구동 시 자료 입출력을 제어하기 위한 제어 모듈(소프트웨어)이다.<br>- 서버-클라이언트 구조에서 클라이언트만 구현된 상태로 테스트를 해보고 싶을 때, 접속 인증 등의 간단한 기능만 하는 가상의 서버를 만들어서 테스트할 수 있다.</div>",
+      "bodyText": "다음 설명에 해당하는 알맞은 용어를 각각 작성하시오.\n\n1.\n- 하향식 테스트 시 상위 모듈은 존재하나 하위 모듈이 없는 경우의 테스트를 위해 임시 제공되는 모듈이다.\n- 특별한 목적의 소프트웨어를 구현하는 것으로 컴포넌트를 개발하거나 테스트할 때 사용된다.\n- 서버-클라이언트 구조에서 서버만 구현된 상태로 테스트를 해보고 싶을 때, 단순히 값만 넘겨주는 가상의 클라이언트를 만들어서 테스트할 수 있다.\n2.\n- 상향식 테스트 시 상위 모듈 없이 하위 모듈이 존재할 때 하위 모듈 구동 시 자료 입출력을 제어하기 위한 제어 모듈(소프트웨어)이다.\n- 서버-클라이언트 구조에서 클라이언트만 구현된 상태로 테스트를 해보고 싶을 때, 접속 인증 등의 간단한 기능만 하는 가상의 서버를 만들어서 테스트할 수 있다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1",
+          "accept": [
+            "스텁",
+            "스터브",
+            "stub",
+            "테스트스텁",
+            "test stub",
+            "스텁(stub)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "스텁"
+        },
+        {
+          "label": "2",
+          "accept": [
+            "드라이버",
+            "driver",
+            "테스트드라이버",
+            "test driver",
+            "드라이버(driver)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "드라이버"
+        }
+      ],
+      "display": "1. 스텁 (Stub) / 2. 드라이버 (Driver)"
+    }
+  ]
+}

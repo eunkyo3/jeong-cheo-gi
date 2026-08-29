@@ -1,0 +1,593 @@
+{
+  "round": "2020-3",
+  "title": "2020년 3회",
+  "sourceUrl": "https://chobopark.tistory.com/194",
+  "questions": [
+    {
+      "id": "2020-3#1",
+      "num": 1,
+      "prompt": "리팩토링(Refactoring)의 목적에 대하여 서술하시오.",
+      "bodyHtml": "",
+      "bodyText": "리팩토링(Refactoring)의 목적에 대하여 서술하시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [],
+          "normalize": "default",
+          "validator": {
+            "type": "keywords",
+            "any": [
+              "가독성",
+              "유지보수",
+              "단순",
+              "생산성",
+              "품질"
+            ],
+            "minAny": 2
+          },
+          "sampleAnswer": "코드 가독성과 유지보수성 향상"
+        }
+      ],
+      "display": "복잡한 코드의 단순화, 소스의 가독성을 통한 유지보수성 향상, 유연한 시스템, 생산성 향상, 품질 향상"
+    },
+    {
+      "id": "2020-3#2",
+      "num": 2,
+      "prompt": "다음은 C언어 소스 코드이다. 출력 결과를 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\tvoid main(){\n    \tint i=0, c=0;\n        while (i&lt;10){\n        i++;\n        c*=i;\n        }\n        printf(\"%d\",c);\n   }</pre>",
+      "bodyText": "다음은 C언어 소스 코드이다. 출력 결과를 쓰시오.\n\n```c\n#include <stdio.h>\n\tvoid main(){\n    \tint i=0, c=0;\n        while (i<10){\n        i++;\n        c*=i;\n        }\n        printf(\"%d\",c);\n   }\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "0"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "0"
+        }
+      ],
+      "display": "0"
+    },
+    {
+      "id": "2020-3#3",
+      "num": 3,
+      "prompt": "대표적인 내부 라우팅 프로토콜로 다익스트라 알고리즘을 이용한 대규모 네트워크에 적합한 링크 상태 라우팅 프로토콜로 불리는 라우팅 프로토콜은 무엇인가?",
+      "bodyHtml": "",
+      "bodyText": "대표적인 내부 라우팅 프로토콜로 다익스트라 알고리즘을 이용한 대규모 네트워크에 적합한 링크 상태 라우팅 프로토콜로 불리는 라우팅 프로토콜은 무엇인가?",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ospf",
+            "open shortest path first",
+            "ospf(open shortest path first)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "OSPF"
+        }
+      ],
+      "display": "OSPF (Open Shortest Path First)"
+    },
+    {
+      "id": "2020-3#4",
+      "num": 4,
+      "prompt": "형상 통제를 설명하시오.",
+      "bodyHtml": "",
+      "bodyText": "형상 통제를 설명하시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [],
+          "normalize": "default",
+          "validator": {
+            "type": "keywords",
+            "all": [
+              "변경"
+            ],
+            "any": [
+              "통제",
+              "승인",
+              "검토",
+              "제어"
+            ],
+            "minAny": 1
+          },
+          "sampleAnswer": "형상 항목의 변경을 통제하는 활동"
+        }
+      ],
+      "display": "형상 항목의 버전 관리를 위해서 변경 여부와 변경 활동을 통제하는 활동"
+    },
+    {
+      "id": "2020-3#5",
+      "num": 5,
+      "prompt": "심리학자 톰 마릴은 컴퓨터가 메세지를 전달하고, 메세지가 제대로 도착했는지 확인하며, 도착하지 않았을 경우 메세지를 재전송하는 일련의 방법을 '기술적 은어'를 뜻하는 (&nbsp;&nbsp;&nbsp;&nbsp;)이라는 용어로 정의했다. 괄호 (&nbsp;&nbsp;&nbsp;&nbsp;) 안에 들어갈 용어를 쓰시오.",
+      "bodyHtml": "",
+      "bodyText": "심리학자 톰 마릴은 컴퓨터가 메세지를 전달하고, 메세지가 제대로 도착했는지 확인하며, 도착하지 않았을 경우 메세지를 재전송하는 일련의 방법을 '기술적 은어'를 뜻하는 (    )이라는 용어로 정의했다. 괄호 (    ) 안에 들어갈 용어를 쓰시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "프로토콜",
+            "protocol",
+            "프로토콜(protocol)",
+            "통신 규약",
+            "통신규약"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "프로토콜"
+        }
+      ],
+      "display": "프로토콜 (Protocol)"
+    },
+    {
+      "id": "2020-3#6",
+      "num": 6,
+      "prompt": "TCP/IP에서 오류가 발생하면 (&nbsp;&nbsp;&nbsp;&nbsp;) 메세지를 보내서 오류가 발생했음을 알린다. 괄호 (&nbsp;&nbsp;&nbsp;&nbsp;) 안에 들어갈 용어를 쓰시오.",
+      "bodyHtml": "",
+      "bodyText": "TCP/IP에서 오류가 발생하면 (    ) 메세지를 보내서 오류가 발생했음을 알린다. 괄호 (    ) 안에 들어갈 용어를 쓰시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "icmp",
+            "internet control message protocol",
+            "icmp(internet control message protocol)",
+            "인터넷 제어 메시지 프로토콜"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ICMP"
+        }
+      ],
+      "display": "ICMP (Internet Control Message Protocol)"
+    },
+    {
+      "id": "2020-3#7",
+      "num": 7,
+      "prompt": "다음 아래 제어 흐름 그래프가 분기 커버리지를 만족하기 위한 테스팅 순서를 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">아래는 제어 흐름 그래프이다. 노드 번호는 ①~⑦ 이다.</div>\n<pre class=\"code\">[1] POINTER = FALSE\n      ↓\n[2] X &gt; K ?  ──YES──▶ [3] POINTER = TRUE\n      │ NO                    │\n      ▼◀─────────────────────┘\n[4] X = X + 2\n      ↓\n[5] CALL SUB(X, POINTER, RESULT)\n      ↓\n[6] RESULT &gt; 1 ?  ──NO──▶ [7] PRINT RESULT\n      │ YES\n      └──────▶ [1] 로 되돌아감</pre>",
+      "bodyText": "다음 아래 제어 흐름 그래프가 분기 커버리지를 만족하기 위한 테스팅 순서를 쓰시오.\n\n아래는 제어 흐름 그래프이다. 노드 번호는 1~7 이다.\n\n```text\n[1] POINTER = FALSE\n      ↓\n[2] X > K ?  ──YES──▶ [3] POINTER = TRUE\n      │ NO                    │\n      ▼◀─────────────────────┘\n[4] X = X + 2\n      ↓\n[5] CALL SUB(X, POINTER, RESULT)\n      ↓\n[6] RESULT > 1 ?  ──NO──▶ [7] PRINT RESULT\n      │ YES\n      └──────▶ [1] 로 되돌아감\n```",
+      "sourceImages": [
+        "raw/2020-3/img00.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "1234561, 124567",
+            "1234561,124567",
+            "1234561 / 124567",
+            "1234561 또는 124567",
+            "1234561 or 124567",
+            "1234561 124567",
+            "124567, 1234561",
+            "124567,1234561",
+            "124567 / 1234561",
+            "124567 또는 1234561",
+            "124567 or 1234561",
+            "124567 1234561",
+            "1234567, 124561",
+            "1234567,124561",
+            "1234567 / 124561",
+            "1234567 또는 124561",
+            "1234567 or 124561",
+            "1234567 124561",
+            "124561, 1234567",
+            "124561,1234567",
+            "124561 / 1234567",
+            "124561 또는 1234567",
+            "124561 or 1234567",
+            "124561 1234567"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "1234561, 124567"
+        }
+      ],
+      "display": "1234561, 124567 (또는 1234567, 124561)"
+    },
+    {
+      "id": "2020-3#8",
+      "num": 8,
+      "prompt": "다음 조건을 만족하면서, 과목별 점수의 평균이 90 이상인 과목이름, 최소점수, 최대점수를 구하는 SQL문을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">- 대소문자를 구분하지 않는다.<br>- WHERE 구문을 사용하지 않는다.<br>- GROUP BY, HAVING 구문을 반드시 사용한다.<br>- 세미콜론(;)은 생략 가능하다.<br>- 별칭(AS)을 사용해야 한다.</div>\n<div class=\"hint\">※ [성적] 테이블</div>\n<table class=\"tbl\">\n<tr><th>과목코드</th><th>과목이름</th><th>학점</th><th>점수</th></tr>\n<tr><td>1000</td><td>컴퓨터과학</td><td>A+</td><td>95</td></tr>\n<tr><td>2000</td><td>운영체제</td><td>B+</td><td>85</td></tr>\n<tr><td>1000</td><td>컴퓨터과학</td><td>B+</td><td>85</td></tr>\n<tr><td>2000</td><td>운영체제</td><td>B</td><td>80</td></tr>\n</table>\n<div class=\"hint\">※ [결과]</div>\n<table class=\"tbl\">\n<tr><th>과목이름</th><th>최소점수</th><th>최대점수</th></tr>\n<tr><td>컴퓨터과학</td><td>85</td><td>95</td></tr>\n</table>",
+      "bodyText": "다음 조건을 만족하면서, 과목별 점수의 평균이 90 이상인 과목이름, 최소점수, 최대점수를 구하는 SQL문을 작성하시오.\n\n- 대소문자를 구분하지 않는다.\n- WHERE 구문을 사용하지 않는다.\n- GROUP BY, HAVING 구문을 반드시 사용한다.\n- 세미콜론(;)은 생략 가능하다.\n- 별칭(AS)을 사용해야 한다.\n\n※ [성적] 테이블\n\n| 과목코드 | 과목이름 | 학점 | 점수 |\n| --- | --- | --- | --- |\n| 1000 | 컴퓨터과학 | A+ | 95 |\n| 2000 | 운영체제 | B+ | 85 |\n| 1000 | 컴퓨터과학 | B+ | 85 |\n| 2000 | 운영체제 | B | 80 |\n\n※ [결과]\n\n| 과목이름 | 최소점수 | 최대점수 |\n| --- | --- | --- |\n| 컴퓨터과학 | 85 | 95 |",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "SELECT 과목이름, MIN(점수) AS 최소점수, MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수) >= 90;",
+            "SELECT 과목이름, MIN (점수) AS 최소점수, MAX (점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG (점수) >= 90;",
+            "SELECT 과목이름, MIN(점수) AS 최소점수, MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수)>=90;",
+            "SELECT 과목이름, MIN (점수) AS 최소점수, MAX (점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG (점수)>=90;",
+            "SELECT 과목이름,MIN(점수) AS 최소점수,MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수) >= 90;",
+            "SELECT 과목이름,MIN (점수) AS 최소점수,MAX (점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG (점수) >= 90;",
+            "SELECT 과목이름,MIN(점수) AS 최소점수,MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수)>=90;",
+            "SELECT 과목이름,MIN (점수) AS 최소점수,MAX (점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG (점수)>=90;"
+          ],
+          "normalize": "sql",
+          "validator": null,
+          "sampleAnswer": "SELECT 과목이름, MIN(점수) AS 최소점수, MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수) >= 90;"
+        }
+      ],
+      "display": "SELECT 과목이름, MIN(점수) AS 최소점수, MAX(점수) AS 최대점수 FROM 성적 GROUP BY 과목이름 HAVING AVG(점수) >= 90;"
+    },
+    {
+      "id": "2020-3#9",
+      "num": 9,
+      "prompt": "학생 테이블에서 이름이 민수인 튜플을 삭제하는 SQL문을 작성하시오.",
+      "bodyHtml": "<div class=\"hint\">※ [학생] 테이블</div>\n<table class=\"tbl\">\n<tr><th>학번</th><th>이름</th><th>점수</th><th>과목이름</th></tr>\n<tr><td>1000</td><td>김정미</td><td>90</td><td>알고리즘</td></tr>\n<tr><td>2000</td><td>강은미</td><td>95</td><td>데이터베이스</td></tr>\n<tr><td>3000</td><td>홍길동</td><td>90</td><td>전산수학</td></tr>\n<tr><td>4000</td><td>민수</td><td>95</td><td>운영체제</td></tr>\n</table>",
+      "bodyText": "학생 테이블에서 이름이 민수인 튜플을 삭제하는 SQL문을 작성하시오.\n\n※ [학생] 테이블\n\n| 학번 | 이름 | 점수 | 과목이름 |\n| --- | --- | --- | --- |\n| 1000 | 김정미 | 90 | 알고리즘 |\n| 2000 | 강은미 | 95 | 데이터베이스 |\n| 3000 | 홍길동 | 90 | 전산수학 |\n| 4000 | 민수 | 95 | 운영체제 |",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "DELETE FROM 학생 WHERE 이름 = '민수';",
+            "DELETE FROM 학생 WHERE 이름 = \"민수\";",
+            "DELETE FROM 학생 WHERE 이름='민수';",
+            "DELETE FROM 학생 WHERE 이름=\"민수\";"
+          ],
+          "normalize": "sql",
+          "validator": null,
+          "sampleAnswer": "DELETE FROM 학생 WHERE 이름 = '민수';"
+        }
+      ],
+      "display": "DELETE FROM 학생 WHERE 이름 = '민수';"
+    },
+    {
+      "id": "2020-3#10",
+      "num": 10,
+      "prompt": "릴레이션 A, B가 있을 때 릴레이션 B 조건에 맞는 것들만 릴레이션 A에서 튜플을 꺼내 프로젝션하는 관계 대수의 기호는 무엇인가?",
+      "bodyHtml": "",
+      "bodyText": "릴레이션 A, B가 있을 때 릴레이션 B 조건에 맞는 것들만 릴레이션 A에서 튜플을 꺼내 프로젝션하는 관계 대수의 기호는 무엇인가?",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "÷",
+            "디비전",
+            "division",
+            "÷(division)",
+            "디비전(division)",
+            "나누기"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "÷"
+        }
+      ],
+      "display": "÷ (디비전, Division)"
+    },
+    {
+      "id": "2020-3#11",
+      "num": 11,
+      "prompt": "다음 중 헝가리안 표기법(Hungarian Case)에 대해서 서술하시오.",
+      "bodyHtml": "",
+      "bodyText": "다음 중 헝가리안 표기법(Hungarian Case)에 대해서 서술하시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [],
+          "normalize": "default",
+          "validator": {
+            "type": "keywords",
+            "any": [
+              "접두",
+              "자료형",
+              "타입",
+              "앞"
+            ],
+            "minAny": 2
+          },
+          "sampleAnswer": "접두어에 자료형을 붙이는 표기법"
+        }
+      ],
+      "display": "식별자 표기 시 접두어에 자료형을 붙이는 표기법 (예: szGoodMan)"
+    },
+    {
+      "id": "2020-3#12",
+      "num": 12,
+      "prompt": "테스트의 종류 중, 동치분할 테스트, 경계값 분석 테스트 등의 종류가 있는 테스트 기법을 쓰시오.",
+      "bodyHtml": "",
+      "bodyText": "테스트의 종류 중, 동치분할 테스트, 경계값 분석 테스트 등의 종류가 있는 테스트 기법을 쓰시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "블랙박스 테스트",
+            "블랙박스테스트",
+            "black box test",
+            "blackbox test",
+            "블랙박스",
+            "명세 기반 테스트",
+            "명세기반테스트",
+            "블랙박스 검사",
+            "블랙박스 테스팅",
+            "블랙박스 테스트(명세 기반 테스트)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "블랙박스 테스트"
+        }
+      ],
+      "display": "블랙박스 테스트 (명세 기반 테스트)"
+    },
+    {
+      "id": "2020-3#13",
+      "num": 13,
+      "prompt": "다음은 C언어 소스 코드이다. 출력 결과를 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;studio.h&gt;\nint r1(){\n\treturn 4;\n}\nint r10(){\n\treturn (30+r1());\n}\nint r100(){\n\treturn (200+r10());\n}\nint main(){\n\tprintf(\"%d\\n\", r100());\n    return 0;\n}</pre>",
+      "bodyText": "다음은 C언어 소스 코드이다. 출력 결과를 쓰시오.\n\n```c\n#include <studio.h>\nint r1(){\n\treturn 4;\n}\nint r10(){\n\treturn (30+r1());\n}\nint r100(){\n\treturn (200+r10());\n}\nint main(){\n\tprintf(\"%d\\n\", r100());\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "234"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "234"
+        }
+      ],
+      "display": "234"
+    },
+    {
+      "id": "2020-3#14",
+      "num": 14,
+      "prompt": "DB 스키마(Schema)에 대해서 서술하시오.",
+      "bodyHtml": "",
+      "bodyText": "DB 스키마(Schema)에 대해서 서술하시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [],
+          "normalize": "default",
+          "validator": {
+            "type": "keywords",
+            "all": [
+              "구조"
+            ],
+            "any": [
+              "데이터베이스",
+              "db",
+              "제약",
+              "명세",
+              "정의",
+              "전반"
+            ],
+            "minAny": 1
+          },
+          "sampleAnswer": "데이터베이스의 구조와 제약조건을 정의한 것"
+        }
+      ],
+      "display": "데이터베이스의 구조, 제약조건 등의 정보를 담고 있는 기본적인 구조"
+    },
+    {
+      "id": "2020-3#15",
+      "num": 15,
+      "prompt": "다음은 자바 코드이다. 출력 결과를 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">abstract class vehicle{\n\tprivate String name;\n    abstract public String getName(String val);\n    public String getName(){\n    \treturn \"vehicle name:\" + name;\n    }\n\tpublic void setName(String val){\n    \tname = val;\n    }\n}\n\nclass Car extends Vehicle{\n\tpublic Car(String val){\n    \tsetName(val);\n   }\npublic String getName(String val){\n\treturn \"Car name : \" + val;\n   }\npublic String getName(byte val[]){\n\treturn \"Car name : \" + val;\n   }\n}\n\npublic class good {\n\tpublic Static void main(String[] args){\n    Vehicle obj = new Car(\"Spark\");\n    System.out.print(obj.getName());\n    }\n}</pre>",
+      "bodyText": "다음은 자바 코드이다. 출력 결과를 쓰시오.\n\n```java\nabstract class vehicle{\n\tprivate String name;\n    abstract public String getName(String val);\n    public String getName(){\n    \treturn \"vehicle name:\" + name;\n    }\n\tpublic void setName(String val){\n    \tname = val;\n    }\n}\n\nclass Car extends Vehicle{\n\tpublic Car(String val){\n    \tsetName(val);\n   }\npublic String getName(String val){\n\treturn \"Car name : \" + val;\n   }\npublic String getName(byte val[]){\n\treturn \"Car name : \" + val;\n   }\n}\n\npublic class good {\n\tpublic Static void main(String[] args){\n    Vehicle obj = new Car(\"Spark\");\n    System.out.print(obj.getName());\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "Vehicle name : Spark",
+            "Vehicle name : spark",
+            "Vehicle name : SPARK",
+            "vehicle name : Spark",
+            "vehicle name : spark",
+            "vehicle name : SPARK",
+            "Vehicle name:Spark",
+            "Vehicle name:spark",
+            "Vehicle name:SPARK",
+            "vehicle name:Spark",
+            "vehicle name:spark",
+            "vehicle name:SPARK",
+            "VEHICLE NAME : Spark",
+            "VEHICLE NAME : spark",
+            "VEHICLE NAME : SPARK",
+            "VEHICLE NAME:Spark",
+            "VEHICLE NAME:spark",
+            "VEHICLE NAME:SPARK"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "Vehicle name : Spark"
+        }
+      ],
+      "display": "Vehicle name : Spark"
+    },
+    {
+      "id": "2020-3#16",
+      "num": 16,
+      "prompt": "UI 설계 원칙 중 직관성에 대해서 쓰시오.",
+      "bodyHtml": "",
+      "bodyText": "UI 설계 원칙 중 직관성에 대해서 쓰시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [],
+          "normalize": "default",
+          "validator": {
+            "type": "keywords",
+            "all": [
+              "이해"
+            ],
+            "any": [
+              "사용",
+              "쉽",
+              "쉬운",
+              "누구나",
+              "직관",
+              "간단",
+              "편리"
+            ],
+            "minAny": 1
+          },
+          "sampleAnswer": "누구나 쉽게 이해하고 사용할 수 있어야 한다"
+        }
+      ],
+      "display": "누구나 쉽게 이해하고 쉽게 사용할 수 있어야 한다는 원칙 (부특성: 쉬운 검색, 쉬운 사용성, 일관성)"
+    },
+    {
+      "id": "2020-3#17",
+      "num": 17,
+      "prompt": "다음은 자바 코드이다. 출력 결과를 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">public class good {\n\tpublic static void main(String[] args){\n    int i=0;\n    int sum=0;\n    while (i&lt;10){\n    \ti++;\n        if(i%2 ==1)\n        \tcontinue;\n        sum += i;\n     }\n     System.out.println(sum);\n   }\n}</pre>",
+      "bodyText": "다음은 자바 코드이다. 출력 결과를 쓰시오.\n\n```java\npublic class good {\n\tpublic static void main(String[] args){\n    int i=0;\n    int sum=0;\n    while (i<10){\n    \ti++;\n        if(i%2 ==1)\n        \tcontinue;\n        sum += i;\n     }\n     System.out.println(sum);\n   }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "30"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "30"
+        }
+      ],
+      "display": "30"
+    },
+    {
+      "id": "2020-3#18",
+      "num": 18,
+      "prompt": "EAI 유형에는 메세지 버스(Message bus), 하이브리드(Hybrid), (&nbsp;&nbsp;1&nbsp;&nbsp;), (&nbsp;&nbsp;2&nbsp;&nbsp;) 4가지가 있다. 괄호 안에 들어갈 유형을 쓰시오.",
+      "bodyHtml": "",
+      "bodyText": "EAI 유형에는 메세지 버스(Message bus), 하이브리드(Hybrid), (  1  ), (  2  ) 4가지가 있다. 괄호 안에 들어갈 유형을 쓰시오.",
+      "sourceImages": [],
+      "answerMode": "unordered",
+      "fields": [
+        {
+          "label": "1",
+          "accept": [
+            "포인트 투 포인트",
+            "포인트투포인트",
+            "point-to-point",
+            "point to point",
+            "p2p",
+            "포인트 투 포인트(point-to-point)",
+            "point-to-point(포인트 투 포인트)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "포인트 투 포인트"
+        },
+        {
+          "label": "2",
+          "accept": [
+            "허브 앤 스포크",
+            "허브앤스포크",
+            "hub & spoke",
+            "hub and spoke",
+            "hub&spoke",
+            "허브 앤 스포크(hub & spoke)",
+            "허브 앤드 스포크"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "허브 앤 스포크"
+        }
+      ],
+      "display": "포인트 투 포인트(Point-to-point) / 허브 앤 스포크(Hub & Spoke)"
+    },
+    {
+      "id": "2020-3#19",
+      "num": 19,
+      "prompt": "C++에서 생성자란 무엇인지 쓰시오.",
+      "bodyHtml": "",
+      "bodyText": "C++에서 생성자란 무엇인지 쓰시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [],
+          "normalize": "default",
+          "validator": {
+            "type": "keywords",
+            "all": [
+              "생성"
+            ],
+            "any": [
+              "자동",
+              "호출",
+              "객체",
+              "초기화",
+              "클래스"
+            ],
+            "minAny": 2
+          },
+          "sampleAnswer": "클래스의 객체가 생성될 때 자동으로 호출되는 메서드"
+        }
+      ],
+      "display": "해당 클래스의 객체가 생성될 때 자동으로 호출되는 특수한 종류의 메서드"
+    },
+    {
+      "id": "2020-3#20",
+      "num": 20,
+      "prompt": "학생 테이블에 주소 속성을 추가하는 SQL문을 작성하시오. 괄호 안에 들어갈 키워드를 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">(  1  ) TABLE 학생   (  2  ) 주소 VARCHAR(20);</pre>",
+      "bodyText": "학생 테이블에 주소 속성을 추가하는 SQL문을 작성하시오. 괄호 안에 들어갈 키워드를 쓰시오.\n\n```sql\n(  1  ) TABLE 학생   (  2  ) 주소 VARCHAR(20);\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1",
+          "accept": [
+            "alter"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ALTER"
+        },
+        {
+          "label": "2",
+          "accept": [
+            "add"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ADD"
+        }
+      ],
+      "display": "1. ALTER / 2. ADD"
+    }
+  ]
+}

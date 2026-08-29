@@ -1,0 +1,514 @@
+{
+  "round": "2024-2",
+  "title": "2024년 2회",
+  "sourceUrl": "https://chobopark.tistory.com/483",
+  "questions": [
+    {
+      "id": "2024-2#1",
+      "num": 1,
+      "prompt": "다음은 Java 코드에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class Main {\n    public static void main(String[] args) {\n        int[] a = new int[]{1, 2, 3, 4};\n        int[] b = new int[]{1, 2, 3, 4};\n        int[] c = new int[]{1, 2, 3};\n\n        check(a, b);\n        check(a, c);\n        check(b, c);\n    }\n\n    public static void check(int[] a, int[] b) {\n        if (a==b) {\n            System.out.print(\"O\");\n        }else{\n            System.out.print(\"N\");\n        }\n\n    }\n}</pre>",
+      "bodyText": "다음은 Java 코드에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.\n\n```java\nclass Main {\n    public static void main(String[] args) {\n        int[] a = new int[]{1, 2, 3, 4};\n        int[] b = new int[]{1, 2, 3, 4};\n        int[] c = new int[]{1, 2, 3};\n\n        check(a, b);\n        check(a, c);\n        check(b, c);\n    }\n\n    public static void check(int[] a, int[] b) {\n        if (a==b) {\n            System.out.print(\"O\");\n        }else{\n            System.out.print(\"N\");\n        }\n\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "NNN",
+            "nnn"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "NNN"
+        }
+      ],
+      "display": "NNN"
+    },
+    {
+      "id": "2024-2#2",
+      "num": 2,
+      "prompt": "다음 문제에서 설명하는 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">데이터를 중복시켜 성능을 향상시키기 위한 기법으로 데이터를 중복 저장하거나 테이블을 합치는 등으로 성능을 향상시키지만 데이터 무결성이 저하될 수 있는 기법</div>",
+      "bodyText": "다음 문제에서 설명하는 용어를 작성하시오.\n\n데이터를 중복시켜 성능을 향상시키기 위한 기법으로 데이터를 중복 저장하거나 테이블을 합치는 등으로 성능을 향상시키지만 데이터 무결성이 저하될 수 있는 기법",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "반정규화",
+            "역정규화",
+            "Denormalization",
+            "비정규화",
+            "반정규화(Denormalization)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "반정규화"
+        }
+      ],
+      "display": "반정규화 (Denormalization)"
+    },
+    {
+      "id": "2024-2#3",
+      "num": 3,
+      "prompt": "다음은 SQL에 관한 문제이다. 아래 SQL 구문의 빈칸을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>[테이블]</b><br>사원 [사원번호(PK), 이름, 나이, 부서]<br>부서 [사원번호(PK), 이름, 주소, 나이]</div>\n<pre class=\"code\">-- 신입 사원이 들어와서 사원 테이블에 추가\nINSERT INTO 사원 (사원번호, 이름, 주소, 부서)   [    ①    ] (32431, '정실기', '서울', '영업');\n\n-- 위에 신입사원을 검색하면서 부서 테이블에 추가\nINSERT INTO 부서 (사원번호, 이름, 나이, 부서)\n[    ②    ] 사원번호, 이름, 나이, 23 FROM 사원 WHERE 이름 = '정실기';\n\n-- 전체 사원 테이블 조회\nSELECT  *   [    ③    ]   사원;\n\n-- 퇴사로 인해 부서에 해당하는 값을 '퇴사'로 변경\nUPDATE 사원   [    ④    ]   부서  =  '퇴사'  WHERE 사원번호  = 32431;</pre>",
+      "bodyText": "다음은 SQL에 관한 문제이다. 아래 SQL 구문의 빈칸을 작성하시오.\n\n[테이블]\n사원 [사원번호(PK), 이름, 나이, 부서]\n부서 [사원번호(PK), 이름, 주소, 나이]\n\n```sql\n-- 신입 사원이 들어와서 사원 테이블에 추가\nINSERT INTO 사원 (사원번호, 이름, 주소, 부서)   [    ①    ] (32431, '정실기', '서울', '영업');\n\n-- 위에 신입사원을 검색하면서 부서 테이블에 추가\nINSERT INTO 부서 (사원번호, 이름, 나이, 부서)\n[    ②    ] 사원번호, 이름, 나이, 23 FROM 사원 WHERE 이름 = '정실기';\n\n-- 전체 사원 테이블 조회\nSELECT  *   [    ③    ]   사원;\n\n-- 퇴사로 인해 부서에 해당하는 값을 '퇴사'로 변경\nUPDATE 사원   [    ④    ]   부서  =  '퇴사'  WHERE 사원번호  = 32431;\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "①",
+          "accept": [
+            "VALUES"
+          ],
+          "normalize": "sql",
+          "validator": null,
+          "sampleAnswer": "VALUES"
+        },
+        {
+          "label": "②",
+          "accept": [
+            "SELECT"
+          ],
+          "normalize": "sql",
+          "validator": null,
+          "sampleAnswer": "SELECT"
+        },
+        {
+          "label": "③",
+          "accept": [
+            "FROM"
+          ],
+          "normalize": "sql",
+          "validator": null,
+          "sampleAnswer": "FROM"
+        },
+        {
+          "label": "④",
+          "accept": [
+            "SET"
+          ],
+          "normalize": "sql",
+          "validator": null,
+          "sampleAnswer": "SET"
+        }
+      ],
+      "display": "① VALUES / ② SELECT / ③ FROM / ④ SET"
+    },
+    {
+      "id": "2024-2#4",
+      "num": 4,
+      "prompt": "다음 릴레이션의 Cardinality와 Degree를 작성하시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>이름</th><th>나이</th><th>A</th><th>B</th></tr>\n<tr><td>김ㅇㅇ</td><td>23</td><td>1</td><td>5</td></tr>\n<tr><td>박ㅇㅇ</td><td>25</td><td>2</td><td>3</td></tr>\n<tr><td>고ㅇㅇ</td><td>42</td><td>3</td><td>8</td></tr>\n<tr><td>최ㅇㅇ</td><td>20</td><td>2</td><td>9</td></tr>\n<tr><td>이ㅇㅇ</td><td>25</td><td>1</td><td>2</td></tr>\n</table>\n<div class=\"desc-box\">Cardinality : (&nbsp;&nbsp;①&nbsp;&nbsp;)<br>Degree : (&nbsp;&nbsp;②&nbsp;&nbsp;)</div>",
+      "bodyText": "다음 릴레이션의 Cardinality와 Degree를 작성하시오.\n\n| 이름 | 나이 | A | B |\n| --- | --- | --- | --- |\n| 김ㅇㅇ | 23 | 1 | 5 |\n| 박ㅇㅇ | 25 | 2 | 3 |\n| 고ㅇㅇ | 42 | 3 | 8 |\n| 최ㅇㅇ | 20 | 2 | 9 |\n| 이ㅇㅇ | 25 | 1 | 2 |\n\nCardinality : (  ①  )\nDegree : (  ②  )",
+      "sourceImages": [
+        "raw/2024-2/img00.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "① Cardinality",
+          "accept": [
+            "5"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "5"
+        },
+        {
+          "label": "② Degree",
+          "accept": [
+            "4"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "4"
+        }
+      ],
+      "display": "① Cardinality : 5 / ② Degree : 4"
+    },
+    {
+      "id": "2024-2#5",
+      "num": 5,
+      "prompt": "다음은 프로토콜에 대한 내용이다. 아래 내용을 읽고 알맞는 답을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">Network layer에서 IP패킷을 암호화하고 인증하는 등의 보안을 위한 표준이다.</div>\n<div class=\"desc-box\">기업에서 사설 인터넷망으로 사용할 수 있는 VPN을 구현하는데 사용되는 프로토콜이다.</div>\n<div class=\"desc-box\">AH(Authentication Header)와 ESP(Encapsulating Security Payload)라는 두 가지 보안 프로토콜을 사용한다.</div>",
+      "bodyText": "다음은 프로토콜에 대한 내용이다. 아래 내용을 읽고 알맞는 답을 작성하시오.\n\nNetwork layer에서 IP패킷을 암호화하고 인증하는 등의 보안을 위한 표준이다.\n\n기업에서 사설 인터넷망으로 사용할 수 있는 VPN을 구현하는데 사용되는 프로토콜이다.\n\nAH(Authentication Header)와 ESP(Encapsulating Security Payload)라는 두 가지 보안 프로토콜을 사용한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "IPSec",
+            "IPsec",
+            "IP Security",
+            "IP Security Protocol"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "IPSec"
+        }
+      ],
+      "display": "IPSec (IP Security)"
+    },
+    {
+      "id": "2024-2#6",
+      "num": 6,
+      "prompt": "다음은 Python에 대한 문제이다. 아래 코드를 읽고 알맞는 출력 값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">def fnCalculation(x,y):\n    result = 0;\n    for i in range(len(x)):\n     temp = x[i:i+len(y)]\n     if temp == y:\n       result += 1;\n    return result\n\na = \"abdcabcabca\"\np1 = \"ab\";\np2 = \"ca\";\n\nout = f\"ab{fnCalculation(a,p1)}ca{fnCalculation(a,p2)}\"\nprint(out)</pre>",
+      "bodyText": "다음은 Python에 대한 문제이다. 아래 코드를 읽고 알맞는 출력 값을 작성하시오.\n\n```python\ndef fnCalculation(x,y):\n    result = 0;\n    for i in range(len(x)):\n     temp = x[i:i+len(y)]\n     if temp == y:\n       result += 1;\n    return result\n\na = \"abdcabcabca\"\np1 = \"ab\";\np2 = \"ca\";\n\nout = f\"ab{fnCalculation(a,p1)}ca{fnCalculation(a,p2)}\"\nprint(out)\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "ab3ca3",
+            "AB3CA3"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "ab3ca3"
+        }
+      ],
+      "display": "ab3ca3"
+    },
+    {
+      "id": "2024-2#7",
+      "num": 7,
+      "prompt": "아래 설명하는 내용을 확인하여 알맞는 알고리즘을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">대칭키 알고리즘으로 1997년 NIST(미국 국립기술표준원)에서 DES를 대체하기 위해 생성되었다.</div>\n<div class=\"desc-box\">128비트, 192비트 또는 256비트의 가변 키 크기와 128비트의 고정 블록 크기를 사용한다.</div>\n<div class=\"desc-box\">높은 안전성과 효율성, 속도 등으로 인해 DES 대신 전 세계적으로 많이 사용되고 있다.</div>",
+      "bodyText": "아래 설명하는 내용을 확인하여 알맞는 알고리즘을 작성하시오.\n\n대칭키 알고리즘으로 1997년 NIST(미국 국립기술표준원)에서 DES를 대체하기 위해 생성되었다.\n\n128비트, 192비트 또는 256비트의 가변 키 크기와 128비트의 고정 블록 크기를 사용한다.\n\n높은 안전성과 효율성, 속도 등으로 인해 DES 대신 전 세계적으로 많이 사용되고 있다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "AES",
+            "Advanced Encryption Standard",
+            "AES(Advanced Encryption Standard)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "AES"
+        }
+      ],
+      "display": "AES (Advanced Encryption Standard)"
+    },
+    {
+      "id": "2024-2#8",
+      "num": 8,
+      "prompt": "패킷 교환 방식 중에 연결형과 비연결형에 해당하는 방식을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">① 연결형 교환 방식<br>② 비연결형 교환 방식</div>",
+      "bodyText": "패킷 교환 방식 중에 연결형과 비연결형에 해당하는 방식을 작성하시오.\n\n① 연결형 교환 방식\n② 비연결형 교환 방식",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "① 연결형",
+          "accept": [
+            "가상회선",
+            "가상 회선",
+            "가상회선 방식",
+            "Virtual Circuit",
+            "가상회선(Virtual Circuit)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "가상회선"
+        },
+        {
+          "label": "② 비연결형",
+          "accept": [
+            "데이터그램",
+            "데이터그램 방식",
+            "Datagram",
+            "데이터그램(Datagram)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "데이터그램"
+        }
+      ],
+      "display": "① 가상회선 (Virtual Circuit) / ② 데이터그램 (Datagram)"
+    },
+    {
+      "id": "2024-2#9",
+      "num": 9,
+      "prompt": "아래 내용을 확인하고 보기에서 알맞는 답을 고르시오.",
+      "bodyHtml": "<div class=\"desc-box\">실행 순서가 밀접한 관계를 갖는 기능을 모아 모듈로 구성한다.</div>\n<div class=\"desc-box\">한 모듈 내부의 한 기능 요소에 의한 출력 자료가 다음 기능 원소의 입력 자료로서 제공되는 형태이다.</div>\n<div class=\"boki\"><b>[보기]</b>\nㄱ. 기능적(functional)&emsp;ㄴ. 우연적(Coincidental)&emsp;ㄷ. 통신적(Communication)&emsp;ㄹ. 절차적(Procedural)<br>ㅁ. 시간적(Temporal)&emsp;ㅂ. 순차적(sequential)&emsp;ㅅ. 논리적(Logical)</div>",
+      "bodyText": "아래 내용을 확인하고 보기에서 알맞는 답을 고르시오.\n\n실행 순서가 밀접한 관계를 갖는 기능을 모아 모듈로 구성한다.\n\n한 모듈 내부의 한 기능 요소에 의한 출력 자료가 다음 기능 원소의 입력 자료로서 제공되는 형태이다.\n\n[보기]\nㄱ. 기능적(functional)\nㄴ. 우연적(Coincidental)\nㄷ. 통신적(Communication)\nㄹ. 절차적(Procedural)\nㅁ. 시간적(Temporal)\nㅂ. 순차적(sequential)\nㅅ. 논리적(Logical)",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ㅂ",
+            "순차적",
+            "순차적 응집도",
+            "sequential",
+            "ㅂ. 순차적(sequential)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㅂ"
+        }
+      ],
+      "display": "ㅂ. 순차적(sequential) 응집도"
+    },
+    {
+      "id": "2024-2#10",
+      "num": 10,
+      "prompt": "아래는 디자인 패턴에 관한 설명이다. 아래 설명을 읽고 보기에서 알맞는 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">컬렉션 객체의 내부 구조를 노출하지 않고 순차적으로 접근할 수 있게 하는 패턴이다.</div>\n<div class=\"desc-box\">이 패턴은 객체의 내부 표현 방식에 독립적으로 요소에 접근할 수 있도록 해준다.</div>\n<div class=\"desc-box\">반복 프로세스를 캡슐화하여 클라이언트 코드에서는 컬렉션의 구체적인 구현에 종속되지 않도록 한다.</div>\n<table class=\"tbl\">\n<tr><th>생성패턴</th><th>구조패턴</th><th>행위패턴</th></tr>\n<tr><td>Singleton</td><td>Adapter</td><td>Iterator</td></tr>\n<tr><td>Factory Method</td><td>Bridge</td><td>Visitor</td></tr>\n<tr><td>Abstract Factory</td><td>Composite</td><td>Observer</td></tr>\n</table>",
+      "bodyText": "아래는 디자인 패턴에 관한 설명이다. 아래 설명을 읽고 보기에서 알맞는 용어를 작성하시오.\n\n컬렉션 객체의 내부 구조를 노출하지 않고 순차적으로 접근할 수 있게 하는 패턴이다.\n\n이 패턴은 객체의 내부 표현 방식에 독립적으로 요소에 접근할 수 있도록 해준다.\n\n반복 프로세스를 캡슐화하여 클라이언트 코드에서는 컬렉션의 구체적인 구현에 종속되지 않도록 한다.\n\n[보기]\n| 생성패턴 | 구조패턴 | 행위패턴 |\n| --- | --- | --- |\n| Singleton | Adapter | Iterator |\n| Factory Method | Bridge | Visitor |\n| Abstract Factory | Composite | Observer |",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "Iterator",
+            "이터레이터",
+            "반복자",
+            "Iterator Pattern",
+            "반복자 패턴"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Iterator"
+        }
+      ],
+      "display": "Iterator (반복자 패턴)"
+    },
+    {
+      "id": "2024-2#11",
+      "num": 11,
+      "prompt": "아래 그림을 바탕으로 RIP을 구성하여 A에서 F까지의 최단 경로 비용을 계산하여 흐름에 맞게 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">A~F 6개의 노드가 다음과 같은 간선(가중치)으로 연결되어 있다.</div>\n<pre class=\"code\">A ─1─ D        C ─5─ F\nA ─2─ B        C ─1─ E\nB ─2─ D        E ─2─ F\nD ─2─ C</pre>\n<div class=\"hint\">※ 예제 : A &rarr; …</div>",
+      "bodyText": "아래 그림을 바탕으로 RIP을 구성하여 A에서 F까지의 최단 경로 비용을 계산하여 흐름에 맞게 작성하시오.\n\nA~F 6개의 노드가 다음과 같은 간선(가중치)으로 연결되어 있다.\n\n```text\nA ─1─ D        C ─5─ F\nA ─2─ B        C ─1─ E\nB ─2─ D        E ─2─ F\nD ─2─ C\n```\n\n※ 예제 : A → …",
+      "sourceImages": [
+        "raw/2024-2/img01.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "최단 경로",
+          "accept": [
+            "A → D → C → F",
+            "A->D->C->F",
+            "A-D-C-F",
+            "ADCF",
+            "A,D,C,F"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "A → D → C → F"
+        }
+      ],
+      "display": "A → D → C → F (RIP 은 홉 수 기준: 3홉. 가중치 합이 작은 A→D→C→E→F 는 4홉이라 RIP 에서는 선택되지 않는다)"
+    },
+    {
+      "id": "2024-2#12",
+      "num": 12,
+      "prompt": "아래의 표를 확인하여 SRT 스케줄링의 평균 대기시간을 계산하여 작성하시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>프로세스</th><th>도착 시간</th><th>서비스 시간</th></tr>\n<tr><td>A</td><td>0</td><td>8</td></tr>\n<tr><td>B</td><td>1</td><td>4</td></tr>\n<tr><td>C</td><td>2</td><td>9</td></tr>\n<tr><td>D</td><td>3</td><td>5</td></tr>\n</table>",
+      "bodyText": "아래의 표를 확인하여 SRT 스케줄링의 평균 대기시간을 계산하여 작성하시오.\n\n| 프로세스 | 도착 시간 | 서비스 시간 |\n| --- | --- | --- |\n| A | 0 | 8 |\n| B | 1 | 4 |\n| C | 2 | 9 |\n| D | 3 | 5 |",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "평균 대기시간",
+          "accept": [
+            "6.5",
+            "6.50"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "6.5"
+        }
+      ],
+      "display": "6.5"
+    },
+    {
+      "id": "2024-2#13",
+      "num": 13,
+      "prompt": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nint main() {\n    int arr[3][3] = {1, 2, 3, 4, 5, 6, 7, 8, 9};\n    int* parr[2] = {arr[1], arr[2]};\n    printf(\"%d\", parr[1][1] + *(parr[1]+2) + **parr);\n\n    return 0;\n}</pre>",
+      "bodyText": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n\nint main() {\n    int arr[3][3] = {1, 2, 3, 4, 5, 6, 7, 8, 9};\n    int* parr[2] = {arr[1], arr[2]};\n    printf(\"%d\", parr[1][1] + *(parr[1]+2) + **parr);\n\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "21"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "21"
+        }
+      ],
+      "display": "21"
+    },
+    {
+      "id": "2024-2#14",
+      "num": 14,
+      "prompt": "다음은 Java 언어에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class Main {\n    public static void main(String[] args) {\n        int a[] = {1, 2, 3, 4, 5, 6, 7, 8, 9};\n        ODDNumber OE = new ODDNumber();\n        System.out.print(OE.sum(a, true) + \", \" + OE.sum(a, false));\n    }\n}\n\ninterface Number {\n    int sum(int[] a, boolean odd);\n}\n\nclass ODDNumber implements Number {\n    public int sum(int[] a, boolean odd) {\n        int result = 0;\n        for(int i=0; i &lt; a.length; i++){\n            if((odd &amp;&amp; a[i] % 2 != 0) || (!odd &amp;&amp; a[i] % 2 == 0))\n                result += a[i];\n        }\n        return result;\n    }\n}</pre>",
+      "bodyText": "다음은 Java 언어에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.\n\n```java\nclass Main {\n    public static void main(String[] args) {\n        int a[] = {1, 2, 3, 4, 5, 6, 7, 8, 9};\n        ODDNumber OE = new ODDNumber();\n        System.out.print(OE.sum(a, true) + \", \" + OE.sum(a, false));\n    }\n}\n\ninterface Number {\n    int sum(int[] a, boolean odd);\n}\n\nclass ODDNumber implements Number {\n    public int sum(int[] a, boolean odd) {\n        int result = 0;\n        for(int i=0; i < a.length; i++){\n            if((odd && a[i] % 2 != 0) || (!odd && a[i] % 2 == 0))\n                result += a[i];\n        }\n        return result;\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "25, 20",
+            "25,20"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "25, 20"
+        }
+      ],
+      "display": "25, 20"
+    },
+    {
+      "id": "2024-2#15",
+      "num": 15,
+      "prompt": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n#include &lt;string.h&gt;\n\nvoid sumFn(char* d, const char* s) {\n\n    while (*s) {\n        *d = *s;\n        d++;\n        s++;\n    }\n    *d = '\\0';\n}\n\nint main() {\n   const char* str1 = \"first\";\n    char str2[50] = \"teststring\";\n    int result=0;\n    sumFn(str2, str1);\n\n    for (int i = 0; str2[i] != '\\0'; i++) {\n        result += i;\n    }\n    printf(\"%d\", result);\n\n    return 0;\n}</pre>",
+      "bodyText": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n#include <string.h>\n\nvoid sumFn(char* d, const char* s) {\n\n    while (*s) {\n        *d = *s;\n        d++;\n        s++;\n    }\n    *d = '\\0';\n}\n\nint main() {\n   const char* str1 = \"first\";\n    char str2[50] = \"teststring\";\n    int result=0;\n    sumFn(str2, str1);\n\n    for (int i = 0; str2[i] != '\\0'; i++) {\n        result += i;\n    }\n    printf(\"%d\", result);\n\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "10"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "10"
+        }
+      ],
+      "display": "10"
+    },
+    {
+      "id": "2024-2#16",
+      "num": 16,
+      "prompt": "아래는 소프트웨어 설계에 대한 내용이다. 내용을 읽고 괄호 안에 알맞는 답을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">어떤 모듈이 다른 모듈 내부의 논리적인 흐름을 제어하기 위해, 제어를 통신하거나 제어 요소를 전달하는 결합도이다.</div>\n<div class=\"desc-box\">한 모듈이 다른 모듈의 상세한 처리 절차를 알고 있어 이를 통제하는 경우나 처리 기능이 두 모듈에 분리되어 설계된 경우에 발생한다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;) Coupling</div>",
+      "bodyText": "아래는 소프트웨어 설계에 대한 내용이다. 내용을 읽고 괄호 안에 알맞는 답을 작성하시오.\n\n어떤 모듈이 다른 모듈 내부의 논리적인 흐름을 제어하기 위해, 제어를 통신하거나 제어 요소를 전달하는 결합도이다.\n\n한 모듈이 다른 모듈의 상세한 처리 절차를 알고 있어 이를 통제하는 경우나 처리 기능이 두 모듈에 분리되어 설계된 경우에 발생한다.\n\n(     ) Coupling",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "제어",
+            "Control",
+            "제어결합도",
+            "Control Coupling",
+            "제어 결합도(Control Coupling)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "제어"
+        }
+      ],
+      "display": "제어 (Control) — 제어 결합도(Control Coupling)"
+    },
+    {
+      "id": "2024-2#17",
+      "num": 17,
+      "prompt": "다음은 Java에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력 값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class Main {\n    public static void main(String[] args) {\n        String str = \"abacabcd\";\n        boolean[] seen = new boolean[256];\n        System.out.print(calculFn(str, str.length()-1, seen));\n    }\n\n    public static String calculFn(String str, int index, boolean[] seen) {\n        if(index &lt; 0) return \"\";\n        char c = str.charAt(index);\n        String result = calculFn(str, index-1, seen);\n        if(!seen[c]) {\n            seen[c] = true;\n            return c + result;\n        }\n        return result;\n    }\n}</pre>",
+      "bodyText": "다음은 Java에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력 값을 작성하시오.\n\n```java\nclass Main {\n    public static void main(String[] args) {\n        String str = \"abacabcd\";\n        boolean[] seen = new boolean[256];\n        System.out.print(calculFn(str, str.length()-1, seen));\n    }\n\n    public static String calculFn(String str, int index, boolean[] seen) {\n        if(index < 0) return \"\";\n        char c = str.charAt(index);\n        String result = calculFn(str, index-1, seen);\n        if(!seen[c]) {\n            seen[c] = true;\n            return c + result;\n        }\n        return result;\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "dcba",
+            "DCBA"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "dcba"
+        }
+      ],
+      "display": "dcba"
+    },
+    {
+      "id": "2024-2#18",
+      "num": 18,
+      "prompt": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력 값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nvoid swap(int a, int b) {\n    int t = a;\n    a = b;\n    b = t;\n}\n\nint main() {\n\n    int a = 11;\n    int b = 19;\n    swap(a, b);\n\n    switch(a) {\n        case 1:\n            b += 1;\n        case 11:\n            b += 2;\n        default:\n            b += 3;\n        break;\n    }\n\n    printf(\"%d\", a-b);\n}</pre>",
+      "bodyText": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력 값을 작성하시오.\n\n```c\n#include <stdio.h>\n\nvoid swap(int a, int b) {\n    int t = a;\n    a = b;\n    b = t;\n}\n\nint main() {\n\n    int a = 11;\n    int b = 19;\n    swap(a, b);\n\n    switch(a) {\n        case 1:\n            b += 1;\n        case 11:\n            b += 2;\n        default:\n            b += 3;\n        break;\n    }\n\n    printf(\"%d\", a-b);\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "-13"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "-13"
+        }
+      ],
+      "display": "-13"
+    },
+    {
+      "id": "2024-2#19",
+      "num": 19,
+      "prompt": "다음은 C언어의 구조체에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력 값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nstruct node {\n    int n1;\n    struct node *n2;\n};\n\nint main() {\n\n    struct node a = {10, NULL};\n    struct node b = {20, NULL};\n    struct node c = {30, NULL};\n\n    struct node *head = &amp;a;\n    a.n2 = &amp;b;\n    b.n2 = &amp;c;\n\n    printf(\"%d\\n\", head-&gt;n2-&gt;n1);\n\n    return 0;\n}</pre>",
+      "bodyText": "다음은 C언어의 구조체에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력 값을 작성하시오.\n\n```c\n#include <stdio.h>\n\nstruct node {\n    int n1;\n    struct node *n2;\n};\n\nint main() {\n\n    struct node a = {10, NULL};\n    struct node b = {20, NULL};\n    struct node c = {30, NULL};\n\n    struct node *head = &a;\n    a.n2 = &b;\n    b.n2 = &c;\n\n    printf(\"%d\\n\", head->n2->n1);\n\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "20"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "20"
+        }
+      ],
+      "display": "20"
+    },
+    {
+      "id": "2024-2#20",
+      "num": 20,
+      "prompt": "다음은 Java에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력 값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class Main {\n    public static void main(String[] args) {\n        String str = \"ITISTESTSTRING\";\n        String[] result = str.split(\"T\");\n        System.out.print(result[3]);\n    }\n}</pre>",
+      "bodyText": "다음은 Java에 대한 문제이다. 아래 코드를 확인하여 알맞는 출력 값을 작성하시오.\n\n```java\nclass Main {\n    public static void main(String[] args) {\n        String str = \"ITISTESTSTRING\";\n        String[] result = str.split(\"T\");\n        System.out.print(result[3]);\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "S",
+            "s"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "S"
+        }
+      ],
+      "display": "S"
+    }
+  ]
+}

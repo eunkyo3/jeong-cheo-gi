@@ -1,0 +1,639 @@
+{
+  "round": "2022-2",
+  "title": "2022년 2회",
+  "sourceUrl": "https://chobopark.tistory.com/423",
+  "questions": [
+    {
+      "id": "2022-2#1",
+      "num": 1,
+      "prompt": "다음은 관계 데이터 모델에 대한 설명이다. 괄호 안에 들어가는 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;)은/는 관계 데이터의 연산을 표현하는 방법으로, 원하는 정보를 정의할 때는 계산 수식을 사용한다.\n수학의 predicate calculus에 기반을 두고 있으며, 관계 데이터 모델의 제안자인 codd가 수학에 가까운 기반을 두고 특별히 관계 데이터베이스를 위해 제안하여 탄생하였다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;)은/는 원하는 정보가 무엇이라는 것만 정의하는 비절차적 특성을 지니며, 튜플 (&nbsp;&nbsp;)와/과 도메인 (&nbsp;&nbsp;)이/가 있다.</div>",
+      "bodyText": "다음은 관계 데이터 모델에 대한 설명이다. 괄호 안에 들어가는 용어를 작성하시오.\n\n(  )은/는 관계 데이터의 연산을 표현하는 방법으로, 원하는 정보를 정의할 때는 계산 수식을 사용한다.\n수학의 predicate calculus에 기반을 두고 있으며, 관계 데이터 모델의 제안자인 codd가 수학에 가까운 기반을 두고 특별히 관계 데이터베이스를 위해 제안하여 탄생하였다.\n\n(  )은/는 원하는 정보가 무엇이라는 것만 정의하는 비절차적 특성을 지니며, 튜플 (  )와/과 도메인 (  )이/가 있다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "관계해석",
+            "관계 해석",
+            "relational calculus",
+            "관계해석(relational calculus)",
+            "릴레이션해석"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "관계해석"
+        }
+      ],
+      "display": "관계해석 (Relational Calculus)"
+    },
+    {
+      "id": "2022-2#2",
+      "num": 2,
+      "prompt": "다음은 대칭 키 암호 알고리즘에 대한 설명이다. 각 설명에 해당하는 알고리즘의 명칭을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. Xuejia Lai와 James Messey가 만든 알고리즘으로 PES(Proposed Encryption Standard)에서 IPES(Improved PES)로 변경되었다가, 1991년에 제작된 블록 암호 알고리즘으로 현재 국제 데이터 암호화 알고리즘으로 사용되고 있다. 64비트 블록을 128비트의 key를 이용하여 8개의 라운드로 구성되어 있다.</div>\n<div class=\"desc-box\">2. 미국의 NSA에서 개발한 Clipper 칩에 내장되는 블록 알고리즘이다. 전화기와 같은 음성을 암호화 하는데 주로 사용되며 64비트 입출력에 80비트의 키 총 32라운드를 가진다.</div>",
+      "bodyText": "다음은 대칭 키 암호 알고리즘에 대한 설명이다. 각 설명에 해당하는 알고리즘의 명칭을 작성하시오.\n\n1. Xuejia Lai와 James Messey가 만든 알고리즘으로 PES(Proposed Encryption Standard)에서 IPES(Improved PES)로 변경되었다가, 1991년에 제작된 블록 암호 알고리즘으로 현재 국제 데이터 암호화 알고리즘으로 사용되고 있다. 64비트 블록을 128비트의 key를 이용하여 8개의 라운드로 구성되어 있다.\n\n2. 미국의 NSA에서 개발한 Clipper 칩에 내장되는 블록 알고리즘이다. 전화기와 같은 음성을 암호화 하는데 주로 사용되며 64비트 입출력에 80비트의 키 총 32라운드를 가진다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "idea",
+            "international data encryption algorithm",
+            "idea(international data encryption algorithm)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "IDEA"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "skipjack",
+            "스킵잭"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "SKIPJACK"
+        }
+      ],
+      "display": "1. IDEA / 2. SKIPJACK"
+    },
+    {
+      "id": "2022-2#3",
+      "num": 3,
+      "prompt": "H회사의 전체 제품 단가보다 큰 제품을 출력하고자 한다. SQL문의 괄호 안에 들어갈 알맞은 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>[제품 테이블]</b></div>\n<table class=\"tbl\">\n<tr><th>제조사</th><th>제품명</th><th>단가</th></tr>\n<tr><td>A</td><td>과자</td><td>1,000</td></tr>\n<tr><td>B</td><td>초콜릿</td><td>6,000</td></tr>\n<tr><td>H</td><td>사탕</td><td>2,000</td></tr>\n<tr><td>C</td><td>아이스크림</td><td>5,000</td></tr>\n<tr><td>H</td><td>사탕</td><td>3,000</td></tr>\n</table>\n<pre class=\"code\">SELECT 제조사, 제품명, 단가\nFROM 제품\nWHERE 단가 &gt; ( ) (SELECT 단가 FROM 제품 WHERE 제조사='H')</pre>",
+      "bodyText": "H회사의 전체 제품 단가보다 큰 제품을 출력하고자 한다. SQL문의 괄호 안에 들어갈 알맞은 용어를 작성하시오.\n\n[제품 테이블]\n\n| 제조사 | 제품명 | 단가 |\n| --- | --- | --- |\n| A | 과자 | 1,000 |\n| B | 초콜릿 | 6,000 |\n| H | 사탕 | 2,000 |\n| C | 아이스크림 | 5,000 |\n| H | 사탕 | 3,000 |\n\n```sql\nSELECT 제조사, 제품명, 단가\nFROM 제품\nWHERE 단가 > ( ) (SELECT 단가 FROM 제품 WHERE 제조사='H')\n```",
+      "sourceImages": [
+        "raw/2022-2/img00.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "all"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ALL"
+        }
+      ],
+      "display": "ALL"
+    },
+    {
+      "id": "2022-2#4",
+      "num": 4,
+      "prompt": "다음 SQL문을 실행했을 때 출력되는 결과값을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>[TABLE]</b></div>\n<table class=\"tbl\">\n<tr><th>Index</th><th>col1</th><th>Col2</th></tr>\n<tr><td>1</td><td>2</td><td>Null</td></tr>\n<tr><td>2</td><td>3</td><td>6</td></tr>\n<tr><td>3</td><td>5</td><td>5</td></tr>\n<tr><td>4</td><td>6</td><td>3</td></tr>\n<tr><td>5</td><td>Null</td><td>3</td></tr>\n</table>\n<pre class=\"code\">SELECT count(col2)\nFROM TABLE\nWHERE col1 in(2,3) or col2 in(3,5);</pre>",
+      "bodyText": "다음 SQL문을 실행했을 때 출력되는 결과값을 작성하시오.\n\n[TABLE]\n\n| Index | col1 | Col2 |\n| --- | --- | --- |\n| 1 | 2 | Null |\n| 2 | 3 | 6 |\n| 3 | 5 | 5 |\n| 4 | 6 | 3 |\n| 5 | Null | 3 |\n\n```sql\nSELECT count(col2)\nFROM TABLE\nWHERE col1 in(2,3) or col2 in(3,5);\n```",
+      "sourceImages": [
+        "raw/2022-2/img01.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "4"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "4"
+        }
+      ],
+      "display": "4"
+    },
+    {
+      "id": "2022-2#5",
+      "num": 5,
+      "prompt": "다음은 네트워크에 관련한 설명이다. 괄호 안에 들어갈 알맞은 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;)은/는 인터넷을 통해 디바이스 간에 사설 네트워크 연결을 생성하며, 퍼블릭 네트워크를 통해 데이터를 안전하게 익명으로 전송하는 데 사용된다.\n또한 사용자 IP 주소를 마스킹하고 데이터를 암호화하여 수신 권한이 없는 사람이 읽을 수 없도록 한다.</div>",
+      "bodyText": "다음은 네트워크에 관련한 설명이다. 괄호 안에 들어갈 알맞은 용어를 작성하시오.\n\n(  )은/는 인터넷을 통해 디바이스 간에 사설 네트워크 연결을 생성하며, 퍼블릭 네트워크를 통해 데이터를 안전하게 익명으로 전송하는 데 사용된다.\n또한 사용자 IP 주소를 마스킹하고 데이터를 암호화하여 수신 권한이 없는 사람이 읽을 수 없도록 한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "vpn",
+            "virtual private network",
+            "vpn(virtual private network)",
+            "가상사설망",
+            "가상사설네트워크",
+            "가상 사설망"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "VPN"
+        }
+      ],
+      "display": "VPN (Virtual Private Network)"
+    },
+    {
+      "id": "2022-2#6",
+      "num": 6,
+      "prompt": "다음은 SOLID 원칙에 관한 설명이다. 괄호 안에 들어갈 알맞은 원칙을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;)은/는 클라이언트가 자신이 이용하지 않는 메서드에 의존하지 않아야 한다는 원칙이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;)은/는 큰 덩어리의 인터페이스들을 구체적이고 작은 단위들로 분리시킴으로써 클라이언트들이 꼭 필요한 메서드들만 이용할 수 있게 한다.</div>\n<div class=\"desc-box\">예를 들어 하나의 복합기에 프린터와 복사기, 팩스 메서드가 있는데 이 세가지 메서드는 같은 파일에 존재하므로 프린터 로직만 바뀌어도 복사기와 팩스도 재컴파일을 해야한다.</div>\n<div class=\"desc-box\">그러므로 (&nbsp;&nbsp;)을/를 적용하여 로직이 바뀌어도 다른 메서드는 영향을 받지 않도록 해야한다.</div>\n<div class=\"hint\">※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.</div>",
+      "bodyText": "다음은 SOLID 원칙에 관한 설명이다. 괄호 안에 들어갈 알맞은 원칙을 작성하시오.\n\n(  )은/는 클라이언트가 자신이 이용하지 않는 메서드에 의존하지 않아야 한다는 원칙이다.\n\n(  )은/는 큰 덩어리의 인터페이스들을 구체적이고 작은 단위들로 분리시킴으로써 클라이언트들이 꼭 필요한 메서드들만 이용할 수 있게 한다.\n\n예를 들어 하나의 복합기에 프린터와 복사기, 팩스 메서드가 있는데 이 세가지 메서드는 같은 파일에 존재하므로 프린터 로직만 바뀌어도 복사기와 팩스도 재컴파일을 해야한다.\n\n그러므로 (  )을/를 적용하여 로직이 바뀌어도 다른 메서드는 영향을 받지 않도록 해야한다.\n\n※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "isp",
+            "interface segregation principle",
+            "isp(interface segregation principle)",
+            "인터페이스분리원칙",
+            "인터페이스 분리 원칙",
+            "인터페이스분리의원칙"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ISP"
+        }
+      ],
+      "display": "ISP (Interface Segregation Principle) — 인터페이스 분리 원칙"
+    },
+    {
+      "id": "2022-2#7",
+      "num": 7,
+      "prompt": "다음 Java 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public static void main(String args[]){\n  int i = 3; int k = 1;\n  switch(i) {\n    case 1: k += 1;\n    case 2: k++;\n    case 3: k = 0;\n    case 4: k += 3;\n    case 5: k -= 10;\n    default: k--;\n  }\n  System.out.print(k);\n}</pre>",
+      "bodyText": "다음 Java 코드의 출력값을 작성하시오.\n\n```java\npublic static void main(String args[]){\n  int i = 3; int k = 1;\n  switch(i) {\n    case 1: k += 1;\n    case 2: k++;\n    case 3: k = 0;\n    case 4: k += 3;\n    case 5: k -= 10;\n    default: k--;\n  }\n  System.out.print(k);\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "-8"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "-8"
+        }
+      ],
+      "display": "-8"
+    },
+    {
+      "id": "2022-2#8",
+      "num": 8,
+      "prompt": "다음 소스코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">struct A{\n  int n,\n  int g\n}\n\nint main(){\n  A a = new A[2]\n  for(i=0; i &lt;2; i++) {\n    a[i].n = i,\n    a[i].g=i+1\n  }\n  System.out.printf(a[0].n + a[1].g);\n}</pre>",
+      "bodyText": "다음 소스코드의 출력값을 작성하시오.\n\n```java\nstruct A{\n  int n,\n  int g\n}\n\nint main(){\n  A a = new A[2]\n  for(i=0; i <2; i++) {\n    a[i].n = i,\n    a[i].g=i+1\n  }\n  System.out.printf(a[0].n + a[1].g);\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "2"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "2"
+        }
+      ],
+      "display": "2"
+    },
+    {
+      "id": "2022-2#9",
+      "num": 9,
+      "prompt": "IP 주소가 139.127.19.132이고 서브넷 마스크가 255.255.255.192일 때, 다음 물음에 답하시오. (10진수로 표기)",
+      "bodyHtml": "<div class=\"desc-box\">(1) 괄호 안에 들어갈 네트워크 주소 : 139.127.19.(&nbsp;&nbsp;)\n(2) 해당 네트워크에서 네트워크 주소와 브로드캐스트 주소를 제외한 호스트 개수</div>",
+      "bodyText": "IP 주소가 139.127.19.132이고 서브넷 마스크가 255.255.255.192일 때, 다음 물음에 답하시오. (10진수로 표기)\n\n(1) 괄호 안에 들어갈 네트워크 주소 : 139.127.19.(  )\n(2) 해당 네트워크에서 네트워크 주소와 브로드캐스트 주소를 제외한 호스트 개수",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "128",
+            "139.127.19.128"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "128"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "62",
+            "62개"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "62"
+        }
+      ],
+      "display": "(1) 128 (139.127.19.128) / (2) 62개"
+    },
+    {
+      "id": "2022-2#10",
+      "num": 10,
+      "prompt": "다음 설명의 괄호 안에 들어갈 알맞은 테스트 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. (&nbsp;&nbsp;) 테스트는 하드웨어나 소프트웨어의 개발 단계에서 상용화하기 전에 실시하는 제품 검사 작업이다. 제품의 결함 여부, 제품으로서의 가치 등을 평가하기 위해 실시한다. 선발된 잠재 고객으로 하여금 일정 기간 무료로 사용하게 한 후에 나타난 여러 가지 오류를 수정, 보완한다. 공식적인 제품으로 발매하기 이전에 최종적으로 실시하는 검사 작업이다.</div>\n<div class=\"desc-box\">2. (&nbsp;&nbsp;) 테스트는 새로운 제품 개발 과정에서 이루어지는 첫 번째 테스트이다. 즉, 시제품이 운영되는 동안의 신제품 연구와 개발 과정 단계에서 초기 작동의 결과를 평가하는 수단이며 개발 회사 내부에서 이루어지는 테스트로서 단위 테스트, 구성 테스트, 시스템 테스트 등을 포함한다.</div>",
+      "bodyText": "다음 설명의 괄호 안에 들어갈 알맞은 테스트 용어를 작성하시오.\n\n1. (  ) 테스트는 하드웨어나 소프트웨어의 개발 단계에서 상용화하기 전에 실시하는 제품 검사 작업이다. 제품의 결함 여부, 제품으로서의 가치 등을 평가하기 위해 실시한다. 선발된 잠재 고객으로 하여금 일정 기간 무료로 사용하게 한 후에 나타난 여러 가지 오류를 수정, 보완한다. 공식적인 제품으로 발매하기 이전에 최종적으로 실시하는 검사 작업이다.\n\n2. (  ) 테스트는 새로운 제품 개발 과정에서 이루어지는 첫 번째 테스트이다. 즉, 시제품이 운영되는 동안의 신제품 연구와 개발 과정 단계에서 초기 작동의 결과를 평가하는 수단이며 개발 회사 내부에서 이루어지는 테스트로서 단위 테스트, 구성 테스트, 시스템 테스트 등을 포함한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "베타",
+            "beta",
+            "베타테스트",
+            "beta test",
+            "베타(beta)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "베타"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "알파",
+            "alpha",
+            "알파테스트",
+            "alpha test",
+            "알파(alpha)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "알파"
+        }
+      ],
+      "display": "1. 베타 (Beta) / 2. 알파 (Alpha)"
+    },
+    {
+      "id": "2022-2#11",
+      "num": 11,
+      "prompt": "다음 설명에 알맞은 테스트 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">오류를 제거하거나 수정한 시스템이나 시스템 컴포넌트 또는 프로그램이 오류 제거와 수정에 의해 새로이 유입된 오류가 없는지를 확인하는 일종의 반복 시험이다.</div>\n<div class=\"desc-box\">반복적인 시험이 필요한 이유는 오류가 제거·수정되는 상당수의 시스템이 의도치 않았던 오동작이나 새로운 형태의 오류를 일으키기 때문이다.</div>\n<div class=\"desc-box\">결국, 수정·변경된 시스템이나 시스템 컴포넌트 또는 프로그램이 명세된 요구 사항을 충족시키는지를 확인하는 시험의 한 형태이다.</div>\n<div class=\"hint\">※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.</div>",
+      "bodyText": "다음 설명에 알맞은 테스트 용어를 작성하시오.\n\n오류를 제거하거나 수정한 시스템이나 시스템 컴포넌트 또는 프로그램이 오류 제거와 수정에 의해 새로이 유입된 오류가 없는지를 확인하는 일종의 반복 시험이다.\n\n반복적인 시험이 필요한 이유는 오류가 제거·수정되는 상당수의 시스템이 의도치 않았던 오동작이나 새로운 형태의 오류를 일으키기 때문이다.\n\n결국, 수정·변경된 시스템이나 시스템 컴포넌트 또는 프로그램이 명세된 요구 사항을 충족시키는지를 확인하는 시험의 한 형태이다.\n\n※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "regression",
+            "regression test",
+            "regression testing",
+            "회귀시험",
+            "회귀테스트",
+            "회귀검사",
+            "리그레션"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Regression"
+        }
+      ],
+      "display": "Regression (회귀 시험)"
+    },
+    {
+      "id": "2022-2#12",
+      "num": 12,
+      "prompt": "다음 &lt;employee&gt; 테이블에 대하여 &pi;TTL(employee) 연산을 수행한 결과 릴레이션의 ①~⑤에 들어갈 값을 각각 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>[employee 테이블]</b></div>\n<table class=\"tbl\">\n<tr><th>Index</th><th>AGE</th><th>TTL</th></tr>\n<tr><td>1</td><td>55</td><td>부장</td></tr>\n<tr><td>2</td><td>35</td><td>대리</td></tr>\n<tr><td>3</td><td>42</td><td>과장</td></tr>\n<tr><td>4</td><td>45</td><td>차장</td></tr>\n</table>\n<div class=\"desc-box\"><b>[연산 결과]</b></div>\n<table class=\"tbl\">\n<tr><th>①</th></tr>\n<tr><td>②</td></tr>\n<tr><td>③</td></tr>\n<tr><td>④</td></tr>\n<tr><td>⑤</td></tr>\n</table>",
+      "bodyText": "다음 <employee> 테이블에 대하여 πTTL(employee) 연산을 수행한 결과 릴레이션의 ①~⑤에 들어갈 값을 각각 작성하시오.\n\n[employee 테이블]\n\n| Index | AGE | TTL |\n| --- | --- | --- |\n| 1 | 55 | 부장 |\n| 2 | 35 | 대리 |\n| 3 | 42 | 과장 |\n| 4 | 45 | 차장 |\n\n[연산 결과]\n\n| ① |\n| --- |\n| ② |\n| ③ |\n| ④ |\n| ⑤ |",
+      "sourceImages": [
+        "raw/2022-2/img02.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "①",
+          "accept": [
+            "ttl"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "TTL"
+        },
+        {
+          "label": "②",
+          "accept": [
+            "부장"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "부장"
+        },
+        {
+          "label": "③",
+          "accept": [
+            "대리"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "대리"
+        },
+        {
+          "label": "④",
+          "accept": [
+            "과장"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "과장"
+        },
+        {
+          "label": "⑤",
+          "accept": [
+            "차장"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "차장"
+        }
+      ],
+      "display": "① TTL / ② 부장 / ③ 대리 / ④ 과장 / ⑤ 차장"
+    },
+    {
+      "id": "2022-2#13",
+      "num": 13,
+      "prompt": "다음 Python 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">a = \"REMEMBER NOVEMBER\"\nb = a[:3] + a[12:16];\nc = \"R AND %s\" % \"STR\";\nprint(b+c);</pre>",
+      "bodyText": "다음 Python 코드의 출력값을 작성하시오.\n\n```python\na = \"REMEMBER NOVEMBER\"\nb = a[:3] + a[12:16];\nc = \"R AND %s\" % \"STR\";\nprint(b+c);\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "REMEMBER AND STR",
+            "remember and str"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "REMEMBER AND STR"
+        }
+      ],
+      "display": "REMEMBER AND STR"
+    },
+    {
+      "id": "2022-2#14",
+      "num": 14,
+      "prompt": "다음 설명에 해당하는 라우팅 관련 용어를 각각 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. 라우터로 상호 접속이 되어있는 여러 개의 네트워크 집합으로 도메인 혹은 자율시스템(Autonomous System, AS)이라고 한다. 같은 도메인 내에 존재하는 라우터는 도메인 내부 라우터가 되고 도메인 외부에 존재하는 라우터는 도메인 외부 라우터가 되는데, 여기서 도메인 내부 경로 설정을 가리킨다.</div>\n<div class=\"desc-box\">2. 시스템 사이에 경로 설정 정보 등을 교환하기 위해 사용하는 프로토콜로써, 다른 도메인 사이에 라우팅 시 정리된 관리가 거의 없고 많은 경우에 신용도가 매우 낮아 빠른 수행보다는 보안과 제어가 본래의 목적이다.</div>\n<div class=\"desc-box\">3. IP 라우팅 프로토콜의 한 종류로써 RIP(routing information protocol)보다 규모가 큰 네트워크에서도 사용할 수 있다. 규모가 크고 복잡한 TCP/IP 네트워크에서 RIP의 단점을 개선한 라우팅 프로토콜로써 RIP에 비해 자세한 제어가 가능하고, 관리 정보의 트래픽도 줄일 수 있다.</div>\n<div class=\"desc-box\">4. 서로 다른 자율 시스템(AS)의 라우터 간에 라우팅 정보를 교환하는 데 사용되는 외부 게이트웨이 프로토콜(EGP)이다. 각 목적지에 대한 전체 경로가 포함되며, 다른 시스템과 교환하는 네트워크 도달 가능성 정보의 데이터베이스를 유지한다. 네트워크 도달 가능성 정보를 사용하여 AS 연결 그래프를 구성하며, 이를 통해 라우팅 루프를 제거하고 AS 수준에서 정책 결정을 실행할 수 있다.</div>\n<div class=\"hint\">※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.</div>",
+      "bodyText": "다음 설명에 해당하는 라우팅 관련 용어를 각각 작성하시오.\n\n1. 라우터로 상호 접속이 되어있는 여러 개의 네트워크 집합으로 도메인 혹은 자율시스템(Autonomous System, AS)이라고 한다. 같은 도메인 내에 존재하는 라우터는 도메인 내부 라우터가 되고 도메인 외부에 존재하는 라우터는 도메인 외부 라우터가 되는데, 여기서 도메인 내부 경로 설정을 가리킨다.\n\n2. 시스템 사이에 경로 설정 정보 등을 교환하기 위해 사용하는 프로토콜로써, 다른 도메인 사이에 라우팅 시 정리된 관리가 거의 없고 많은 경우에 신용도가 매우 낮아 빠른 수행보다는 보안과 제어가 본래의 목적이다.\n\n3. IP 라우팅 프로토콜의 한 종류로써 RIP(routing information protocol)보다 규모가 큰 네트워크에서도 사용할 수 있다. 규모가 크고 복잡한 TCP/IP 네트워크에서 RIP의 단점을 개선한 라우팅 프로토콜로써 RIP에 비해 자세한 제어가 가능하고, 관리 정보의 트래픽도 줄일 수 있다.\n\n4. 서로 다른 자율 시스템(AS)의 라우터 간에 라우팅 정보를 교환하는 데 사용되는 외부 게이트웨이 프로토콜(EGP)이다. 각 목적지에 대한 전체 경로가 포함되며, 다른 시스템과 교환하는 네트워크 도달 가능성 정보의 데이터베이스를 유지한다. 네트워크 도달 가능성 정보를 사용하여 AS 연결 그래프를 구성하며, 이를 통해 라우팅 루프를 제거하고 AS 수준에서 정책 결정을 실행할 수 있다.\n\n※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "igp",
+            "interior gateway protocol",
+            "igp(interior gateway protocol)",
+            "내부게이트웨이프로토콜"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "IGP"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "egp",
+            "exterior gateway protocol",
+            "egp(exterior gateway protocol)",
+            "외부게이트웨이프로토콜"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "EGP"
+        },
+        {
+          "label": "3번",
+          "accept": [
+            "ospf",
+            "open shortest path first",
+            "ospf(open shortest path first)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "OSPF"
+        },
+        {
+          "label": "4번",
+          "accept": [
+            "bgp",
+            "border gateway protocol",
+            "bgp(border gateway protocol)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "BGP"
+        }
+      ],
+      "display": "1. IGP / 2. EGP / 3. OSPF / 4. BGP"
+    },
+    {
+      "id": "2022-2#15",
+      "num": 15,
+      "prompt": "다음 C언어 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nint len(char*p);\n\nint main(){\n\n  char* p1 = \"2022\";\n  char* p2 = \"202207\";\n\n  int a = len(p1);\n  int b = len(p2);\n\n  printf(\"%d\", a + b);\n\n}\n\nint len(char* p){\n  int r = 0;\n  while(*p != '\\0'){\n    p++;\n    r++;\n }\n return r;\n}</pre>",
+      "bodyText": "다음 C언어 코드의 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n\nint len(char*p);\n\nint main(){\n\n  char* p1 = \"2022\";\n  char* p2 = \"202207\";\n\n  int a = len(p1);\n  int b = len(p2);\n\n  printf(\"%d\", a + b);\n\n}\n\nint len(char* p){\n  int r = 0;\n  while(*p != '\\0'){\n    p++;\n    r++;\n }\n return r;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "10"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "10"
+        }
+      ],
+      "display": "10"
+    },
+    {
+      "id": "2022-2#16",
+      "num": 16,
+      "prompt": "다음 C언어 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nint main(int argc, char *argv[]) {\nint a[4] = {0, 2, 4, 8};\nint b[3] = {};\nint i = 1;\nint sum = 0;\nint *p1;\n\nfor (i; i &lt; 4; i++) {\np1 = a + i;\nb[i-1] = *p1 - a[i-1];\nsum = sum + b[i-1] + a[i];\n}\n\nprintf(\"%d\", sum);\n\nreturn 0;\n}</pre>",
+      "bodyText": "다음 C언어 코드의 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n\nint main(int argc, char *argv[]) {\nint a[4] = {0, 2, 4, 8};\nint b[3] = {};\nint i = 1;\nint sum = 0;\nint *p1;\n\nfor (i; i < 4; i++) {\np1 = a + i;\nb[i-1] = *p1 - a[i-1];\nsum = sum + b[i-1] + a[i];\n}\n\nprintf(\"%d\", sum);\n\nreturn 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "22"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "22"
+        }
+      ],
+      "display": "22"
+    },
+    {
+      "id": "2022-2#17",
+      "num": 17,
+      "prompt": "다음 Java 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public class Conv{\npublic Conv(int a) {\nthis.a = a;\n}\nint func() {\nint b =1;\nfor (int i=1; i&lt;a; i++){\nb = a * i + b\n}\nreturn a +b;\n}\nint a;\n}\n\npublic static void main(String[] args){\nConv obj = new Conv(3);\nobj.a=5;\nint b = obj.func();\nsystem.out.print(obj.a + b);\n}</pre>",
+      "bodyText": "다음 Java 코드의 출력값을 작성하시오.\n\n```java\npublic class Conv{\npublic Conv(int a) {\nthis.a = a;\n}\nint func() {\nint b =1;\nfor (int i=1; i<a; i++){\nb = a * i + b\n}\nreturn a +b;\n}\nint a;\n}\n\npublic static void main(String[] args){\nConv obj = new Conv(3);\nobj.a=5;\nint b = obj.func();\nsystem.out.print(obj.a + b);\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "61"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "61"
+        }
+      ],
+      "display": "61"
+    },
+    {
+      "id": "2022-2#18",
+      "num": 18,
+      "prompt": "다음은 함수 종속성에 대한 설명이다. 괄호 안에 들어갈 알맞은 용어를 각각 작성하시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th><u>학생</u></th><th><u>학과</u></th><th>성적</th><th>학년</th></tr>\n<tr><td>김정보</td><td>무역학과</td><td>35</td><td>1</td></tr>\n<tr><td>김정보</td><td>경영학과</td><td>60</td><td>1</td></tr>\n<tr><td>이실기</td><td>경영학과</td><td>60</td><td>3</td></tr>\n<tr><td>강처리</td><td>컴퓨터학과</td><td>94</td><td>4</td></tr>\n<tr><td>강처리</td><td>영문학과</td><td>75</td><td>4</td></tr>\n</table>\n<div class=\"desc-box\">1. 성적은 {학생, 학과}에 대해서 (&nbsp;&nbsp;) Functional Dependency이다.</div>\n<div class=\"desc-box\">2. 성적은 학과만 알아도 식별이 가능하므로, 이 경우에는 성적 속성은 기본키에 (&nbsp;&nbsp;) Functional Dependency이다.</div>\n<div class=\"desc-box\">3. 릴레이션에서 X, Y, Z라는 3개의 속성이 있을 때 X&rarr;Y, Y&rarr;Z 이란 종속 관계가 있을 경우, X&rarr;Z가 성립될 경우</div>\n<div class=\"hint\">※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.</div>",
+      "bodyText": "다음은 함수 종속성에 대한 설명이다. 괄호 안에 들어갈 알맞은 용어를 각각 작성하시오.\n\n| 학생(PK) | 학과(PK) | 성적 | 학년 |\n| --- | --- | --- | --- |\n| 김정보 | 무역학과 | 35 | 1 |\n| 김정보 | 경영학과 | 60 | 1 |\n| 이실기 | 경영학과 | 60 | 3 |\n| 강처리 | 컴퓨터학과 | 94 | 4 |\n| 강처리 | 영문학과 | 75 | 4 |\n\n1. 성적은 {학생, 학과}에 대해서 (  ) Functional Dependency이다.\n\n2. 성적은 학과만 알아도 식별이 가능하므로, 이 경우에는 성적 속성은 기본키에 (  ) Functional Dependency이다.\n\n3. 릴레이션에서 X, Y, Z라는 3개의 속성이 있을 때 X→Y, Y→Z 이란 종속 관계가 있을 경우, X→Z가 성립될 경우\n\n※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.",
+      "sourceImages": [
+        "raw/2022-2/img03.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "full",
+            "완전",
+            "완전함수종속",
+            "완전함수적종속",
+            "full functional dependency",
+            "완전 함수 종속"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Full"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "partial",
+            "부분",
+            "부분함수종속",
+            "부분함수적종속",
+            "partial functional dependency",
+            "부분 함수 종속"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Partial"
+        },
+        {
+          "label": "3번",
+          "accept": [
+            "transitive",
+            "이행",
+            "이행함수종속",
+            "이행적함수종속",
+            "transitive functional dependency",
+            "이행적 함수 종속"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Transitive"
+        }
+      ],
+      "display": "1. Full (완전 함수 종속) / 2. Partial (부분 함수 종속) / 3. Transitive (이행적 함수 종속)"
+    },
+    {
+      "id": "2022-2#19",
+      "num": 19,
+      "prompt": "다음 설명에 해당하는 알맞은 용어를 각각 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. 인터넷에서, 웹 서버와 사용자의 인터넷 브라우저 사이에 문서를 전송하기 위해 사용되는 통신 규약을 말한다. 인터넷에서 하이퍼텍스트(hypertext) 문서를 교환하기 위하여 사용되는 통신규약이다. 이 규약에 맞춰 개발해서 서로 정보를 교환할 수 있게 되었다.</div>\n<div class=\"desc-box\">2. 문자, 그래픽, 음성 및 영상을 하나의 연상 거미집(Web of Association)과 같이 서로 연결시켜, 제시된 순서에 관계없이 이용자가 관련된 정보를 검색할 수 있도록 하는 정보 제공 방법이다. 즉, 한 페이지에서 링크된 순서에 상관없이 사용자들이 원하는 정보를 클릭함으로써 원하는 정보에 쉽게 접근하는 방식을 말한다.</div>\n<div class=\"desc-box\">3. 웹 페이지 표시를 위해 개발된 지배적인 마크업 언어다. 또한, 제목, 단락, 목록 등과 같은 본문을 위한 구조적 의미를 나타내는 것뿐만 아니라 링크, 인용과 그 밖의 항목으로 구조적 문서를 만들 수 있는 방법을 제공한다.</div>\n<div class=\"hint\">※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.</div>",
+      "bodyText": "다음 설명에 해당하는 알맞은 용어를 각각 작성하시오.\n\n1. 인터넷에서, 웹 서버와 사용자의 인터넷 브라우저 사이에 문서를 전송하기 위해 사용되는 통신 규약을 말한다. 인터넷에서 하이퍼텍스트(hypertext) 문서를 교환하기 위하여 사용되는 통신규약이다. 이 규약에 맞춰 개발해서 서로 정보를 교환할 수 있게 되었다.\n\n2. 문자, 그래픽, 음성 및 영상을 하나의 연상 거미집(Web of Association)과 같이 서로 연결시켜, 제시된 순서에 관계없이 이용자가 관련된 정보를 검색할 수 있도록 하는 정보 제공 방법이다. 즉, 한 페이지에서 링크된 순서에 상관없이 사용자들이 원하는 정보를 클릭함으로써 원하는 정보에 쉽게 접근하는 방식을 말한다.\n\n3. 웹 페이지 표시를 위해 개발된 지배적인 마크업 언어다. 또한, 제목, 단락, 목록 등과 같은 본문을 위한 구조적 의미를 나타내는 것뿐만 아니라 링크, 인용과 그 밖의 항목으로 구조적 문서를 만들 수 있는 방법을 제공한다.\n\n※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "http",
+            "hypertext transfer protocol",
+            "http(hypertext transfer protocol)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "HTTP"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "hypertext",
+            "hyper text",
+            "하이퍼텍스트",
+            "하이퍼 텍스트",
+            "hypertext(하이퍼텍스트)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Hypertext"
+        },
+        {
+          "label": "3번",
+          "accept": [
+            "html",
+            "hypertext markup language",
+            "html(hypertext markup language)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "HTML"
+        }
+      ],
+      "display": "1. HTTP / 2. Hypertext / 3. HTML"
+    },
+    {
+      "id": "2022-2#20",
+      "num": 20,
+      "prompt": "다음 모듈 구조도에서 모듈 F에 대한 Fan-in과 Fan-out을 각각 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>[모듈 구조도]</b> 화살표는 호출 방향(호출 모듈 &rarr; 피호출 모듈)을 나타낸다.\n1단계: A, B, C\n2단계: D, E, F\n3단계: G, H</div>\n<div class=\"desc-box\"><b>[호출 관계]</b>\nA &rarr; D, A &rarr; F, B &rarr; E, B &rarr; F, C &rarr; F, D &rarr; G, D &rarr; H, E &rarr; H, F &rarr; G, F &rarr; H</div>",
+      "bodyText": "다음 모듈 구조도에서 모듈 F에 대한 Fan-in과 Fan-out을 각각 작성하시오.\n\n[모듈 구조도] 화살표는 호출 방향(호출 모듈 → 피호출 모듈)을 나타낸다.\n1단계: A, B, C\n2단계: D, E, F\n3단계: G, H\n\n[호출 관계]\nA → D, A → F, B → E, B → F, C → F, D → G, D → H, E → H, F → G, F → H",
+      "sourceImages": [
+        "raw/2022-2/img04.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "Fan-in",
+          "accept": [
+            "3"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "3"
+        },
+        {
+          "label": "Fan-out",
+          "accept": [
+            "2"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "2"
+        }
+      ],
+      "display": "Fan-in : 3 / Fan-out : 2"
+    }
+  ]
+}

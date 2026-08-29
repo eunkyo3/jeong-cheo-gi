@@ -1,0 +1,31 @@
+{
+  "name": "jpk-battle",
+  "version": "1.0.0",
+  "private": true,
+  "description": "정보처리기사 실기 기출 학습·대전 웹앱",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "scrape": "node scripts/scrape.mjs",
+    "validate": "node scripts/validate-data.mjs",
+    "export:round": "node scripts/export-round.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "golden:check": "node scripts/golden-check.mjs",
+    "preflight": "node scripts/preflight.mjs",
+    "e2e": "node scripts/e2e-battle.js",
+    "headless": "node scripts/headless-study.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.4.1",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1",
+    "socket.io-client": "^4.8.3"
+  }
+}

@@ -1,0 +1,749 @@
+{
+  "round": "2022-3",
+  "title": "2022년 3회",
+  "sourceUrl": "https://chobopark.tistory.com/424",
+  "questions": [
+    {
+      "id": "2022-3#1",
+      "num": 1,
+      "prompt": "아래는 C언어의 2차원 배열 형태이다. field의 2차원 배열이 예시처럼 출력되는 것을 참고하여, mines의 2차원 배열 출력 형태를 각 행별로 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">void main{\n\nfield {{0,1,0,1},{0,0,0,1},{1,1,1,0},{0,1,1,1}};\nmines {{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}};\n\nint w = 4, h = 4;\n  for(y=0; y&lt;h; y++) {\n    for(x=0; x&lt;w; x++) {\n    if(field[y][x] == 0) continue;\n\n      for(i=y-1; i&lt;=y+1; i++) {\n        for(j=x-1; j&lt;=x+1; j++) {\n          if(calculate(w,h,j,i) == 1) {\n            mines[i][j] += 1;\n          }\n        }\n      }\n    }\n  }\n  for(y=0; y&lt;h; y++){\n    for(x=0; x&lt;w; x++)\n      printf(\"%d\", mines[y][x]);\n      printf(\"\\n\");\n  }\n\n}\n\nint calculate(w,h,j,i) {\n  if (i &gt;= 0 &amp;&amp; i &lt; h &amp;&amp; j &gt;= 0 &amp;&amp; j &lt; w) return 1;\n  return 0;\n}</pre>\n<div class=\"desc-box\"><b>[예시] field 의 출력 형태</b></div>\n<table class=\"tbl\">\n<tr><td>0</td><td>1</td><td>0</td><td>1</td></tr>\n<tr><td>0</td><td>0</td><td>0</td><td>1</td></tr>\n<tr><td>1</td><td>1</td><td>1</td><td>0</td></tr>\n<tr><td>0</td><td>1</td><td>1</td><td>1</td></tr>\n</table>\n<div class=\"hint\">※ 정답칸은 4행 4열이다. 각 행을 위에서부터 차례로 작성한다.</div>",
+      "bodyText": "아래는 C언어의 2차원 배열 형태이다. field의 2차원 배열이 예시처럼 출력되는 것을 참고하여, mines의 2차원 배열 출력 형태를 각 행별로 작성하시오.\n\n```c\nvoid main{\n\nfield {{0,1,0,1},{0,0,0,1},{1,1,1,0},{0,1,1,1}};\nmines {{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}};\n\nint w = 4, h = 4;\n  for(y=0; y<h; y++) {\n    for(x=0; x<w; x++) {\n    if(field[y][x] == 0) continue;\n\n      for(i=y-1; i<=y+1; i++) {\n        for(j=x-1; j<=x+1; j++) {\n          if(calculate(w,h,j,i) == 1) {\n            mines[i][j] += 1;\n          }\n        }\n      }\n    }\n  }\n  for(y=0; y<h; y++){\n    for(x=0; x<w; x++)\n      printf(\"%d\", mines[y][x]);\n      printf(\"\\n\");\n  }\n\n}\n\nint calculate(w,h,j,i) {\n  if (i >= 0 && i < h && j >= 0 && j < w) return 1;\n  return 0;\n}\n```\n\n[예시] field 의 출력 형태\n\n| 0 | 1 | 0 | 1 |\n| 0 | 0 | 0 | 1 |\n| 1 | 1 | 1 | 0 |\n| 0 | 1 | 1 | 1 |\n\n※ 정답칸은 4행 4열이다. 각 행을 위에서부터 차례로 작성한다.",
+      "sourceImages": [
+        "raw/2022-3/img00.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1행",
+          "accept": [
+            "1132",
+            "1,1,3,2",
+            "1, 1, 3, 2"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "1,1,3,2"
+        },
+        {
+          "label": "2행",
+          "accept": [
+            "3453",
+            "3,4,5,3",
+            "3, 4, 5, 3"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "3,4,5,3"
+        },
+        {
+          "label": "3행",
+          "accept": [
+            "3564",
+            "3,5,6,4",
+            "3, 5, 6, 4"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "3,5,6,4"
+        },
+        {
+          "label": "4행",
+          "accept": [
+            "3553",
+            "3,5,5,3",
+            "3, 5, 5, 3"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "3,5,5,3"
+        }
+      ],
+      "display": "1행 1, 1, 3, 2 / 2행 3, 4, 5, 3 / 3행 3, 5, 6, 4 / 4행 3, 5, 5, 3"
+    },
+    {
+      "id": "2022-3#2",
+      "num": 2,
+      "prompt": "아래 표를 보고 각 관계 대수 연산에 해당하는 기호를 작성하시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>항목</th><th>기호</th></tr>\n<tr><td>합집합</td><td>A (&nbsp;&nbsp;1&nbsp;&nbsp;) B</td></tr>\n<tr><td>차집합</td><td>A (&nbsp;&nbsp;2&nbsp;&nbsp;) B</td></tr>\n<tr><td>카티션 프로덕트</td><td>A (&nbsp;&nbsp;3&nbsp;&nbsp;) B</td></tr>\n<tr><td>프로젝트</td><td>A (&nbsp;&nbsp;4&nbsp;&nbsp;) B</td></tr>\n<tr><td>조인</td><td>A (&nbsp;&nbsp;5&nbsp;&nbsp;) B</td></tr>\n</table>",
+      "bodyText": "아래 표를 보고 각 관계 대수 연산에 해당하는 기호를 작성하시오.\n\n| 항목 | 기호 |\n| --- | --- |\n| 합집합 | A (  1  ) B |\n| 차집합 | A (  2  ) B |\n| 카티션 프로덕트 | A (  3  ) B |\n| 프로젝트 | A (  4  ) B |\n| 조인 | A (  5  ) B |",
+      "sourceImages": [
+        "raw/2022-3/img01.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1) 합집합",
+          "accept": [
+            "∪",
+            "U",
+            "u",
+            "union"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "∪"
+        },
+        {
+          "label": "(2) 차집합",
+          "accept": [
+            "-",
+            "−",
+            "–",
+            "difference"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "-"
+        },
+        {
+          "label": "(3) 카티션 프로덕트",
+          "accept": [
+            "×",
+            "X",
+            "x",
+            "*",
+            "cartesian product"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "×"
+        },
+        {
+          "label": "(4) 프로젝트",
+          "accept": [
+            "π",
+            "pi",
+            "project"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "π"
+        },
+        {
+          "label": "(5) 조인",
+          "accept": [
+            "⋈",
+            "|x|",
+            "><",
+            "join"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "⋈"
+        }
+      ],
+      "display": "(1) ∪ / (2) − / (3) × / (4) π / (5) ⋈"
+    },
+    {
+      "id": "2022-3#3",
+      "num": 3,
+      "prompt": "다음은 디자인 패턴에 대한 설명이다. 괄호 안에 알맞은 패턴 이름을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;1&nbsp;&nbsp;)은/는 기능을 처리하는 클래스와 구현을 담당하는 추상 클래스로 구별한다. 구현뿐 아니라 추상화도 독립적 변경이 필요할 때 이 패턴을 사용한다. 기존 시스템에 부수적인 새로운 기능들을 지속적으로 추가할 때 사용하면 유용하며, 새로운 인터페이스를 정의하여 기존 프로그램의 변경 없이 기능을 확장할 수 있다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;2&nbsp;&nbsp;)은/는 한 객체의 상태가 변화하면 객체에 상속되어 있는 다른 객체들에게 변화된 상태를 전달해주는 패턴이다. 일대다 관계를 가지며, 주로 분산된 시스템 간에 이벤트를 생성·발행(Publish)하고, 이를 수신(Subscribe)해야 할 때 이용한다.</div>\n<div class=\"hint\">※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.</div>",
+      "bodyText": "다음은 디자인 패턴에 대한 설명이다. 괄호 안에 알맞은 패턴 이름을 작성하시오.\n\n(  1  )은/는 기능을 처리하는 클래스와 구현을 담당하는 추상 클래스로 구별한다. 구현뿐 아니라 추상화도 독립적 변경이 필요할 때 이 패턴을 사용한다. 기존 시스템에 부수적인 새로운 기능들을 지속적으로 추가할 때 사용하면 유용하며, 새로운 인터페이스를 정의하여 기존 프로그램의 변경 없이 기능을 확장할 수 있다.\n\n(  2  )은/는 한 객체의 상태가 변화하면 객체에 상속되어 있는 다른 객체들에게 변화된 상태를 전달해주는 패턴이다. 일대다 관계를 가지며, 주로 분산된 시스템 간에 이벤트를 생성·발행(Publish)하고, 이를 수신(Subscribe)해야 할 때 이용한다.\n\n※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "bridge",
+            "브리지",
+            "bridge패턴",
+            "브리지패턴",
+            "bridge pattern"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Bridge"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "observer",
+            "옵서버",
+            "옵저버",
+            "observer패턴",
+            "옵저버패턴",
+            "observer pattern"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Observer"
+        }
+      ],
+      "display": "(1) Bridge (브리지) / (2) Observer (옵서버)"
+    },
+    {
+      "id": "2022-3#4",
+      "num": 4,
+      "prompt": "다음 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">void main{\n\nint []result = int[5];\nint []arr = [77,32,10,99,50];\n\n  for(int i = 0; i &lt; 5; i++) {\n    result[i] = 1;\n    for(int j = 0; j &lt; 5; j++) {\n      if(arr[i] &lt;arr[j]) result[i]++;\n    }\n  }\n\n  for(int k = 0; k &lt; 5; k++) {\n    printf(result[k]);\n  }\n}</pre>",
+      "bodyText": "다음 코드의 출력값을 작성하시오.\n\n```c\nvoid main{\n\nint []result = int[5];\nint []arr = [77,32,10,99,50];\n\n  for(int i = 0; i < 5; i++) {\n    result[i] = 1;\n    for(int j = 0; j < 5; j++) {\n      if(arr[i] <arr[j]) result[i]++;\n    }\n  }\n\n  for(int k = 0; k < 5; k++) {\n    printf(result[k]);\n  }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "24513"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "24513"
+        }
+      ],
+      "display": "24513"
+    },
+    {
+      "id": "2022-3#5",
+      "num": 5,
+      "prompt": "첫 번째 네트워크 주소가 192.168.1.0/24일 때 FLSM 방식으로 3개의 서브넷으로 분할하였다. 두 번째 네트워크의 브로드캐스트 IP를 10진수로 변환한 값을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">첫 번째 네트워크 주소가 192.168.1.0/24일 때 FLSM(Fixed Length Subnet Mask) 방식으로 3개의 서브넷으로 분할하였다.\n두 번째 네트워크의 브로드캐스트 IP를 10진수로 변환한 값을 작성하시오.</div>",
+      "bodyText": "첫 번째 네트워크 주소가 192.168.1.0/24일 때 FLSM 방식으로 3개의 서브넷으로 분할하였다. 두 번째 네트워크의 브로드캐스트 IP를 10진수로 변환한 값을 작성하시오.\n\n첫 번째 네트워크 주소가 192.168.1.0/24일 때 FLSM(Fixed Length Subnet Mask) 방식으로 3개의 서브넷으로 분할하였다.\n두 번째 네트워크의 브로드캐스트 IP를 10진수로 변환한 값을 작성하시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "192.168.1.127"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "192.168.1.127"
+        }
+      ],
+      "display": "192.168.1.127"
+    },
+    {
+      "id": "2022-3#6",
+      "num": 6,
+      "prompt": "아래 표는 점수 구간별 지급 금액과, 이를 검증하기 위한 테스트 케이스이다. 사용된 테스트 기법의 명칭을 작성하시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>점수</th><th>금액</th></tr>\n<tr><td>90 ~ 100</td><td>700만원</td></tr>\n<tr><td>80 ~ 89</td><td>500만원</td></tr>\n<tr><td>70 ~ 79</td><td>300만원</td></tr>\n<tr><td>0 ~ 69</td><td>0원</td></tr>\n</table>\n<table class=\"tbl\">\n<tr><th>테스트 케이스</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th></tr>\n<tr><td>입력값</td><td>-1</td><td>0</td><td>1</td><td>69</td><td>70</td><td>71</td><td>79</td><td>80</td><td>81</td><td>89</td><td>90</td><td>91</td><td>99</td><td>100</td><td>101</td></tr>\n<tr><td>결과값</td><td>error</td><td>0</td><td>0</td><td>0</td><td>300</td><td>300</td><td>300</td><td>500</td><td>500</td><td>500</td><td>700</td><td>700</td><td>700</td><td>700</td><td>error</td></tr>\n</table>\n<div class=\"hint\">※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.</div>",
+      "bodyText": "아래 표는 점수 구간별 지급 금액과, 이를 검증하기 위한 테스트 케이스이다. 사용된 테스트 기법의 명칭을 작성하시오.\n\n| 점수 | 금액 |\n| --- | --- |\n| 90 ~ 100 | 700만원 |\n| 80 ~ 89 | 500만원 |\n| 70 ~ 79 | 300만원 |\n| 0 ~ 69 | 0원 |\n\n| 테스트 케이스 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| 입력값 | -1 | 0 | 1 | 69 | 70 | 71 | 79 | 80 | 81 | 89 | 90 | 91 | 99 | 100 | 101 |\n| 결과값 | error | 0 | 0 | 0 | 300 | 300 | 300 | 500 | 500 | 500 | 700 | 700 | 700 | 700 | error |\n\n※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.",
+      "sourceImages": [
+        "raw/2022-3/img02.png",
+        "raw/2022-3/img03.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "boundary value analysis",
+            "bva",
+            "경계값분석",
+            "경계값 분석",
+            "경계값분석기법",
+            "경계값분석(boundary value analysis)",
+            "한계값분석",
+            "경계값검사"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Boundary Value Analysis"
+        }
+      ],
+      "display": "Boundary Value Analysis (경계값 분석)"
+    },
+    {
+      "id": "2022-3#7",
+      "num": 7,
+      "prompt": "아래 SQL 명령어를 순서대로 적용할 경우 (1), (2)의 출력값을 각각 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">CREATE TABLE 부서 (\n  부서코드 int, 부서명 varchar(50)\n  PRIMARY KEY (부서코드)\n  FOREIGN KEY (부서코드)\n  REFERENCES 직원(부서코드)\n  ON DELETE CASCADE\n);\n\nCREATE TABLE 직원 (\n  직원코드 int, 부서코드 int\n  PRIMARY KEY (직원코드 )\n  FOREIGN KEY (부서코드) REFERENCES 부서(부서코드)\n);\n\ninsert into 부서 (부서코드, 부서명) value (10, 영업부);\ninsert into 부서 (부서코드, 부서명) value (20, 기획부);\ninsert into 부서 (부서코드, 부서명) value (30, 개발부);\n\ninsert into 직원 (직원코드, 부서코드) value (1000, 10);\ninsert into 직원 (직원코드, 부서코드) value (2000, 10);\ninsert into 직원 (직원코드, 부서코드) value (3000, 20);\ninsert into 직원 (직원코드, 부서코드) value (4000, 20);\ninsert into 직원 (직원코드, 부서코드) value (5000, 20);\ninsert into 직원 (직원코드, 부서코드) value (6000, 30);\ninsert into 직원 (직원코드, 부서코드) value (7000, 30);</pre>\n<pre class=\"code\">1. SELECT DISTINCT COUNT(직원코드) FROM 직원 WHERE 부서코드='20';\n(      1      )\n\n2. DELETE FROM 부서 WHERE 부서코드='20';\n   SELECT DISTINCT COUNT(직원코드) FROM 직원;\n(      2      )</pre>",
+      "bodyText": "아래 SQL 명령어를 순서대로 적용할 경우 (1), (2)의 출력값을 각각 작성하시오.\n\n```sql\nCREATE TABLE 부서 (\n  부서코드 int, 부서명 varchar(50)\n  PRIMARY KEY (부서코드)\n  FOREIGN KEY (부서코드)\n  REFERENCES 직원(부서코드)\n  ON DELETE CASCADE\n);\n\nCREATE TABLE 직원 (\n  직원코드 int, 부서코드 int\n  PRIMARY KEY (직원코드 )\n  FOREIGN KEY (부서코드) REFERENCES 부서(부서코드)\n);\n\ninsert into 부서 (부서코드, 부서명) value (10, 영업부);\ninsert into 부서 (부서코드, 부서명) value (20, 기획부);\ninsert into 부서 (부서코드, 부서명) value (30, 개발부);\n\ninsert into 직원 (직원코드, 부서코드) value (1000, 10);\ninsert into 직원 (직원코드, 부서코드) value (2000, 10);\ninsert into 직원 (직원코드, 부서코드) value (3000, 20);\ninsert into 직원 (직원코드, 부서코드) value (4000, 20);\ninsert into 직원 (직원코드, 부서코드) value (5000, 20);\ninsert into 직원 (직원코드, 부서코드) value (6000, 30);\ninsert into 직원 (직원코드, 부서코드) value (7000, 30);\n```\n\n```sql\n1. SELECT DISTINCT COUNT(직원코드) FROM 직원 WHERE 부서코드='20';\n(      1      )\n\n2. DELETE FROM 부서 WHERE 부서코드='20';\n   SELECT DISTINCT COUNT(직원코드) FROM 직원;\n(      2      )\n```",
+      "sourceImages": [
+        "raw/2022-3/img04.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "3"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "3"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "4"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "4"
+        }
+      ],
+      "display": "(1) 3 / (2) 4"
+    },
+    {
+      "id": "2022-3#8",
+      "num": 8,
+      "prompt": "아래 설명에 해당하는 알맞은 용어를 각각 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;1&nbsp;&nbsp;)은/는 보안학적 측면에서 기술적인 방법이 아닌 사람들 간의 기본적인 신뢰를 기반으로 사람을 속여 비밀 정보를 획득하는 기법이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;2&nbsp;&nbsp;)은/는 빅데이터(Big Data)와 비슷하면서도 구조화돼 있지 않고, 더는 사용하지 않는 '죽은' 데이터를 의미한다. 일반적으로 정보를 수집해 저장한 이후 분석이나 특별한 목적을 위해 활용하는 데이터가 아니며, 저장공간만 차지하고 이러한 이유로 심각한 보안 위험을 초래할 수 있다.</div>",
+      "bodyText": "아래 설명에 해당하는 알맞은 용어를 각각 작성하시오.\n\n(  1  )은/는 보안학적 측면에서 기술적인 방법이 아닌 사람들 간의 기본적인 신뢰를 기반으로 사람을 속여 비밀 정보를 획득하는 기법이다.\n\n(  2  )은/는 빅데이터(Big Data)와 비슷하면서도 구조화돼 있지 않고, 더는 사용하지 않는 '죽은' 데이터를 의미한다. 일반적으로 정보를 수집해 저장한 이후 분석이나 특별한 목적을 위해 활용하는 데이터가 아니며, 저장공간만 차지하고 이러한 이유로 심각한 보안 위험을 초래할 수 있다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "사회공학",
+            "사회공학기법",
+            "social engineering",
+            "사회공학(social engineering)",
+            "소셜엔지니어링"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "사회공학"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "다크데이터",
+            "다크 데이터",
+            "dark data",
+            "다크데이터(dark data)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "다크 데이터"
+        }
+      ],
+      "display": "(1) 사회공학 (Social Engineering) / (2) 다크 데이터 (Dark Data)"
+    },
+    {
+      "id": "2022-3#9",
+      "num": 9,
+      "prompt": "다음 Python 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">TestList = [1,2,3,4,5]\nTestList = list(map(lambda num : num + 100, TestList)))\n\nprint(TestList)</pre>",
+      "bodyText": "다음 Python 코드의 출력값을 작성하시오.\n\n```python\nTestList = [1,2,3,4,5]\nTestList = list(map(lambda num : num + 100, TestList)))\n\nprint(TestList)\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "[101,102,103,104,105]",
+            "[101, 102, 103, 104, 105]"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "[101, 102, 103, 104, 105]"
+        }
+      ],
+      "display": "[101, 102, 103, 104, 105]"
+    },
+    {
+      "id": "2022-3#10",
+      "num": 10,
+      "prompt": "다음 설명에 해당하는 보안 솔루션 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;)은/는 머신러닝 기술을 이용하여 IT 시스템에서 발생하는 대량의 로그를 통합관리 및 분석하여 사전에 위협에 대응하는 보안 솔루션이다.</div>\n<div class=\"desc-box\">서로 다른 기종의 보안솔루션 로그 및 이벤트를 중앙에서 통합 수집하여 분석할 수 있으며, 네트워크 상태의 monitoring 및 이상징후를 미리 감지할 수 있다.</div>\n<div class=\"desc-box\">- 네트워크 이기종 장비 간 로그의 상관관계 분석<br>- 이상징후의 행위 기반 및 문맥 기반 분석 기능<br>- 각 로그의 상관관계를 조건식에 따라 검색하여 분석이 가능<br>- 이벤트 및 로그의 이상패턴을 인식해 잠재적 위협이 발생시 알림 기능</div>",
+      "bodyText": "다음 설명에 해당하는 보안 솔루션 용어를 작성하시오.\n\n(  )은/는 머신러닝 기술을 이용하여 IT 시스템에서 발생하는 대량의 로그를 통합관리 및 분석하여 사전에 위협에 대응하는 보안 솔루션이다.\n\n서로 다른 기종의 보안솔루션 로그 및 이벤트를 중앙에서 통합 수집하여 분석할 수 있으며, 네트워크 상태의 monitoring 및 이상징후를 미리 감지할 수 있다.\n\n- 네트워크 이기종 장비 간 로그의 상관관계 분석\n- 이상징후의 행위 기반 및 문맥 기반 분석 기능\n- 각 로그의 상관관계를 조건식에 따라 검색하여 분석이 가능\n- 이벤트 및 로그의 이상패턴을 인식해 잠재적 위협이 발생시 알림 기능",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "siem",
+            "security information and event management",
+            "siem(security information and event management)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "SIEM"
+        }
+      ],
+      "display": "SIEM (Security Information and Event Management)"
+    },
+    {
+      "id": "2022-3#11",
+      "num": 11,
+      "prompt": "다음 보기 중 형상 관리 도구에 해당하는 항목을 3가지 고르시오.",
+      "bodyHtml": "<div class=\"boki\"><b>[보기]</b>\nㄱ. ATM&emsp;ㄴ. CVS&emsp;ㄷ. OLAP<br>ㄹ. DDOS&emsp;ㅁ. SVN&emsp;ㅂ. Cyber Kill Chain<br>ㅅ. OLTP&emsp;ㅇ. GIT</div>",
+      "bodyText": "다음 보기 중 형상 관리 도구에 해당하는 항목을 3가지 고르시오.\n\n[보기]\nㄱ. ATM\nㄴ. CVS\nㄷ. OLAP\nㄹ. DDOS\nㅁ. SVN\nㅂ. Cyber Kill Chain\nㅅ. OLTP\nㅇ. GIT",
+      "sourceImages": [
+        "raw/2022-3/img05.png"
+      ],
+      "answerMode": "unordered",
+      "fields": [
+        {
+          "label": "답 1",
+          "accept": [
+            "ㄴ",
+            "cvs",
+            "ㄴ. cvs"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "CVS"
+        },
+        {
+          "label": "답 2",
+          "accept": [
+            "ㅁ",
+            "svn",
+            "ㅁ. svn",
+            "subversion"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "SVN"
+        },
+        {
+          "label": "답 3",
+          "accept": [
+            "ㅇ",
+            "git",
+            "ㅇ. git"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "GIT"
+        }
+      ],
+      "display": "CVS, SVN, GIT (ㄴ, ㅁ, ㅇ)"
+    },
+    {
+      "id": "2022-3#12",
+      "num": 12,
+      "prompt": "STUDENT 테이블에 컴퓨터과 학생 50명, 전기과 학생 100명, 인터넷과 학생 50명의 정보가 저장되어 있을 때, 다음 SQL문의 실행 결과에 따른 튜플의 수를 각각 작성하시오. (단, DEPT 칼럼은 학과명이다.)",
+      "bodyHtml": "<pre class=\"code\">1) SELECT DEPT FROM STUDENT;\n\n2) SELECT DISTINCT DEPT FROM STUDENT;\n\n3) SELECT COUNT(DISTINCT DEPT) FROM STUDENT WHERE DEPT = '인터넷과';</pre>",
+      "bodyText": "STUDENT 테이블에 컴퓨터과 학생 50명, 전기과 학생 100명, 인터넷과 학생 50명의 정보가 저장되어 있을 때, 다음 SQL문의 실행 결과에 따른 튜플의 수를 각각 작성하시오. (단, DEPT 칼럼은 학과명이다.)\n\n```sql\n1) SELECT DEPT FROM STUDENT;\n\n2) SELECT DISTINCT DEPT FROM STUDENT;\n\n3) SELECT COUNT(DISTINCT DEPT) FROM STUDENT WHERE DEPT = '인터넷과';\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1)",
+          "accept": [
+            "200"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "200"
+        },
+        {
+          "label": "2)",
+          "accept": [
+            "3"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "3"
+        },
+        {
+          "label": "3)",
+          "accept": [
+            "1"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "1"
+        }
+      ],
+      "display": "1) 200 / 2) 3 / 3) 1"
+    },
+    {
+      "id": "2022-3#13",
+      "num": 13,
+      "prompt": "다음 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">int n;\nint k;\nint s;\nint el = 0;\n\n  for(n=6; n&lt;=30; n++){\n    s=0;\n    k=n/2;\n    for(int j=1; j&lt;=k; j++){\n      if(n%j==0){\n        s=s+j;\n      }\n    }\n    if(s==n){\n    el++;\n    }\n  }\n\n  printf(\"%d\", el);</pre>",
+      "bodyText": "다음 코드의 출력값을 작성하시오.\n\n```c\nint n;\nint k;\nint s;\nint el = 0;\n\n  for(n=6; n<=30; n++){\n    s=0;\n    k=n/2;\n    for(int j=1; j<=k; j++){\n      if(n%j==0){\n        s=s+j;\n      }\n    }\n    if(s==n){\n    el++;\n    }\n  }\n\n  printf(\"%d\", el);\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "2"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "2"
+        }
+      ],
+      "display": "2"
+    },
+    {
+      "id": "2022-3#14",
+      "num": 14,
+      "prompt": "아래 설명에 해당하는 알맞은 용어를 각각 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;1&nbsp;&nbsp;)은/는 프로세서(processor) 안에 독립적인 보안 구역을 따로 두어 중요한 정보를 보호하는, ARM사에서 개발한 하드웨어 기반의 보안 기술이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;2&nbsp;&nbsp;)은/는 사용자들이 사이트에 접속할 때 주소를 잘못 입력하거나 철자를 빠뜨리는 실수를 이용하기 위해 유사한 유명 도메인을 미리 등록하는 일로, URL 하이재킹(hijacking)이라고도 한다.</div>\n<div class=\"hint\">※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.</div>",
+      "bodyText": "아래 설명에 해당하는 알맞은 용어를 각각 작성하시오.\n\n(  1  )은/는 프로세서(processor) 안에 독립적인 보안 구역을 따로 두어 중요한 정보를 보호하는, ARM사에서 개발한 하드웨어 기반의 보안 기술이다.\n\n(  2  )은/는 사용자들이 사이트에 접속할 때 주소를 잘못 입력하거나 철자를 빠뜨리는 실수를 이용하기 위해 유사한 유명 도메인을 미리 등록하는 일로, URL 하이재킹(hijacking)이라고도 한다.\n\n※ 실제 기출문제에서는 보기가 함께 주어졌으나, 복원 자료에 보기 목록이 남아 있지 않아 용어를 직접 작성하는 형태로 제공한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "trustzone",
+            "trust zone",
+            "트러스트존",
+            "arm trustzone"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "TrustZone"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "typosquatting",
+            "typo squatting",
+            "타이포스쿼팅",
+            "url하이재킹",
+            "urlhijacking"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Typosquatting"
+        }
+      ],
+      "display": "(1) TrustZone / (2) Typosquatting (타이포스쿼팅)"
+    },
+    {
+      "id": "2022-3#15",
+      "num": 15,
+      "prompt": "아래 설명에 해당하는 알맞은 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;)은/는 여러 개의 사이트에서 한 번의 로그인으로 여러 가지 다른 사이트들을 자동적으로 접속하여 이용하는 방법을 말한다. 일반적으로 서로 다른 시스템 및 사이트에서 각각의 사용자 정보를 관리하게 되는데, 이때 하나의 사용자 정보를 기반으로 여러 시스템을 하나의 통합 인증을 사용하게 하는 것을 말한다.</div>\n<div class=\"desc-box\">즉 하나의 시스템에서 인증을 할 경우 타 시스템에서는 인증 정보가 있는지 확인하고 있으면 로그인 처리를 하도록 하고, 없는 경우 다시 통합 인증을 할 수 있도록 만드는 것을 의미한다.</div>",
+      "bodyText": "아래 설명에 해당하는 알맞은 용어를 작성하시오.\n\n(  )은/는 여러 개의 사이트에서 한 번의 로그인으로 여러 가지 다른 사이트들을 자동적으로 접속하여 이용하는 방법을 말한다. 일반적으로 서로 다른 시스템 및 사이트에서 각각의 사용자 정보를 관리하게 되는데, 이때 하나의 사용자 정보를 기반으로 여러 시스템을 하나의 통합 인증을 사용하게 하는 것을 말한다.\n\n즉 하나의 시스템에서 인증을 할 경우 타 시스템에서는 인증 정보가 있는지 확인하고 있으면 로그인 처리를 하도록 하고, 없는 경우 다시 통합 인증을 할 수 있도록 만드는 것을 의미한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "sso",
+            "single sign on",
+            "single sign-on",
+            "sso(single sign on)",
+            "통합인증",
+            "싱글사인온"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "SSO"
+        }
+      ],
+      "display": "SSO (Single Sign On)"
+    },
+    {
+      "id": "2022-3#16",
+      "num": 16,
+      "prompt": "다음은 스케줄링에 관한 설명이다. 표의 괄호 안에 알맞은 스케줄링 기법을 각각 작성하시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>스케줄링</th><th>내용</th></tr>\n<tr><td>(&nbsp;&nbsp;1&nbsp;&nbsp;) 스케줄링</td><td>Ready Queue에 있는 프로세스 중 CPU 처리 시간이 짧은 순서대로 CPU를 할당하는 비선점형 방식이며, 늦게 도착하더라도 CPU 처리 시간이 앞에 대기중인 프로세스보다 짧으면 먼저 CPU를 할당받을 수 있다.</td></tr>\n<tr><td>(&nbsp;&nbsp;2&nbsp;&nbsp;) 스케줄링</td><td>프로세스가 도착한 순서대로 프로세스를 디스패치하지만 정해진 시간 할당량(또는 시간 간격)에 의해 실행을 제한한다. 즉, 시간 할당량을 매 프로세스에 주고 할당된 시간 안에 완료되지 못한 프로세스는 준비 큐의 맨 뒤에 배치되도록 하여 CPU를 독점하지 않고 공평하게 이용될 수 있게 한다.</td></tr>\n<tr><td>(&nbsp;&nbsp;3&nbsp;&nbsp;) 스케줄링</td><td>선점 스케줄링 방식으로 변경한 기법이다. CPU를 점유중인 프로세스보다 남은 CPU 처리 시간이 짧은 프로세스가 Ready Queue에 들어올 경우 새로 들어온 프로세스가 CPU를 점유할 수 있다. 어떤 알고리즘보다 평균 대기 시간이 가장 짧은 알고리즘이지만, 기본적으로 선점형 방식이기 때문에 잦은 Context Switching이 일어나고 그에 따른 오버헤드가 커진다.</td></tr>\n</table>",
+      "bodyText": "다음은 스케줄링에 관한 설명이다. 표의 괄호 안에 알맞은 스케줄링 기법을 각각 작성하시오.\n\n| 스케줄링 | 내용 |\n| --- | --- |\n| (  1  ) 스케줄링 | Ready Queue에 있는 프로세스 중 CPU 처리 시간이 짧은 순서대로 CPU를 할당하는 비선점형 방식이며, 늦게 도착하더라도 CPU 처리 시간이 앞에 대기중인 프로세스보다 짧으면 먼저 CPU를 할당받을 수 있다. |\n| (  2  ) 스케줄링 | 프로세스가 도착한 순서대로 프로세스를 디스패치하지만 정해진 시간 할당량(또는 시간 간격)에 의해 실행을 제한한다. 즉, 시간 할당량을 매 프로세스에 주고 할당된 시간 안에 완료되지 못한 프로세스는 준비 큐의 맨 뒤에 배치되도록 하여 CPU를 독점하지 않고 공평하게 이용될 수 있게 한다. |\n| (  3  ) 스케줄링 | 선점 스케줄링 방식으로 변경한 기법이다. CPU를 점유중인 프로세스보다 남은 CPU 처리 시간이 짧은 프로세스가 Ready Queue에 들어올 경우 새로 들어온 프로세스가 CPU를 점유할 수 있다. 어떤 알고리즘보다 평균 대기 시간이 가장 짧은 알고리즘이지만, 기본적으로 선점형 방식이기 때문에 잦은 Context Switching이 일어나고 그에 따른 오버헤드가 커진다. |",
+      "sourceImages": [
+        "raw/2022-3/img06.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "sjf",
+            "shortest job first",
+            "sjf(shortest job first)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "SJF"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "rr",
+            "round robin",
+            "round-robin",
+            "라운드로빈",
+            "rr(round robin)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "RR"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "srt",
+            "shortest remaining time",
+            "srt(shortest remaining time)",
+            "srtf"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "SRT"
+        }
+      ],
+      "display": "(1) SJF / (2) RR / (3) SRT"
+    },
+    {
+      "id": "2022-3#17",
+      "num": 17,
+      "prompt": "다음은 UML에 관한 설명이다. 괄호 안에 알맞은 용어를 각각 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">UML은 통합 모델링 언어로써, 시스템을 모델로 표현해주는 대표적인 모델링 언어이다.</div>\n<div class=\"desc-box\">구성 요소로는 사물, (&nbsp;&nbsp;1&nbsp;&nbsp;), 다이어그램으로 이루어져 있으며, 구조 다이어그램 중 (&nbsp;&nbsp;2&nbsp;&nbsp;) 다이어그램은 시스템에서 사용되는 객체 타입을 정의하고, 그들 간에 존재하는 정적인 관계를 다양한 방식으로 표현한 다이어그램이다.</div>\n<div class=\"desc-box\">또한 UML 모델링에서 (&nbsp;&nbsp;3&nbsp;&nbsp;)은/는 클래스와 같은 기타 모델 요소 또는 컴포넌트가 구현해야 하는 오퍼레이션 세트를 정의하는 모델 요소이다.</div>",
+      "bodyText": "다음은 UML에 관한 설명이다. 괄호 안에 알맞은 용어를 각각 작성하시오.\n\nUML은 통합 모델링 언어로써, 시스템을 모델로 표현해주는 대표적인 모델링 언어이다.\n\n구성 요소로는 사물, (  1  ), 다이어그램으로 이루어져 있으며, 구조 다이어그램 중 (  2  ) 다이어그램은 시스템에서 사용되는 객체 타입을 정의하고, 그들 간에 존재하는 정적인 관계를 다양한 방식으로 표현한 다이어그램이다.\n\n또한 UML 모델링에서 (  3  )은/는 클래스와 같은 기타 모델 요소 또는 컴포넌트가 구현해야 하는 오퍼레이션 세트를 정의하는 모델 요소이다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "관계",
+            "relationship",
+            "관계(relationship)",
+            "relation"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "관계"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "클래스",
+            "class",
+            "클래스(class)",
+            "클래스다이어그램",
+            "class diagram"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "클래스"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "인터페이스",
+            "interface",
+            "인터페이스(interface)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "인터페이스"
+        }
+      ],
+      "display": "(1) 관계 / (2) 클래스 / (3) 인터페이스"
+    },
+    {
+      "id": "2022-3#18",
+      "num": 18,
+      "prompt": "다음은 E-R 다이어그램에 관한 설명이다. 괄호 안에 알맞은 답을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">[E-R 다이어그램 구성]<br>- 왼쪽 사각형 : 학생 (학생과목(밑줄), 이름, 성별, 나이)  ← ㄱ<br>- 위쪽 사각형 : DATA  ← ㄴ<br>- 왼쪽 사각형과 가운데 마름모를 잇는 실선  ← ㄷ<br>- 위쪽 사각형(DATA)과 가운데 마름모를 잇는 점선  ← ㄹ<br>- 가운데 마름모 (오른쪽 사각형 '과목'과 실선으로 연결)  ← ㅂ<br>- 오른쪽 사각형 : 과목 (과목코드(밑줄), 과목이름)</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;1&nbsp;&nbsp;) : 개체집합 - 관계집합 연결</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;2&nbsp;&nbsp;) : 개체 집합과의 연결</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;3&nbsp;&nbsp;) : 관계집합 - 관계집합의 속성 연결</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;4&nbsp;&nbsp;) : 두 개체집합 관계에서 생성되는 값을 저장하는 속성</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;5&nbsp;&nbsp;) : 같은 속성을 공유하는 개체들의 모임</div>\n<div class=\"hint\">※ 원본 자료에 따르면 그래프 기호는 정확히 기억나지 않아 임의로 작성된 것이므로 참고용이다.</div>",
+      "bodyText": "다음은 E-R 다이어그램에 관한 설명이다. 괄호 안에 알맞은 답을 작성하시오.\n\n[E-R 다이어그램 구성]\n- 왼쪽 사각형 : 학생 (학생과목(밑줄), 이름, 성별, 나이)  ← ㄱ\n- 위쪽 사각형 : DATA  ← ㄴ\n- 왼쪽 사각형과 가운데 마름모를 잇는 실선  ← ㄷ\n- 위쪽 사각형(DATA)과 가운데 마름모를 잇는 점선  ← ㄹ\n- 가운데 마름모 (오른쪽 사각형 '과목'과 실선으로 연결)  ← ㅂ\n- 오른쪽 사각형 : 과목 (과목코드(밑줄), 과목이름)\n\n(  1  ) : 개체집합 - 관계집합 연결\n(  2  ) : 개체 집합과의 연결\n(  3  ) : 관계집합 - 관계집합의 속성 연결\n(  4  ) : 두 개체집합 관계에서 생성되는 값을 저장하는 속성\n(  5  ) : 같은 속성을 공유하는 개체들의 모임\n\n※ 원본 자료에 따르면 그래프 기호는 정확히 기억나지 않아 임의로 작성된 것이므로 참고용이다.",
+      "sourceImages": [
+        "raw/2022-3/img07.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "ㄷ",
+            "실선",
+            "실선(ㄷ)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "실선"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "ㅂ",
+            "관계집합",
+            "관계 집합",
+            "관계집합(ㅂ)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "관계집합"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "ㄹ",
+            "점선",
+            "점선(ㄹ)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "점선"
+        },
+        {
+          "label": "(4)",
+          "accept": [
+            "ㄴ",
+            "관계집합의속성",
+            "관계집합의 속성",
+            "관계의속성"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "관계집합의 속성"
+        },
+        {
+          "label": "(5)",
+          "accept": [
+            "ㄱ",
+            "개체집합",
+            "개체 집합",
+            "개체집합(ㄱ)",
+            "엔티티집합"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "개체집합"
+        }
+      ],
+      "display": "(1) 실선 (ㄷ) / (2) 관계집합 (ㅂ) / (3) 점선 (ㄹ) / (4) 관계집합의 속성 (ㄴ) / (5) 개체집합 (ㄱ)"
+    },
+    {
+      "id": "2022-3#19",
+      "num": 19,
+      "prompt": "다음 Java 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public class Main {\n  static int[] MakeArray(){\n\n  int[] tempArr = new int[4];\n\n  for(int i=0; i&lt;tempArr.Length;i++){\n    tempArr[i] = i;\n  }\n\n  return tempArr;\n  }\n\n  public static void main(String[] args){\n\n  int[] intArr;\n  intArr = MakeArray();\n\n  for(int i=0; i &lt; intArr.Length; i++)\n  System.out.print(intArr[i]);\n\n  }\n}</pre>",
+      "bodyText": "다음 Java 코드의 출력값을 작성하시오.\n\n```java\npublic class Main {\n  static int[] MakeArray(){\n\n  int[] tempArr = new int[4];\n\n  for(int i=0; i<tempArr.Length;i++){\n    tempArr[i] = i;\n  }\n\n  return tempArr;\n  }\n\n  public static void main(String[] args){\n\n  int[] intArr;\n  intArr = MakeArray();\n\n  for(int i=0; i < intArr.Length; i++)\n  System.out.print(intArr[i]);\n\n  }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "0123"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "0123"
+        }
+      ],
+      "display": "0123"
+    },
+    {
+      "id": "2022-3#20",
+      "num": 20,
+      "prompt": "다음 Java 코드의 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public class Exam {\n  public static void main(String[] args){\n\n  int a = 0;\n  for(int i=1; i&lt;999; i++){\n    if(i%3==0 &amp;&amp; i%2!=0)\n      a = i;\n    }\n    System.out.print(a);\n  }\n}</pre>",
+      "bodyText": "다음 Java 코드의 출력값을 작성하시오.\n\n```java\npublic class Exam {\n  public static void main(String[] args){\n\n  int a = 0;\n  for(int i=1; i<999; i++){\n    if(i%3==0 && i%2!=0)\n      a = i;\n    }\n    System.out.print(a);\n  }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "993"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "993"
+        }
+      ],
+      "display": "993"
+    }
+  ]
+}

@@ -1,0 +1,711 @@
+{
+  "round": "2026-1",
+  "title": "2026년 1회",
+  "sourceUrl": "https://chobopark.tistory.com/561",
+  "questions": [
+    {
+      "id": "2026-1#1",
+      "num": 1,
+      "prompt": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\ndouble arr1(int p[], int len) {\n    double av = 0;\n    int i;\n    for (i = 0; i &lt; len; i++) {\n        av += (double) p[i];\n    }\n    return av / len;\n}\n\ndouble arr2(int * p, int len) {\n    double av = 0;\n    int i;\n    for (i = 0; i &lt; len; i++) {\n        av += (double)( * (p + i));\n    }\n    return av / len;\n}\n\nint main() {\n    int arr[10] = {\n        80,\n        20,\n        50,\n        55,\n        45,\n        95,\n        55,\n        10,\n        40,\n        80\n    };\n    int len = 10;\n\n    printf(\"%.2f\", arr1(arr, len) + arr2(arr, len));\n\n    return 0;\n}</pre>",
+      "bodyText": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞은 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n\ndouble arr1(int p[], int len) {\n    double av = 0;\n    int i;\n    for (i = 0; i < len; i++) {\n        av += (double) p[i];\n    }\n    return av / len;\n}\n\ndouble arr2(int * p, int len) {\n    double av = 0;\n    int i;\n    for (i = 0; i < len; i++) {\n        av += (double)( * (p + i));\n    }\n    return av / len;\n}\n\nint main() {\n    int arr[10] = {\n        80,\n        20,\n        50,\n        55,\n        45,\n        95,\n        55,\n        10,\n        40,\n        80\n    };\n    int len = 10;\n\n    printf(\"%.2f\", arr1(arr, len) + arr2(arr, len));\n\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "106.00"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "106.00"
+        }
+      ],
+      "display": "106.00"
+    },
+    {
+      "id": "2026-1#2",
+      "num": 2,
+      "prompt": "다음 설명에 해당하는 디자인 패턴의 유형을 괄호 (ㄱ), (ㄴ) 안에 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">&bull; (&nbsp;ㄱ&nbsp;) 패턴은 기능의 클래스 계층과 구현의 클래스 계층을 연결<br>&bull; (&nbsp;ㄴ&nbsp;) 패턴은 한 객체의 상태가 바뀌면 그 객체에 의존</div>",
+      "bodyText": "다음 설명에 해당하는 디자인 패턴의 유형을 괄호 (ㄱ), (ㄴ) 안에 쓰시오.\n\n• ( ㄱ ) 패턴은 기능의 클래스 계층과 구현의 클래스 계층을 연결\n• ( ㄴ ) 패턴은 한 객체의 상태가 바뀌면 그 객체에 의존",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "ㄱ",
+          "accept": [
+            "bridge",
+            "브리지",
+            "브릿지",
+            "bridge pattern",
+            "브리지 패턴",
+            "bridge(브리지)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Bridge"
+        },
+        {
+          "label": "ㄴ",
+          "accept": [
+            "observer",
+            "옵서버",
+            "옵저버",
+            "observer pattern",
+            "옵서버 패턴",
+            "observer(옵서버)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Observer"
+        }
+      ],
+      "display": "ㄱ. Bridge (브리지) / ㄴ. Observer (옵서버)"
+    },
+    {
+      "id": "2026-1#3",
+      "num": 3,
+      "prompt": "데이터베이스(DB) 설계 절차를 순서대로 나타낸 것이다. 각 빈칸에 들어갈 알맞은 용어를 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">        DB 설계 절차\n\n        +-------------+\n        |   ( ㄱ )    |\n        +-------------+\n               |\n               v\n        +-------------+\n        |   ( ㄴ )    |\n        +-------------+\n               |\n               v\n        +-------------+\n        |   ( ㄷ )    |\n        +-------------+\n               |\n               v\n        +-------------+\n        |   ( ㄹ )    |\n        +-------------+\n               |\n               v\n        +-------------+\n        |   ( ㅁ )    |\n        +-------------+</pre>\n<div class=\"boki\"><b>[보기]</b>\n구현 / 개념적 설계 / 논리적 설계 / 요구사항 분석 / 물리적 설계</div>",
+      "bodyText": "데이터베이스(DB) 설계 절차를 순서대로 나타낸 것이다. 각 빈칸에 들어갈 알맞은 용어를 쓰시오.\n\n```\n        DB 설계 절차\n\n        +-------------+\n        |   ( ㄱ )    |\n        +-------------+\n               |\n               v\n        +-------------+\n        |   ( ㄴ )    |\n        +-------------+\n               |\n               v\n        +-------------+\n        |   ( ㄷ )    |\n        +-------------+\n               |\n               v\n        +-------------+\n        |   ( ㄹ )    |\n        +-------------+\n               |\n               v\n        +-------------+\n        |   ( ㅁ )    |\n        +-------------+\n```\n\n[보기]\n구현 / 개념적 설계 / 논리적 설계 / 요구사항 분석 / 물리적 설계",
+      "sourceImages": [
+        "raw/2026-1/img00.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "ㄱ",
+          "accept": [
+            "요구사항 분석",
+            "요구사항분석",
+            "요구 사항 분석",
+            "요구분석"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "요구사항 분석"
+        },
+        {
+          "label": "ㄴ",
+          "accept": [
+            "개념적 설계",
+            "개념적설계",
+            "개념설계"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "개념적 설계"
+        },
+        {
+          "label": "ㄷ",
+          "accept": [
+            "논리적 설계",
+            "논리적설계",
+            "논리설계"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "논리적 설계"
+        },
+        {
+          "label": "ㄹ",
+          "accept": [
+            "물리적 설계",
+            "물리적설계",
+            "물리설계"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "물리적 설계"
+        },
+        {
+          "label": "ㅁ",
+          "accept": [
+            "구현"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "구현"
+        }
+      ],
+      "display": "ㄱ. 요구사항 분석 / ㄴ. 개념적 설계 / ㄷ. 논리적 설계 / ㄹ. 물리적 설계 / ㅁ. 구현"
+    },
+    {
+      "id": "2026-1#4",
+      "num": 4,
+      "prompt": "다음은 비기능적 요구사항에 대한 설명이다. 각 항목이 의미하는 요구사항 유형을 보기에서 골라 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. 시스템 운영 중 로그 관리 및 모니터링 기능을 제공해야 한다.<br>2. 시스템 운영 시 최소 메모리 용량을 확보해야 하며, 자원 사용량은 제한 범위 내에 있어야 한다.<br>3. 사용자 요청에 대한 응답 시간은 최대 1분을 초과하지 않아야 한다.</div>\n<div class=\"boki\"><b>[보기]</b>\n신뢰성, 가용성, 운영, 유지보수성, 자원, 성능, 이식성, 보안, 품질</div>",
+      "bodyText": "다음은 비기능적 요구사항에 대한 설명이다. 각 항목이 의미하는 요구사항 유형을 보기에서 골라 쓰시오.\n\n1. 시스템 운영 중 로그 관리 및 모니터링 기능을 제공해야 한다.\n2. 시스템 운영 시 최소 메모리 용량을 확보해야 하며, 자원 사용량은 제한 범위 내에 있어야 한다.\n3. 사용자 요청에 대한 응답 시간은 최대 1분을 초과하지 않아야 한다.\n\n[보기]\n신뢰성, 가용성, 운영, 유지보수성, 자원, 성능, 이식성, 보안, 품질",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "운영",
+            "운영성",
+            "operation"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "운영"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "자원",
+            "자원성",
+            "resource"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "자원"
+        },
+        {
+          "label": "3번",
+          "accept": [
+            "성능",
+            "performance"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "성능"
+        }
+      ],
+      "display": "1. 운영 / 2. 자원 / 3. 성능"
+    },
+    {
+      "id": "2026-1#5",
+      "num": 5,
+      "prompt": "다음 용어의 영문 약자를 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">정보보호 관리체계</div>",
+      "bodyText": "다음 용어의 영문 약자를 쓰시오.\n\n정보보호 관리체계",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "isms",
+            "information security management system",
+            "isms(information security management system)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ISMS"
+        }
+      ],
+      "display": "ISMS (Information Security Management System)"
+    },
+    {
+      "id": "2026-1#6",
+      "num": 6,
+      "prompt": "HDLC는 비트 중심의 데이터 링크 제어 프로토콜로, 프레임 단위로 데이터를 전송하며 흐름 제어 및 오류 복구 기능을 제공한다. 다음 설명을 읽고 알맞은 용어를 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>HDLC 구성 요소</b><br>1. HDLC 프레임의 구성 단위로, 실제 사용자 데이터를 전송하는 프레임<br>2. 데이터 링크의 흐름을 관리하고 오류 제어 및 통신 상태를 감시하는 프레임<br>3. 순서 번호 없이 링크 설정, 해제, 모드 설정 등 제어 기능을 수행하는 프레임<br>4. 두 국(Station)이 동등한 위치에서 서로 명령과 응답을 주고받는 모드<br>5. 종국(Secondary)이 주국(Primary)의 허가 없이도 자발적으로 응답을 전송할 수 있는 모드</div>",
+      "bodyText": "HDLC는 비트 중심의 데이터 링크 제어 프로토콜로, 프레임 단위로 데이터를 전송하며 흐름 제어 및 오류 복구 기능을 제공한다. 다음 설명을 읽고 알맞은 용어를 쓰시오.\n\nHDLC 구성 요소\n1. HDLC 프레임의 구성 단위로, 실제 사용자 데이터를 전송하는 프레임\n2. 데이터 링크의 흐름을 관리하고 오류 제어 및 통신 상태를 감시하는 프레임\n3. 순서 번호 없이 링크 설정, 해제, 모드 설정 등 제어 기능을 수행하는 프레임\n4. 두 국(Station)이 동등한 위치에서 서로 명령과 응답을 주고받는 모드\n5. 종국(Secondary)이 주국(Primary)의 허가 없이도 자발적으로 응답을 전송할 수 있는 모드",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "정보",
+            "정보 프레임",
+            "정보프레임",
+            "i-frame",
+            "information frame",
+            "정보(i)프레임"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "정보"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "감독",
+            "감독 프레임",
+            "감독프레임",
+            "s-frame",
+            "supervisory frame",
+            "감시",
+            "감시프레임"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "감독"
+        },
+        {
+          "label": "3번",
+          "accept": [
+            "비번호",
+            "비번호 프레임",
+            "비번호프레임",
+            "u-frame",
+            "unnumbered frame",
+            "무번호",
+            "무번호프레임"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "비번호"
+        },
+        {
+          "label": "4번",
+          "accept": [
+            "비동기 균형 모드",
+            "비동기균형모드",
+            "abm",
+            "asynchronous balanced mode",
+            "비동기 평형 모드"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "비동기 균형 모드"
+        },
+        {
+          "label": "5번",
+          "accept": [
+            "비동기 응답 모드",
+            "비동기응답모드",
+            "arm",
+            "asynchronous response mode"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "비동기 응답 모드"
+        }
+      ],
+      "display": "1. 정보(I) 프레임 / 2. 감독(S) 프레임 / 3. 비번호(U) 프레임 / 4. 비동기 균형 모드(ABM) / 5. 비동기 응답 모드(ARM)"
+    },
+    {
+      "id": "2026-1#7",
+      "num": 7,
+      "prompt": "다음은 Java 코드에 대한 문제이다. 아래 코드를 확인하여 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class A {\n    String f(Object x) {\n        return \"1\";\n    }\n\n    String g() {\n        return f(\"a\");\n    }\n}\n\nclass B extends A {\n    String f(Object x) {\n        return \"2\";\n    }\n\n    String f(String x) {\n        return \"3\";\n    }\n}\n\npublic class Main {\n    public static void main(String[] args) {\n        A a = new B();\n        System.out.println(a.g());\n    }\n}</pre>",
+      "bodyText": "다음은 Java 코드에 대한 문제이다. 아래 코드를 확인하여 알맞은 출력값을 작성하시오.\n\n```java\nclass A {\n    String f(Object x) {\n        return \"1\";\n    }\n\n    String g() {\n        return f(\"a\");\n    }\n}\n\nclass B extends A {\n    String f(Object x) {\n        return \"2\";\n    }\n\n    String f(String x) {\n        return \"3\";\n    }\n}\n\npublic class Main {\n    public static void main(String[] args) {\n        A a = new B();\n        System.out.println(a.g());\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "2"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "2"
+        }
+      ],
+      "display": "2"
+    },
+    {
+      "id": "2026-1#8",
+      "num": 8,
+      "prompt": "아래 파이썬 코드가 있다. 입력값으로 HumanDev를 주었을 때 출력되는 결과를 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">i = input()\nx = []\n\nfor word in i.split():\n    x.append(word)\n\ny = ''.join(x)\nz = ''.join(c for c in y[::-1] if c not in 'ong')\n\nprint(z)</pre>",
+      "bodyText": "아래 파이썬 코드가 있다. 입력값으로 HumanDev를 주었을 때 출력되는 결과를 쓰시오.\n\n```python\ni = input()\nx = []\n\nfor word in i.split():\n    x.append(word)\n\ny = ''.join(x)\nz = ''.join(c for c in y[::-1] if c not in 'ong')\n\nprint(z)\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "veDamuH",
+            "vedamuh",
+            "VEDAMUH"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "veDamuH"
+        }
+      ],
+      "display": "veDamuH"
+    },
+    {
+      "id": "2026-1#9",
+      "num": 9,
+      "prompt": "아래 조건을 참고하여 각 SQL 구문을 실행했을 때 반환되는 행(Row)의 수를 쓰시오. (단, DEPT 칼럼은 학과명이다.)",
+      "bodyHtml": "<div class=\"desc-box\"><b>[테이블 조건]</b><br>STUDENT 테이블에는 다음 세 학과의 학생 정보가 저장되어 있다.<br>컴퓨터과 50명 &middot; 인터넷과 100명 &middot; 사무자동화과 50명</div>\n<div class=\"desc-box\"><b>[SQL 구문]</b></div>\n<pre class=\"code\">1. SELECT DEPT FROM STUDENT;\n\n2. SELECT DISTINCT DEPT FROM STUDENT;\n\n3. SELECT COUNT(DISTINCT DEPT) FROM STUDENT\n    WHERE DEPT = '컴퓨터과';</pre>",
+      "bodyText": "아래 조건을 참고하여 각 SQL 구문을 실행했을 때 반환되는 행(Row)의 수를 쓰시오. (단, DEPT 칼럼은 학과명이다.)\n\n[테이블 조건]\nSTUDENT 테이블에는 다음 세 학과의 학생 정보가 저장되어 있다.\n컴퓨터과 50명 · 인터넷과 100명 · 사무자동화과 50명\n\n[SQL 구문]\n```sql\n1. SELECT DEPT FROM STUDENT;\n\n2. SELECT DISTINCT DEPT FROM STUDENT;\n\n3. SELECT COUNT(DISTINCT DEPT) FROM STUDENT\n    WHERE DEPT = '컴퓨터과';\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "200"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "200"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "3"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "3"
+        },
+        {
+          "label": "3번",
+          "accept": [
+            "1"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "1"
+        }
+      ],
+      "display": "1. 200 / 2. 3 / 3. 1"
+    },
+    {
+      "id": "2026-1#10",
+      "num": 10,
+      "prompt": "아래는 선수(PLAYER) 정보를 관리하는 테이블을 정의하는 SQL 문이다. 팀(TEAM) 테이블의 특정 칼럼을 참조하는 외래키 제약 조건을 추가하려 할 때, 괄호 (1)~(5)에 들어갈 적절한 예약어(keyword) 또는 칼럼명을 아래 조건을 참고하여 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>[조건]</b><br>외래키 제약 조건의 이름은 TEAM_TF 로 지정한다.<br>PLAYER 테이블의 TEAM_ID 칼럼이 외래키 역할을 한다.<br>TEAM 테이블의 TEAM_ID2 칼럼을 참조 대상으로 한다.</div>\n<div class=\"desc-box\"><b>[SQL 문]</b></div>\n<pre class=\"code\">CREATE TABLE PLAYER (\n  PLAYER_ID   CHAR(7)      NOT NULL,\n  PLAYER_NAME VARCHAR2(20) NOT NULL,\n  TEAM_ID     CHAR(3)      NOT NULL,\n  PRIMARY KEY (PLAYER_ID),\n  ( 1 ) TEAM_TF\n  ( 2 ) KEY ( 3 )\n  ( 4 ) TEAM ( 5 )\n);</pre>",
+      "bodyText": "아래는 선수(PLAYER) 정보를 관리하는 테이블을 정의하는 SQL 문이다. 팀(TEAM) 테이블의 특정 칼럼을 참조하는 외래키 제약 조건을 추가하려 할 때, 괄호 (1)~(5)에 들어갈 적절한 예약어(keyword) 또는 칼럼명을 아래 조건을 참고하여 쓰시오.\n\n[조건]\n외래키 제약 조건의 이름은 TEAM_TF 로 지정한다.\nPLAYER 테이블의 TEAM_ID 칼럼이 외래키 역할을 한다.\nTEAM 테이블의 TEAM_ID2 칼럼을 참조 대상으로 한다.\n\n[SQL 문]\n```sql\nCREATE TABLE PLAYER (\n  PLAYER_ID   CHAR(7)      NOT NULL,\n  PLAYER_NAME VARCHAR2(20) NOT NULL,\n  TEAM_ID     CHAR(3)      NOT NULL,\n  PRIMARY KEY (PLAYER_ID),\n  ( 1 ) TEAM_TF\n  ( 2 ) KEY ( 3 )\n  ( 4 ) TEAM ( 5 )\n);\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "constraint"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "CONSTRAINT"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "foreign"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "FOREIGN"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "team_id",
+            "(team_id)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "TEAM_ID"
+        },
+        {
+          "label": "(4)",
+          "accept": [
+            "references"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "REFERENCES"
+        },
+        {
+          "label": "(5)",
+          "accept": [
+            "team_id2",
+            "(team_id2)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "TEAM_ID2"
+        }
+      ],
+      "display": "(1) CONSTRAINT / (2) FOREIGN / (3) TEAM_ID / (4) REFERENCES / (5) TEAM_ID2"
+    },
+    {
+      "id": "2026-1#11",
+      "num": 11,
+      "prompt": "두 호스트 a, b의 IP 주소와 서브넷 마스크가 주어졌을 때, 각 호스트가 속한 네트워크 주소를 CIDR 표기법으로 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>[조건]</b><br>&middot; 호스트 a의 IP 주소: 192.168.11.20<br>&middot; 호스트 b의 IP 주소: 192.168.12.200<br>&middot; 서브넷 마스크: 255.255.254.0</div>\n<div class=\"desc-box\"><b>[구하는 것]</b><br>a. 호스트 a (192.168.11.20)가 속한 네트워크 주소<br>b. 호스트 b (192.168.12.200)가 속한 네트워크 주소</div>",
+      "bodyText": "두 호스트 a, b의 IP 주소와 서브넷 마스크가 주어졌을 때, 각 호스트가 속한 네트워크 주소를 CIDR 표기법으로 쓰시오.\n\n[조건]\n· 호스트 a의 IP 주소: 192.168.11.20\n· 호스트 b의 IP 주소: 192.168.12.200\n· 서브넷 마스크: 255.255.254.0\n\n[구하는 것]\na. 호스트 a (192.168.11.20)가 속한 네트워크 주소\nb. 호스트 b (192.168.12.200)가 속한 네트워크 주소",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "a",
+          "accept": [
+            "192.168.10.0/23"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "192.168.10.0/23"
+        },
+        {
+          "label": "b",
+          "accept": [
+            "192.168.12.0/23"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "192.168.12.0/23"
+        }
+      ],
+      "display": "a. 192.168.10.0/23 / b. 192.168.12.0/23"
+    },
+    {
+      "id": "2026-1#12",
+      "num": 12,
+      "prompt": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">struct fns {\n    int* (*fn)(int*);\n} mine;\n\nint* dummy(int *d) {\n    return d + 1;\n}\n\nint main() {\n    struct fns mine;\n    int n[] = {16, 32};\n    mine.fn = dummy;\n    printf(\"%x\", *mine.fn(n));\n    return 0;\n}</pre>",
+      "bodyText": "다음은 C언어에 대한 문제이다. 아래 코드를 확인하여 알맞은 출력값을 작성하시오.\n\n```c\nstruct fns {\n    int* (*fn)(int*);\n} mine;\n\nint* dummy(int *d) {\n    return d + 1;\n}\n\nint main() {\n    struct fns mine;\n    int n[] = {16, 32};\n    mine.fn = dummy;\n    printf(\"%x\", *mine.fn(n));\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "20"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "20"
+        }
+      ],
+      "display": "20"
+    },
+    {
+      "id": "2026-1#13",
+      "num": 13,
+      "prompt": "다음은 파이썬에 대한 문제이다. 아래 코드를 확인하여 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">lst = list(range(10))\nfor c in lst[::-2]:\n    print(c, end='A')\nprint()</pre>",
+      "bodyText": "다음은 파이썬에 대한 문제이다. 아래 코드를 확인하여 알맞은 출력값을 작성하시오.\n\n```python\nlst = list(range(10))\nfor c in lst[::-2]:\n    print(c, end='A')\nprint()\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "9A7A5A3A1A",
+            "9a7a5a3a1a"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "9A7A5A3A1A"
+        }
+      ],
+      "display": "9A7A5A3A1A"
+    },
+    {
+      "id": "2026-1#14",
+      "num": 14,
+      "prompt": "아래 파이썬 코드를 실행했을 때 출력되는 값을 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">def f(a):\n    m = [[x] for x in a]\n    b = m[:]\n    for i in range(len(b) - 1):\n        b[i+1] += b[i]\n    return sum(len(x) for x in m)\n\nprint(f([1, 2, 3, 4]))</pre>",
+      "bodyText": "아래 파이썬 코드를 실행했을 때 출력되는 값을 쓰시오.\n\n```python\ndef f(a):\n    m = [[x] for x in a]\n    b = m[:]\n    for i in range(len(b) - 1):\n        b[i+1] += b[i]\n    return sum(len(x) for x in m)\n\nprint(f([1, 2, 3, 4]))\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "10"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "10"
+        }
+      ],
+      "display": "10"
+    },
+    {
+      "id": "2026-1#15",
+      "num": 15,
+      "prompt": "다음은 특정 공격 기법에 대한 설명이다. 아래 내용을 읽고 해당하는 공격 기법을 보기에서 골라 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">원본 데이터 파일은 별도로 존재하며, 공격자는 해당 파일의 경로를 가리키는 특수 파일을 생성한다. 프로그램이 임시 파일을 생성하는 순간을 틈타 해당 임시 파일을 미리 준비한 특수 파일로 교체한다. 이후 프로그램이 임시 파일의 존재를 확인하면 교체된 파일을 정상으로 인식하고 동작하게 된다.</div>\n<div class=\"desc-box\"><b>[공격 절차]</b><br>1. 공격자는 실제 파일이 아닌, 특정 파일의 경로를 참조하는 특수 파일을 미리 준비한다.<br>2. 프로그램이 임시 파일을 생성하는 시점을 노려 해당 임시 파일을 준비한 특수 파일로 교체한다.<br>3. 프로그램이 임시 파일의 존재 여부를 확인할 때, 조건에 부합하면 정상으로 판단하고 동작하며 부합하지 않으면 임시 파일을 삭제한다.</div>\n<div class=\"boki\"><b>[보기]</b>\n하드링크 / 심볼릭링크 / 소프트링크 / 정적링크 / 동적링크</div>",
+      "bodyText": "다음은 특정 공격 기법에 대한 설명이다. 아래 내용을 읽고 해당하는 공격 기법을 보기에서 골라 쓰시오.\n\n원본 데이터 파일은 별도로 존재하며, 공격자는 해당 파일의 경로를 가리키는 특수 파일을 생성한다. 프로그램이 임시 파일을 생성하는 순간을 틈타 해당 임시 파일을 미리 준비한 특수 파일로 교체한다. 이후 프로그램이 임시 파일의 존재를 확인하면 교체된 파일을 정상으로 인식하고 동작하게 된다.\n\n[공격 절차]\n1. 공격자는 실제 파일이 아닌, 특정 파일의 경로를 참조하는 특수 파일을 미리 준비한다.\n2. 프로그램이 임시 파일을 생성하는 시점을 노려 해당 임시 파일을 준비한 특수 파일로 교체한다.\n3. 프로그램이 임시 파일의 존재 여부를 확인할 때, 조건에 부합하면 정상으로 판단하고 동작하며 부합하지 않으면 임시 파일을 삭제한다.\n\n[보기]\n하드링크 / 심볼릭링크 / 소프트링크 / 정적링크 / 동적링크",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "심볼릭링크",
+            "심볼릭 링크",
+            "symbolic link",
+            "symlink",
+            "심볼릭링크(symbolic link)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "심볼릭링크"
+        }
+      ],
+      "display": "심볼릭링크 (Symbolic Link)"
+    },
+    {
+      "id": "2026-1#16",
+      "num": 16,
+      "prompt": "다음은 특정 보안 공격 기법에 대한 설명이다. 해당하는 공격 기법의 명칭을 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">공격자는 목표 대상이 업무 또는 관심사로 인해 자주 방문하는 합법적인 웹사이트를 사전에 파악한다.<br>해당 사이트에 악성코드를 삽입하여 감염시켜 놓고, 피해자가 해당 사이트에 접속하는 순간 피해자의 시스템에 악성 프로그램이 자동으로 설치되도록 유도한다. 공격자는 불특정 다수를 노리는 것이 아니라 특정 조직이나 인물을 겨냥하며, 접속자의 IP나 환경 조건을 확인하여 목표 대상에게만 선택적으로 악성코드가 실행되도록 설계하는 경우도 있다.<br>피해자는 정상적인 사이트를 방문했을 뿐이므로 감염 사실을 인지하기 어렵다는 특징이 있다.</div>",
+      "bodyText": "다음은 특정 보안 공격 기법에 대한 설명이다. 해당하는 공격 기법의 명칭을 쓰시오.\n\n공격자는 목표 대상이 업무 또는 관심사로 인해 자주 방문하는 합법적인 웹사이트를 사전에 파악한다.\n해당 사이트에 악성코드를 삽입하여 감염시켜 놓고, 피해자가 해당 사이트에 접속하는 순간 피해자의 시스템에 악성 프로그램이 자동으로 설치되도록 유도한다. 공격자는 불특정 다수를 노리는 것이 아니라 특정 조직이나 인물을 겨냥하며, 접속자의 IP나 환경 조건을 확인하여 목표 대상에게만 선택적으로 악성코드가 실행되도록 설계하는 경우도 있다.\n피해자는 정상적인 사이트를 방문했을 뿐이므로 감염 사실을 인지하기 어렵다는 특징이 있다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "워터링홀",
+            "워터링 홀",
+            "watering hole",
+            "워터링홀(watering hole)",
+            "watering hole attack",
+            "워터링홀 공격"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "워터링 홀"
+        }
+      ],
+      "display": "워터링 홀 (Watering Hole)"
+    },
+    {
+      "id": "2026-1#17",
+      "num": 17,
+      "prompt": "다음은 Java 코드에 대한 문제이다. 아래 코드를 확인하여 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">public class Main {\n    public static void main(String[] args) {\n        int x1 = 9;\n        int x2 = 2;\n        String x3 = \"3\";\n        System.out.println(x1 + x2 + \"2\" + x3);\n    }\n}</pre>",
+      "bodyText": "다음은 Java 코드에 대한 문제이다. 아래 코드를 확인하여 알맞은 출력값을 작성하시오.\n\n```java\npublic class Main {\n    public static void main(String[] args) {\n        int x1 = 9;\n        int x2 = 2;\n        String x3 = \"3\";\n        System.out.println(x1 + x2 + \"2\" + x3);\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "1123"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "1123"
+        }
+      ],
+      "display": "1123"
+    },
+    {
+      "id": "2026-1#18",
+      "num": 18,
+      "prompt": "다음은 SQL에 대한 문제이다. 아래 코드를 확인하여 알맞은 출력값을 작성하시오.",
+      "bodyHtml": "<div style=\"display:flex; gap:30px; flex-wrap:wrap;\">\n<div><b>employee</b>\n<table class=\"tbl\">\n<tr><th>dep_id</th></tr>\n<tr><td>10</td></tr>\n<tr><td>20</td></tr>\n<tr><td>20</td></tr>\n</table></div>\n<div><b>dept</b>\n<table class=\"tbl\">\n<tr><th>dept_id</th><th>budget</th></tr>\n<tr><td>10</td><td>100</td></tr>\n<tr><td>20</td><td>300</td></tr>\n<tr><td>30</td><td>200</td></tr>\n</table></div>\n</div>\n<pre class=\"code\">SELECT COUNT(*)\nFROM employee e\nJOIN dept d ON e.dep_id = d.dept_id\nWHERE d.budget &gt; (\n    SELECT AVG(budget) FROM dept\n);</pre>",
+      "bodyText": "다음은 SQL에 대한 문제이다. 아래 코드를 확인하여 알맞은 출력값을 작성하시오.\n\nemployee\n| dep_id |\n| --- |\n| 10 |\n| 20 |\n| 20 |\n\ndept\n| dept_id | budget |\n| --- | --- |\n| 10 | 100 |\n| 20 | 300 |\n| 30 | 200 |\n\n```sql\nSELECT COUNT(*)\nFROM employee e\nJOIN dept d ON e.dep_id = d.dept_id\nWHERE d.budget > (\n    SELECT AVG(budget) FROM dept\n);\n```",
+      "sourceImages": [
+        "raw/2026-1/img01.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "2"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "2"
+        }
+      ],
+      "display": "2"
+    },
+    {
+      "id": "2026-1#19",
+      "num": 19,
+      "prompt": "다음은 통합 테스트에서 사용되는 더미 모듈에 대한 설명이다. 괄호 안에 들어갈 알맞은 용어를 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;1&nbsp;)은/는 하위 모듈을 대신하여 단순한 결과값만 반환하도록 임시로 작성된 더미 모듈로, 하향식 통합 테스트 수행 시 필요하다.<br>(&nbsp;2&nbsp;)은/는 상위 모듈을 대신하여 하위 모듈의 데이터 입력과 출력을 확인하기 위한 더미 모듈로, 상향식 통합 테스트 수행 시 필요하다.</div>",
+      "bodyText": "다음은 통합 테스트에서 사용되는 더미 모듈에 대한 설명이다. 괄호 안에 들어갈 알맞은 용어를 쓰시오.\n\n( 1 )은/는 하위 모듈을 대신하여 단순한 결과값만 반환하도록 임시로 작성된 더미 모듈로, 하향식 통합 테스트 수행 시 필요하다.\n( 2 )은/는 상위 모듈을 대신하여 하위 모듈의 데이터 입력과 출력을 확인하기 위한 더미 모듈로, 상향식 통합 테스트 수행 시 필요하다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "스텁",
+            "스탭",
+            "stub",
+            "테스트 스텁",
+            "test stub",
+            "스텁(stub)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "스텁"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "드라이버",
+            "driver",
+            "테스트 드라이버",
+            "test driver",
+            "드라이버(driver)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "드라이버"
+        }
+      ],
+      "display": "1. 스텁 (Stub) / 2. 드라이버 (Driver)"
+    },
+    {
+      "id": "2026-1#20",
+      "num": 20,
+      "prompt": "다음은 응집도의 유형에 대한 설명이다. 괄호 안에 들어갈 알맞은 용어를 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;1&nbsp;)은/는 모듈이 다수의 관련 기능을 가질 때, 모듈 안의 구성요소들이 그 기능을 순차적으로 수행하는 경우의 응집도이다.<br>(&nbsp;2&nbsp;)은/는 동일한 입력과 출력을 사용하여 서로 다른 기능을 수행하는 활동들이 모여 있는 경우의 응집도이다.<br>(&nbsp;3&nbsp;)은/는 모듈 내부의 모든 기능이 단일한 목적을 위해 수행되는 경우의 응집도이다.</div>",
+      "bodyText": "다음은 응집도의 유형에 대한 설명이다. 괄호 안에 들어갈 알맞은 용어를 쓰시오.\n\n( 1 )은/는 모듈이 다수의 관련 기능을 가질 때, 모듈 안의 구성요소들이 그 기능을 순차적으로 수행하는 경우의 응집도이다.\n( 2 )은/는 동일한 입력과 출력을 사용하여 서로 다른 기능을 수행하는 활동들이 모여 있는 경우의 응집도이다.\n( 3 )은/는 모듈 내부의 모든 기능이 단일한 목적을 위해 수행되는 경우의 응집도이다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "절차",
+            "절차적",
+            "절차적 응집도",
+            "절차 응집도",
+            "procedural",
+            "procedural cohesion"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "절차"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "교환",
+            "교환적",
+            "교환적 응집도",
+            "교환 응집도",
+            "통신적",
+            "통신적 응집도",
+            "communication",
+            "communicational",
+            "communicational cohesion"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "교환"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "기능",
+            "기능적",
+            "기능적 응집도",
+            "기능 응집도",
+            "functional",
+            "functional cohesion"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "기능"
+        }
+      ],
+      "display": "1. 절차적 응집도 / 2. 교환적(통신적) 응집도 / 3. 기능적 응집도"
+    }
+  ]
+}

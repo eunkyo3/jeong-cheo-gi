@@ -1,0 +1,361 @@
+/* battle.css — 대전 화면 전용 규칙.
+   공통 규칙(.q / .qtitle .num / .desc-box / pre.code / table.tbl / .boki /
+   .ansrow / input.ans / .feedback / .btnbar)은 app.css 가 소유한다.
+   여기에는 로비·대기실·대전·결과 화면에만 있는 것만 둔다. */
+
+/* ------------------------------------------------------------------ 공통 */
+
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  font-size: 0.92rem;
+}
+.topnav a {
+  color: #1e3a2f;
+  text-decoration: none;
+  font-weight: bold;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #e6ece9;
+}
+.topnav a:hover { background: #d3ded8; }
+.topnav .who { margin-left: auto; color: #55645c; }
+
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.card > h2 {
+  font-size: 1.12rem;
+  color: #1e3a2f;
+  margin-bottom: 12px;
+  border-bottom: 2px solid #e2e8e4;
+  padding-bottom: 8px;
+}
+
+/* app.css 의 큰 제출 버튼과 별개인 소형 버튼. */
+.btn {
+  font-size: 0.95rem;
+  font-weight: bold;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #1e3a2f;
+  color: #fff;
+  line-height: 1.2;
+}
+.btn:hover:not(:disabled) { background: #2c5445; }
+.btn:disabled { background: #b5bfba; cursor: not-allowed; }
+.btn.ghost { background: #e6ece9; color: #1e3a2f; }
+.btn.ghost:hover:not(:disabled) { background: #d3ded8; }
+.btn.danger { background: #a33; }
+.btn.danger:hover:not(:disabled) { background: #c14b4b; }
+.btn.sm { font-size: 0.85rem; padding: 7px 12px; border-radius: 7px; }
+
+.banner {
+  border-radius: 8px;
+  padding: 11px 14px;
+  margin-bottom: 14px;
+  font-size: 0.92rem;
+  font-weight: bold;
+}
+.banner.err { background: #fbdcdc; color: #7f1d1d; border: 1px solid #e9b8b8; }
+.banner.warn { background: #fff4d6; color: #6b4a05; border: 1px solid #e6d98a; }
+.banner.info { background: #dff3e7; color: #14532d; border: 1px solid #a9d8bf; }
+/* 재대전 초대 배너 (C1) — info 와 같은 톤이되 버튼을 담을 수 있게 세로로 쌓는다. */
+.banner.invite {
+  background: #dff3e7;
+  color: #14532d;
+  border: 1px solid #a9d8bf;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.banner.invite .qactions { margin-top: 0; }
+
+.empty {
+  color: #77857e;
+  text-align: center;
+  padding: 26px 12px;
+  font-size: 0.95rem;
+}
+
+.muted { color: #77857e; font-size: 0.86rem; }
+
+/* -------------------------------------------------------------------- 로비 */
+
+.roomlist { display: flex; flex-direction: column; gap: 10px; }
+.room {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 1px solid #dfe5e2;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #fafbfa;
+}
+.room .rname { font-weight: bold; flex: 1 1 140px; min-width: 0; word-break: break-all; }
+.room .rmeta { color: #55645c; font-size: 0.85rem; flex: 0 0 auto; }
+
+.formgrid { display: flex; flex-direction: column; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > .flabel { font-weight: bold; font-size: 0.92rem; color: #34473e; }
+.field input[type="text"],
+.field select {
+  padding: 10px 12px;
+  border: 2px solid #c6ccd2;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  background: #fff;
+  width: 100%;
+  max-width: 420px;
+}
+.field input[type="text"]:focus,
+.field select:focus { outline: none; border-color: #1e3a2f; }
+
+/* 방 코드로 참여 (A3) — 로비 "대전방 목록" 카드 하단 행. */
+.codejoin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #d9dedb;
+}
+.codejoin .codeinput {
+  flex: 0 1 160px;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 2px solid #c6ccd2;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-align: center;
+  background: #fff;
+}
+.codejoin .codeinput:focus { outline: none; border-color: #1e3a2f; }
+
+/* 랜덤 회차 전체 선택 (A4) — 전체 선택/해제 + 연도별 퀵 토글. */
+.yearrow { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.year-toggle.on { border-color: #1e3a2f; background: #e6ece9; font-weight: bold; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 2px solid #c6ccd2;
+  border-radius: 999px;
+  padding: 7px 13px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  background: #fff;
+  user-select: none;
+}
+.chip.on { border-color: #1e3a2f; background: #e6ece9; font-weight: bold; }
+.chip input { accent-color: #1e3a2f; }
+.chip .cnt { color: #77857e; font-size: 0.8rem; }
+
+.radiorow { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ------------------------------------------------------------------ 대기실 */
+
+.playerlist { display: flex; flex-direction: column; gap: 8px; }
+.player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dfe5e2;
+  border-radius: 8px;
+  padding: 10px 13px;
+  background: #fafbfa;
+}
+.player .pname { font-weight: bold; flex: 1; word-break: break-all; }
+.badge {
+  font-size: 0.75rem;
+  font-weight: bold;
+  border-radius: 6px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.badge.host { background: #1e3a2f; color: #fff; }
+.badge.me { background: #2e9e5b; color: #fff; }
+.badge.on { background: #dff3e7; color: #14532d; }
+.badge.off { background: #eceff0; color: #77857e; }
+
+.setting-list { font-size: 0.9rem; color: #45564d; line-height: 1.9; }
+.setting-list b { color: #1e3a2f; }
+
+/* 방 코드 표시 + 복사 (A3) — 대기실 상단, 회차/시간 요약보다 눈에 띄게. */
+.roomcode {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #eef4f0;
+  border: 1px dashed #a9d8bf;
+}
+.roomcode .code-text { font-weight: bold; color: #1e3a2f; letter-spacing: 0.5px; }
+
+/* -------------------------------------------------------------------- 대전 */
+
+/* 타이머·진행현황 패널. 250ms 주기로 통째 재작성되므로 조작 요소를 두지 않는다. */
+.timerbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  border: 3px solid #1e3a2f;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+.timerbar .timer {
+  font-size: 1.9rem;
+  font-weight: bold;
+  color: #1e3a2f;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+}
+.timerbar .timer.urgent { color: #d64545; }
+.timerbar .tlabel { text-align: center; font-size: 0.8rem; color: #77857e; }
+
+.progresslist {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 10px;
+  border-top: 1px solid #e2e8e4;
+  padding-top: 10px;
+}
+.prow { display: flex; align-items: center; gap: 8px; font-size: 0.86rem; }
+.prow .pn { flex: 0 1 auto; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prow .pn.self { font-weight: bold; color: #1e3a2f; }
+.prow .ptrack { flex: 1; height: 8px; background: #e6ece9; border-radius: 999px; overflow: hidden; }
+.prow .pfill { height: 100%; background: #2e9e5b; border-radius: 999px; }
+.prow .pnum { flex: 0 0 auto; color: #55645c; font-variant-numeric: tabular-nums; }
+.prow .pdc { flex: 0 0 auto; color: #b06a6a; font-size: 0.78rem; }
+
+.q.readonly input.ans { background: #f2f4f3; color: #55645c; }
+
+/* -------------------------------------------------------------------- 결과 */
+
+.result-head { text-align: center; }
+.result-head .verdict { font-size: 1.5rem; font-weight: bold; color: #1e3a2f; margin-bottom: 4px; }
+.result-head .verdict.draw { color: #8a6d1f; }
+.result-head .verdict.lose { color: #a05252; }
+
+.tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table.res {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 420px;
+  font-size: 0.9rem;
+  background: #fff;
+}
+table.res th {
+  background: #2f4f3e;
+  color: #fff;
+  padding: 8px 12px;
+  border: 1px solid #999;
+  white-space: nowrap;
+}
+table.res td {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  text-align: center;
+  white-space: nowrap;
+}
+table.res tr.win td { background: #f3fbf6; font-weight: bold; }
+table.res tr.self td { box-shadow: inset 3px 0 0 #2e9e5b; }
+
+.qactions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.reportbox { margin-top: 10px; border-top: 1px dashed #d9dedb; padding-top: 10px; }
+.reportbox textarea {
+  width: 100%;
+  min-height: 68px;
+  padding: 9px 11px;
+  border: 2px solid #c6ccd2;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.92rem;
+  resize: vertical;
+}
+.reportbox textarea:focus { outline: none; border-color: #1e3a2f; }
+
+/* ---------------------------------------------------------------- 모바일 */
+
+@media (max-width: 480px) {
+  .card { padding: 14px 13px; }
+  .btn { padding: 11px 14px; }          /* 좁아져도 탭 영역은 유지 */
+  .btn.sm { padding: 9px 11px; }
+  .topnav { font-size: 0.86rem; }
+  .topnav .who { flex-basis: 100%; margin-left: 0; }
+  .timerbar { padding: 10px 12px; }
+  .timerbar .timer { font-size: 1.6rem; }
+  .field input[type="text"], .field select { max-width: none; }
+  .room .rmeta { flex-basis: 100%; }
+  .codejoin { flex-wrap: wrap; }
+  .codejoin .codeinput { flex: 1 1 auto; }
+  .roomcode { flex-direction: column; align-items: flex-start; }
+  /* app.css 의 input.ans min-width 가 360px 화면을 넘치지 않게 푼다. */
+  .ansrow input.ans { min-width: 0; max-width: none; width: 100%; }
+  .ansrow label { min-width: 0; }
+}
+
+/* ================================================================ 추가분
+   battle.html 의 실제 마크업(js/battle.js 가 생성)에 맞춘 보강 규칙.
+   위쪽 규칙은 그대로 두고, 충돌하는 지점만 여기서 정리한다. */
+
+/* 상단 내비는 app.css 가 소유한다(전 페이지 공통 다크 바).
+   이 파일 위쪽의 `.topnav a` 알약 스타일은 그 다크 바 위에서도 읽히므로 살려 두되,
+   닉네임만 대비가 무너지므로 `.who` 대신 `.whoami` 를 쓰고 여기서 색을 준다. */
+.topnav .whoami {
+  font-size: 0.88rem;
+  color: #cfe3d8;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+/* 렌더러가 만드는 패널 컨테이너. 레이아웃은 안쪽 카드가 가진다. */
+.panel { display: block; }
+
+#notice:not(:empty) { margin-top: 14px; }
+
+/* app.css 의 sticky 내비(높이 약 44px) 아래로 붙도록 내린다. */
+.timerbar { top: 46px; }
+
+/* app.css 는 `.q-actions .copied` 만 정의한다. 대전 화면은 `.qactions` 를 쓴다. */
+.qactions .copied {
+  color: #2e9e5b;
+  font-size: 0.84rem;
+  font-weight: bold;
+  align-self: center;
+}
+.qactions .muted { align-self: center; }
+
+/* 대기실 카운트다운은 sticky 가 필요 없다. */
+.card > .timerbar { position: static; margin-bottom: 0; box-shadow: none; }
+
+/* 결과 화면의 문항별 채점 제목. */
+h2.section { color: #1e3a2f; }
+
+@media (max-width: 480px) {
+  .timerbar { top: 42px; }
+}

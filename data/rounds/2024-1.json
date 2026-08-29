@@ -1,0 +1,610 @@
+{
+  "round": "2024-1",
+  "title": "2024년 1회",
+  "sourceUrl": "https://chobopark.tistory.com/476",
+  "questions": [
+    {
+      "id": "2024-1#1",
+      "num": 1,
+      "prompt": "다음 Java 코드에서 알맞는 출력 값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class Connection {\n\n    private static Connection _inst = null;\n    private int count = 0;\n\n    static public Connection get() {\n        if(_inst == null) {\n            _inst = new Connection();\n            return _inst;\n        }\n        return _inst;\n    }\n\n    public void count() {\n         count++;\n    }\n\n    public int getCount() {\n         return count;\n    }\n}\n\npublic class main {\n\n    public static void main(String[] args) {\n\n        Connection conn1 = Connection.get();\n        conn1.count();\n\n        Connection conn2 = Connection.get();\n        conn2.count();\n\n        Connection conn3 = Connection.get();\n        conn3.count();\n\n        conn1.count();\n        System.out.print(conn1.getCount());\n    }\n}</pre>",
+      "bodyText": "다음 Java 코드에서 알맞는 출력 값을 작성하시오.\n\n```java\nclass Connection {\n\n    private static Connection _inst = null;\n    private int count = 0;\n\n    static public Connection get() {\n        if(_inst == null) {\n            _inst = new Connection();\n            return _inst;\n        }\n        return _inst;\n    }\n\n    public void count() {\n         count++;\n    }\n\n    public int getCount() {\n         return count;\n    }\n}\n\npublic class main {\n\n    public static void main(String[] args) {\n\n        Connection conn1 = Connection.get();\n        conn1.count();\n\n        Connection conn2 = Connection.get();\n        conn2.count();\n\n        Connection conn3 = Connection.get();\n        conn3.count();\n\n        conn1.count();\n        System.out.print(conn1.getCount());\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "4"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "4"
+        }
+      ],
+      "display": "4"
+    },
+    {
+      "id": "2024-1#2",
+      "num": 2,
+      "prompt": "다음 C언어 코드에서 알맞는 출력 값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nint main() {\n\n    int v1 = 0, v2 = 35, v3 = 29;\n\n    if(v1 &gt; v2 ? v2 : v1) {\n        v2 = v2 &lt;&lt; 2;\n    }else{\n        v3 = v3 &lt;&lt; 2;\n    }\n\n    printf(\"%d\", v2+v3);\n}</pre>",
+      "bodyText": "다음 C언어 코드에서 알맞는 출력 값을 작성하시오.\n\n```c\n#include <stdio.h>\n\nint main() {\n\n    int v1 = 0, v2 = 35, v3 = 29;\n\n    if(v1 > v2 ? v2 : v1) {\n        v2 = v2 << 2;\n    }else{\n        v3 = v3 << 2;\n    }\n\n    printf(\"%d\", v2+v3);\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "151"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "151"
+        }
+      ],
+      "display": "151"
+    },
+    {
+      "id": "2024-1#3",
+      "num": 3,
+      "prompt": "다음은 응집도와 관련된 문제이다. 보기에서 응집도가 높은 순으로 나열하시오.",
+      "bodyHtml": "<div class=\"boki\"><b>[보기]</b>\nㄱ. 기능&emsp;ㄴ. 교환&emsp;ㄷ. 우연&emsp;ㄹ. 시간</div>",
+      "bodyText": "다음은 응집도와 관련된 문제이다. 보기에서 응집도가 높은 순으로 나열하시오.\n\n[보기]\nㄱ. 기능\nㄴ. 교환\nㄷ. 우연\nㄹ. 시간",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번째",
+          "accept": [
+            "ㄱ",
+            "기능",
+            "기능적 응집도",
+            "functional"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄱ"
+        },
+        {
+          "label": "2번째",
+          "accept": [
+            "ㄴ",
+            "교환",
+            "교환적 응집도",
+            "communicational"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄴ"
+        },
+        {
+          "label": "3번째",
+          "accept": [
+            "ㄹ",
+            "시간",
+            "시간적 응집도",
+            "temporal"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄹ"
+        },
+        {
+          "label": "4번째",
+          "accept": [
+            "ㄷ",
+            "우연",
+            "우연적 응집도",
+            "coincidental"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄷ"
+        }
+      ],
+      "display": "ㄱ(기능) → ㄴ(교환) → ㄹ(시간) → ㄷ(우연)"
+    },
+    {
+      "id": "2024-1#4",
+      "num": 4,
+      "prompt": "다음은 C언어에 대한 문제이다. 알맞는 출력 값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n#include &lt;string.h&gt;\n\nvoid reverse(char* str){\n    int len = strlen(str);\n    char temp;\n    char*p1 = str;\n    char*p2 = str + len - 1;\n    while(p1&lt;p2){\n        temp = *p1;\n        *p1 = *p2;\n        *p2 = temp;\n        p1++;\n        p2--;\n    }\n}\n\nint main(int argc, char* argv[]){\n    char str[100] = \"ABCDEFGH\";\n\n    reverse(str);\n\n    int len = strlen(str);\n\n    for(int i=1; i&lt;len; i+=2){\n        printf(\"%c\",str[i]);\n    }\n\n    printf(\"\\n\");\n\n    return 0;\n}</pre>",
+      "bodyText": "다음은 C언어에 대한 문제이다. 알맞는 출력 값을 작성하시오.\n\n```c\n#include <stdio.h>\n#include <string.h>\n\nvoid reverse(char* str){\n    int len = strlen(str);\n    char temp;\n    char*p1 = str;\n    char*p2 = str + len - 1;\n    while(p1<p2){\n        temp = *p1;\n        *p1 = *p2;\n        *p2 = temp;\n        p1++;\n        p2--;\n    }\n}\n\nint main(int argc, char* argv[]){\n    char str[100] = \"ABCDEFGH\";\n\n    reverse(str);\n\n    int len = strlen(str);\n\n    for(int i=1; i<len; i+=2){\n        printf(\"%c\",str[i]);\n    }\n\n    printf(\"\\n\");\n\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "GECA",
+            "geca"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "GECA"
+        }
+      ],
+      "display": "GECA"
+    },
+    {
+      "id": "2024-1#5",
+      "num": 5,
+      "prompt": "아래 그림에서의 네트워크에서 라우터를 통한 할당 가능한 2번, 4번, 5번의 IP를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">점선으로 구분된 3개의 네트워크가 라우터 2대로 연결되어 있다. 왼쪽 네트워크에는 1번·2번 호스트가, 가운데 네트워크에는 3번·4번 호스트가, 오른쪽 네트워크에는 5번·6번 호스트가 속한다.</div>\n<pre class=\"code\">[ 네트워크 A ]        [ 네트워크 B ]        [ 네트워크 C ]\n  (1)   (2)   ──라우터──   (3)   (4)   ──라우터──   (5)   (6)</pre>\n<div class=\"desc-box\">1) 192.168.35.3/24<br>3) 129.200.10.16/22<br>6) 192.168.36.24/24</div>\n<div class=\"boki\"><b>[보기]</b>\n192.168.35.0&emsp;192.168.35.72&emsp;192.168.36.0<br>192.168.36.249&emsp;129.200.8.0&emsp;129.200.8.249</div>",
+      "bodyText": "아래 그림에서의 네트워크에서 라우터를 통한 할당 가능한 2번, 4번, 5번의 IP를 작성하시오.\n\n점선으로 구분된 3개의 네트워크가 라우터 2대로 연결되어 있다. 왼쪽 네트워크에는 1번·2번 호스트가, 가운데 네트워크에는 3번·4번 호스트가, 오른쪽 네트워크에는 5번·6번 호스트가 속한다.\n\n```text\n[ 네트워크 A ]        [ 네트워크 B ]        [ 네트워크 C ]\n  (1)   (2)   ──라우터──   (3)   (4)   ──라우터──   (5)   (6)\n```\n\n1) 192.168.35.3/24\n3) 129.200.10.16/22\n6) 192.168.36.24/24\n\n[보기]\n192.168.35.0\n192.168.35.72\n192.168.36.0\n192.168.36.249\n129.200.8.0\n129.200.8.249",
+      "sourceImages": [
+        "raw/2024-1/img00.jpg"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "2번",
+          "accept": [
+            "192.168.35.72",
+            "192.168.35.72/24"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "192.168.35.72"
+        },
+        {
+          "label": "4번",
+          "accept": [
+            "129.200.8.249",
+            "129.200.8.249/22"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "129.200.8.249"
+        },
+        {
+          "label": "5번",
+          "accept": [
+            "192.168.36.249",
+            "192.168.36.249/24"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "192.168.36.249"
+        }
+      ],
+      "display": "2) 192.168.35.72 / 4) 129.200.8.249 / 5) 192.168.36.249"
+    },
+    {
+      "id": "2024-1#6",
+      "num": 6,
+      "prompt": "아래 표에서 나타나고 있는 정규형을 작성하시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>고객아이디</th><th>강좌명</th><th>강사번호</th></tr>\n<tr><td>apple</td><td>영어회화</td><td>P001</td></tr>\n<tr><td>banana</td><td>기초토익</td><td>P002</td></tr>\n<tr><td>carrot</td><td>영어회화</td><td>P001</td></tr>\n<tr><td>carrot</td><td>기초토익</td><td>P004</td></tr>\n<tr><td>orange</td><td>영어회화</td><td>P003</td></tr>\n<tr><td>orange</td><td>기초토익</td><td>P004</td></tr>\n</table>",
+      "bodyText": "아래 표에서 나타나고 있는 정규형을 작성하시오.\n\n| 고객아이디 | 강좌명 | 강사번호 |\n| --- | --- | --- |\n| apple | 영어회화 | P001 |\n| banana | 기초토익 | P002 |\n| carrot | 영어회화 | P001 |\n| carrot | 기초토익 | P004 |\n| orange | 영어회화 | P003 |\n| orange | 기초토익 | P004 |",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "제3정규형",
+            "제 3정규형",
+            "3정규형",
+            "3NF",
+            "Third Normal Form"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "제3정규형"
+        }
+      ],
+      "display": "제3정규형 (3NF)"
+    },
+    {
+      "id": "2024-1#7",
+      "num": 7,
+      "prompt": "아래의 내용에서 설명하는 네트워크 용어를 영문 약자로 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. 대표적인 링크 상태 라우팅 프로토콜이다. 이것은 인터넷에서 연결된 링크의 상태를 감시하여 최적의 경로를 선택한다는 것이다.</div>\n<div class=\"desc-box\">2. 단일 자율 시스템 내에서 라우팅 정보를 배포하는 데 사용되는 내부 게이트웨이 프로토콜이다.</div>\n<div class=\"desc-box\">3. 모든 대상에 도달하기 위한 최단 경로를 구축하고 계산하며 최단 경로는 Dijkstra 알고리즘을 사용하여 계산된다.</div>",
+      "bodyText": "아래의 내용에서 설명하는 네트워크 용어를 영문 약자로 작성하시오.\n\n1. 대표적인 링크 상태 라우팅 프로토콜이다. 이것은 인터넷에서 연결된 링크의 상태를 감시하여 최적의 경로를 선택한다는 것이다.\n\n2. 단일 자율 시스템 내에서 라우팅 정보를 배포하는 데 사용되는 내부 게이트웨이 프로토콜이다.\n\n3. 모든 대상에 도달하기 위한 최단 경로를 구축하고 계산하며 최단 경로는 Dijkstra 알고리즘을 사용하여 계산된다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "OSPF",
+            "Open Shortest Path First",
+            "OSPF(Open Shortest Path First)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "OSPF"
+        }
+      ],
+      "display": "OSPF (Open Shortest Path First)"
+    },
+    {
+      "id": "2024-1#8",
+      "num": 8,
+      "prompt": "아래 내용의 각각의 설명에 대한 답을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">(1) 조인에 참여하는 두 릴레이션의 속성 값을 비교하여 조건을 만족하는 튜플만 반환한다.</div>\n<div class=\"desc-box\">(2) 조건이 정확하게 '=' 등호로 일치하는 결과를 반환한다.</div>\n<div class=\"desc-box\">(3) ( (2) ) 조인에서 조인에 참여한 속성이 두 번 나오지 않도록 중복된 속성을 제거한 결과를 반환한다.</div>",
+      "bodyText": "아래 내용의 각각의 설명에 대한 답을 작성하시오.\n\n(1) 조인에 참여하는 두 릴레이션의 속성 값을 비교하여 조건을 만족하는 튜플만 반환한다.\n\n(2) 조건이 정확하게 '=' 등호로 일치하는 결과를 반환한다.\n\n(3) ( (2) ) 조인에서 조인에 참여한 속성이 두 번 나오지 않도록 중복된 속성을 제거한 결과를 반환한다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "세타 조인",
+            "세타조인",
+            "Theta Join",
+            "세타 조인(Theta Join)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "세타 조인"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "동등 조인",
+            "동등조인",
+            "등가 조인",
+            "Equi Join",
+            "Equi-Join"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "동등 조인"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "자연 조인",
+            "자연조인",
+            "Natural Join"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "자연 조인"
+        }
+      ],
+      "display": "(1) 세타 조인 (Theta Join) / (2) 동등 조인 (Equi Join) / (3) 자연 조인 (Natural Join)"
+    },
+    {
+      "id": "2024-1#9",
+      "num": 9,
+      "prompt": "다음은 운영체제 페이지 참조 순서이다. 할당된 프레임의 수가 3개일 때 LRU와 LFU 알고리즘의 페이지 부재 횟수를 각각 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">페이지 참조 순서 : 1, 2, 3, 1, 2, 4, 1, 2, 5, 7</div>\n<div class=\"desc-box\">(1) LRU :<br>(2) LFU :</div>",
+      "bodyText": "다음은 운영체제 페이지 참조 순서이다. 할당된 프레임의 수가 3개일 때 LRU와 LFU 알고리즘의 페이지 부재 횟수를 각각 작성하시오.\n\n페이지 참조 순서 : 1, 2, 3, 1, 2, 4, 1, 2, 5, 7\n\n(1) LRU :\n(2) LFU :",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1) LRU",
+          "accept": [
+            "6",
+            "6회"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "6"
+        },
+        {
+          "label": "(2) LFU",
+          "accept": [
+            "6",
+            "6회"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "6"
+        }
+      ],
+      "display": "(1) LRU : 6 / (2) LFU : 6"
+    },
+    {
+      "id": "2024-1#10",
+      "num": 10,
+      "prompt": "아래 JAVA언어 코드의 실행 순서를 중복 번호없이 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class Parent {\n    int x, y;\n\n    Parent(int x, int y) { ①\n        this.x=x;\n        this y=y;\n    }\n\n    int getT() { ②\n        return x*y;\n    }\n}\n\nclass Child extend Parent {\n    int x;\n\n    Child (int x) { ③\n        super(x+1, x);\n        this.x=x;\n    }\n\n    int getT(int n){ ④\n        return super.getT()+n;\n    }\n}\n\nclass Main {\n    public static void main(String[] args) { ⑤\n        Parent parent = new Child(3); ⑥\n        System.out.println(parent.getT()); ⑦\n    }\n}</pre>\n<div class=\"desc-box\">실행 순서 : 5 &rarr; (&nbsp;&nbsp;) &rarr; (&nbsp;&nbsp;) &rarr; (&nbsp;&nbsp;) &rarr; (&nbsp;&nbsp;) &rarr; (&nbsp;&nbsp;)</div>",
+      "bodyText": "아래 JAVA언어 코드의 실행 순서를 중복 번호없이 작성하시오.\n\n```java\nclass Parent {\n    int x, y;\n\n    Parent(int x, int y) { ①\n        this.x=x;\n        this y=y;\n    }\n\n    int getT() { ②\n        return x*y;\n    }\n}\n\nclass Child extend Parent {\n    int x;\n\n    Child (int x) { ③\n        super(x+1, x);\n        this.x=x;\n    }\n\n    int getT(int n){ ④\n        return super.getT()+n;\n    }\n}\n\nclass Main {\n    public static void main(String[] args) { ⑤\n        Parent parent = new Child(3); ⑥\n        System.out.println(parent.getT()); ⑦\n    }\n}\n```\n\n실행 순서 : 5 → (  ) → (  ) → (  ) → (  ) → (  )",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번째 괄호",
+          "accept": [
+            "6",
+            "⑥"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "6"
+        },
+        {
+          "label": "2번째 괄호",
+          "accept": [
+            "3",
+            "③"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "3"
+        },
+        {
+          "label": "3번째 괄호",
+          "accept": [
+            "1",
+            "①"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "1"
+        },
+        {
+          "label": "4번째 괄호",
+          "accept": [
+            "7",
+            "⑦"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "7"
+        },
+        {
+          "label": "5번째 괄호",
+          "accept": [
+            "2",
+            "②"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "2"
+        }
+      ],
+      "display": "5 → 6 → 3 → 1 → 7 → 2"
+    },
+    {
+      "id": "2024-1#11",
+      "num": 11,
+      "prompt": "다음 C언어의 알맞는 출력값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\ntypedef struct{\n    int accNum;\n    double bal;\n}BankAcc;\n\ndouble sim_pow(double base, int year){\n    int i;\n    double r = 1.0;\n\n    for(i=0; i&lt;year; i++){\n        r = r*base;\n    }\n    return r;\n}\n\nvoid initAcc(BankAcc *acc, int x, double y){\n    acc -&gt; accNum = x;\n    acc -&gt; bal = y;\n}\n\nvoid xxx(BankAcc *acc, double *en){\n    if (*en &gt; 0 &amp;&amp; *en &lt; acc -&gt; bal) {\n        acc -&gt; bal = acc -&gt; bal-*en;\n    }else{\n        acc -&gt; bal = acc -&gt; bal+*en;\n    }\n}\n\nvoid yyy(BankAcc *acc){\n    acc -&gt; bal = acc -&gt; bal * sim_pow((1+0.1),3);\n}\n\nint main(){\n\n    BankAcc myAcc;\n    initAcc(&amp;myAcc, 9981, 2200.0);\n    double amount = 100.0;\n    xxx(&amp;myAcc, &amp;amount);\n    yyy(&amp;myAcc);\n    printf(\"%d and %.2f\", myAcc.accNum, myAcc.bal);\n    return 0;\n}</pre>",
+      "bodyText": "다음 C언어의 알맞는 출력값을 작성하시오.\n\n```c\n#include <stdio.h>\n\ntypedef struct{\n    int accNum;\n    double bal;\n}BankAcc;\n\ndouble sim_pow(double base, int year){\n    int i;\n    double r = 1.0;\n\n    for(i=0; i<year; i++){\n        r = r*base;\n    }\n    return r;\n}\n\nvoid initAcc(BankAcc *acc, int x, double y){\n    acc -> accNum = x;\n    acc -> bal = y;\n}\n\nvoid xxx(BankAcc *acc, double *en){\n    if (*en > 0 && *en < acc -> bal) {\n        acc -> bal = acc -> bal-*en;\n    }else{\n        acc -> bal = acc -> bal+*en;\n    }\n}\n\nvoid yyy(BankAcc *acc){\n    acc -> bal = acc -> bal * sim_pow((1+0.1),3);\n}\n\nint main(){\n\n    BankAcc myAcc;\n    initAcc(&myAcc, 9981, 2200.0);\n    double amount = 100.0;\n    xxx(&myAcc, &amount);\n    yyy(&myAcc);\n    printf(\"%d and %.2f\", myAcc.accNum, myAcc.bal);\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "9981 and 2795.10",
+            "9981 AND 2795.10",
+            "9981 and 2795.1"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "9981 and 2795.10"
+        }
+      ],
+      "display": "9981 and 2795.10"
+    },
+    {
+      "id": "2024-1#12",
+      "num": 12,
+      "prompt": "다음 파이썬 코드에 대한 알맞는 출력 값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">a = [\"Seoul\", \"Kyeonggi\", \"Incheon\", \"Daejun\", \"Daegu\", \"Pusan\"]\nstr = \"S\"\n\nfor i in a:\n    str = str + i[1]\n\nprint(str)</pre>",
+      "bodyText": "다음 파이썬 코드에 대한 알맞는 출력 값을 작성하시오.\n\n```python\na = [\"Seoul\", \"Kyeonggi\", \"Incheon\", \"Daejun\", \"Daegu\", \"Pusan\"]\nstr = \"S\"\n\nfor i in a:\n    str = str + i[1]\n\nprint(str)\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "Seynaau",
+            "seynaau",
+            "SEYNAAU"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "Seynaau"
+        }
+      ],
+      "display": "Seynaau"
+    },
+    {
+      "id": "2024-1#13",
+      "num": 13,
+      "prompt": "아래 보기의 SQL 문장과 테이블을 참고하여 출력 값을 표로 작성하시오. (결과 테이블의 행을 위에서부터 순서대로 작성)",
+      "bodyHtml": "<pre class=\"code\">SELECT\n    B\nFROM\n    R1\nWHERE\n    C IN (SELECT C FROM R2 WHERE D=\"k\");</pre>\n<div class=\"desc-box\"><b>R1</b></div>\n<table class=\"tbl\">\n<tr><th>A</th><th>B</th><th>C</th></tr>\n<tr><td>1</td><td>a</td><td>x</td></tr>\n<tr><td>2</td><td>b</td><td>x</td></tr>\n<tr><td>1</td><td>c</td><td>w</td></tr>\n<tr><td>3</td><td>d</td><td>w</td></tr>\n</table>\n<div class=\"desc-box\"><b>R2</b></div>\n<table class=\"tbl\">\n<tr><th>C</th><th>D</th><th>E</th></tr>\n<tr><td>x</td><td>k</td><td>3</td></tr>\n<tr><td>y</td><td>k</td><td>3</td></tr>\n<tr><td>z</td><td>s</td><td>2</td></tr>\n</table>",
+      "bodyText": "아래 보기의 SQL 문장과 테이블을 참고하여 출력 값을 표로 작성하시오. (결과 테이블의 행을 위에서부터 순서대로 작성)\n\n```sql\nSELECT\n    B\nFROM\n    R1\nWHERE\n    C IN (SELECT C FROM R2 WHERE D=\"k\");\n```\n\nR1\n| A | B | C |\n| --- | --- | --- |\n| 1 | a | x |\n| 2 | b | x |\n| 1 | c | w |\n| 3 | d | w |\n\nR2\n| C | D | E |\n| --- | --- | --- |\n| x | k | 3 |\n| y | k | 3 |\n| z | s | 2 |",
+      "sourceImages": [
+        "raw/2024-1/img01.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1행 (B)",
+          "accept": [
+            "a"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "a"
+        },
+        {
+          "label": "2행 (B)",
+          "accept": [
+            "b"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "b"
+        }
+      ],
+      "display": "B / a / b  (결과 테이블: B 열에 a, b 두 행)"
+    },
+    {
+      "id": "2024-1#14",
+      "num": 14,
+      "prompt": "아래는 애플리케이션 테스트 관리에 대한 내용이다. 설명하는 답을 보기에서 골라 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. 모든 분기와 조건의 조합을 고려하나 모든 조합을 테스트하는 대신에 테스트가 필요한 중요한 조합을 찾아내는데에 중점을 둔다.</div>\n<div class=\"desc-box\">2. 특정 조건을 수행할 때 다른 조건과는 상관없이 전체 결과에 영향을 미치는 조건만을 테스트한다.</div>\n<div class=\"desc-box\">3. 각각의 파라미터는 적어도 한 번은 최종 결과에 영향을 주어야 한다.</div>\n<div class=\"boki\"><b>[보기]</b>\nㄱ. 구문 커버리지&emsp;ㄴ. 결정 커버리지&emsp;ㄷ. 조건 커버리지&emsp;ㄹ. 변경 조건/결정 커버리지<br>ㅁ. 다중 조건 커버리지&emsp;ㅂ. 경로 커버리지&emsp;ㅅ. 조건/결정 커버리지</div>",
+      "bodyText": "아래는 애플리케이션 테스트 관리에 대한 내용이다. 설명하는 답을 보기에서 골라 작성하시오.\n\n1. 모든 분기와 조건의 조합을 고려하나 모든 조합을 테스트하는 대신에 테스트가 필요한 중요한 조합을 찾아내는데에 중점을 둔다.\n\n2. 특정 조건을 수행할 때 다른 조건과는 상관없이 전체 결과에 영향을 미치는 조건만을 테스트한다.\n\n3. 각각의 파라미터는 적어도 한 번은 최종 결과에 영향을 주어야 한다.\n\n[보기]\nㄱ. 구문 커버리지\nㄴ. 결정 커버리지\nㄷ. 조건 커버리지\nㄹ. 변경 조건/결정 커버리지\nㅁ. 다중 조건 커버리지\nㅂ. 경로 커버리지\nㅅ. 조건/결정 커버리지",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ㄹ",
+            "변경 조건/결정 커버리지",
+            "변경조건결정커버리지",
+            "MC/DC",
+            "Modified Condition/Decision Coverage",
+            "ㄹ. 변경 조건/결정 커버리지"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㄹ"
+        }
+      ],
+      "display": "ㄹ. 변경 조건/결정 커버리지 (MC/DC)"
+    },
+    {
+      "id": "2024-1#15",
+      "num": 15,
+      "prompt": "다음 아래 내용을 보고 보기에서 알맞는 용어를 골라 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">인터넷 공격자의 존재를 숨기면서 이 공격자에게 시스템에 대한 무제한 접근 권한을 부여하는 악성 프로그램이다.</div>\n<div class=\"desc-box\">해커가 자신의 존재를 숨기면서 허가되지 않은 컴퓨터나 소프트웨어에 접근할 수 있도록 설계된 도구이다.</div>\n<div class=\"desc-box\">일반적으로 펌웨어, 가상화 계층 등의 다양한 시스템 영역에서 작동하며, 운영체제의 시스템콜을 해킹하여 악성코드의 실행여부를 숨겨 안티바이러스 탐지를 우회할 수 있다.</div>\n<div class=\"boki\"><b>[보기]</b>\nㄱ. Worm&emsp;ㄴ. Trojan horse&emsp;ㄷ. Backdoor&emsp;ㄹ. Virus<br>ㅁ. Ransomware&emsp;ㅂ. Spyware&emsp;ㅅ. Rootkit</div>",
+      "bodyText": "다음 아래 내용을 보고 보기에서 알맞는 용어를 골라 작성하시오.\n\n인터넷 공격자의 존재를 숨기면서 이 공격자에게 시스템에 대한 무제한 접근 권한을 부여하는 악성 프로그램이다.\n\n해커가 자신의 존재를 숨기면서 허가되지 않은 컴퓨터나 소프트웨어에 접근할 수 있도록 설계된 도구이다.\n\n일반적으로 펌웨어, 가상화 계층 등의 다양한 시스템 영역에서 작동하며, 운영체제의 시스템콜을 해킹하여 악성코드의 실행여부를 숨겨 안티바이러스 탐지를 우회할 수 있다.\n\n[보기]\nㄱ. Worm\nㄴ. Trojan horse\nㄷ. Backdoor\nㄹ. Virus\nㅁ. Ransomware\nㅂ. Spyware\nㅅ. Rootkit",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ㅅ",
+            "Rootkit",
+            "루트킷",
+            "ㅅ. Rootkit"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㅅ"
+        }
+      ],
+      "display": "ㅅ. Rootkit (루트킷)"
+    },
+    {
+      "id": "2024-1#16",
+      "num": 16,
+      "prompt": "다음 Java 코드를 보고 알맞는 출력 값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">class classOne {\n    int a, b;\n\n    public classOne(int a, int b) {\n        this.a = a;\n        this.b = b;\n    }\n\n    public void print() {\n        System.out.println(a + b);\n    }\n\n}\nclass classTwo extends classOne {\n    int po = 3;\n\n    public classTwo(int i) {\n        super(i, i+1);\n    }\n\n    public void print() {\n        System.out.println(po*po);\n    }\n}\n\npublic class main {\n    public static void main(String[] args) {\n        classOne one = new classTwo(10);\n        one.print();\n    }\n}</pre>",
+      "bodyText": "다음 Java 코드를 보고 알맞는 출력 값을 작성하시오.\n\n```java\nclass classOne {\n    int a, b;\n\n    public classOne(int a, int b) {\n        this.a = a;\n        this.b = b;\n    }\n\n    public void print() {\n        System.out.println(a + b);\n    }\n\n}\nclass classTwo extends classOne {\n    int po = 3;\n\n    public classTwo(int i) {\n        super(i, i+1);\n    }\n\n    public void print() {\n        System.out.println(po*po);\n    }\n}\n\npublic class main {\n    public static void main(String[] args) {\n        classOne one = new classTwo(10);\n        one.print();\n    }\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "9"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "9"
+        }
+      ],
+      "display": "9"
+    },
+    {
+      "id": "2024-1#17",
+      "num": 17,
+      "prompt": "다음 아래 내용을 보고 보기에서 알맞는 용어를 골라 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">1. 불특정 다수가 아닌 명확한 표적을 정하여 지속적인 정보수집 후 공격감행할 수 있다.</div>\n<div class=\"desc-box\">2. 시스템에 직접 침투하는 것뿐 아니라 표적 내부직원들이 이용하는 다양한 단말을 대상으로 한다.</div>\n<div class=\"desc-box\">3. 한가지 기술만이 아닌 Zero-day 취약점, 악성코드 등 다양한 보안 위협 공격 기술을 사용한다.</div>\n<div class=\"desc-box\">4. 일반적으로 공격은 침투, 검색, 수집 및 유출의 4단계로 실행되며, 각 단계별로 다양한 공격 기술을 사용한다.</div>\n<div class=\"boki\"><b>[보기]</b>\nㄱ. 사회공학 기법&emsp;ㄴ. Adware&emsp;ㄷ. MITM&emsp;ㄹ. XDR<br>ㅁ. Replace attack&emsp;ㅂ. key logger attack&emsp;ㅅ. APT</div>",
+      "bodyText": "다음 아래 내용을 보고 보기에서 알맞는 용어를 골라 작성하시오.\n\n1. 불특정 다수가 아닌 명확한 표적을 정하여 지속적인 정보수집 후 공격감행할 수 있다.\n\n2. 시스템에 직접 침투하는 것뿐 아니라 표적 내부직원들이 이용하는 다양한 단말을 대상으로 한다.\n\n3. 한가지 기술만이 아닌 Zero-day 취약점, 악성코드 등 다양한 보안 위협 공격 기술을 사용한다.\n\n4. 일반적으로 공격은 침투, 검색, 수집 및 유출의 4단계로 실행되며, 각 단계별로 다양한 공격 기술을 사용한다.\n\n[보기]\nㄱ. 사회공학 기법\nㄴ. Adware\nㄷ. MITM\nㄹ. XDR\nㅁ. Replace attack\nㅂ. key logger attack\nㅅ. APT",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "ㅅ",
+            "APT",
+            "Advanced Persistent Threat",
+            "ㅅ. APT",
+            "지능형 지속 위협"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "ㅅ"
+        }
+      ],
+      "display": "ㅅ. APT (Advanced Persistent Threat, 지능형 지속 위협)"
+    },
+    {
+      "id": "2024-1#18",
+      "num": 18,
+      "prompt": "아래의 SQL 코드와 테이블을 참고하여 결과 값을 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\"><b>TABLE</b></div>\n<table class=\"tbl\">\n<tr><th>EMPNO</th><th>SAL</th></tr>\n<tr><td>100</td><td>1000</td></tr>\n<tr><td>200</td><td>3000</td></tr>\n<tr><td>300</td><td>1500</td></tr>\n</table>\n<pre class=\"code\">SELECT\n    COUNT(*)\nFROM\n    TABLE\nWHERE\n    EMPNO &gt; 100\nAND\n    SAL &gt;= 3000 OR EMPNO = 200</pre>",
+      "bodyText": "아래의 SQL 코드와 테이블을 참고하여 결과 값을 작성하시오.\n\nTABLE\n| EMPNO | SAL |\n| --- | --- |\n| 100 | 1000 |\n| 200 | 3000 |\n| 300 | 1500 |\n\n```sql\nSELECT\n    COUNT(*)\nFROM\n    TABLE\nWHERE\n    EMPNO > 100\nAND\n    SAL >= 3000 OR EMPNO = 200\n```",
+      "sourceImages": [
+        "raw/2024-1/img02.png"
+      ],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "결과값",
+          "accept": [
+            "1"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "1"
+        }
+      ],
+      "display": "1"
+    },
+    {
+      "id": "2024-1#19",
+      "num": 19,
+      "prompt": "다음 C언어 코드의 알맞는 출력 값을 작성하시오.",
+      "bodyHtml": "<pre class=\"code\">#include&lt;stdio.h&gt;\n#include&lt;ctype.h&gt;\n\nint main(){\n    char*p = \"It is 8\";\n    char result[100];\n    int i;\n\n    for(i=0; p[i]!='\\0'; i++){\n        if(isupper(p[i]))\n            result[i] = (p[i]-'A'+5)% 25 + 'A';\n        else if(islower(p[i]))\n            result[i] = (p[i]-'a'+10)% 26 + 'a';\n        else if(isdigit(p[i]))\n            result[i] = (p[i]-'0'+3)% 10 + '0';\n        else if(!(isupper(p[i]) || islower(p[i]) || isdigit(p[i])))\n            result[i] = p[i];\n    }\n\n    result[i] = '\\0';\n    printf(\"%s\\n\",result);\n\n    return 0;\n}</pre>",
+      "bodyText": "다음 C언어 코드의 알맞는 출력 값을 작성하시오.\n\n```c\n#include<stdio.h>\n#include<ctype.h>\n\nint main(){\n    char*p = \"It is 8\";\n    char result[100];\n    int i;\n\n    for(i=0; p[i]!='\\0'; i++){\n        if(isupper(p[i]))\n            result[i] = (p[i]-'A'+5)% 25 + 'A';\n        else if(islower(p[i]))\n            result[i] = (p[i]-'a'+10)% 26 + 'a';\n        else if(isdigit(p[i]))\n            result[i] = (p[i]-'0'+3)% 10 + '0';\n        else if(!(isupper(p[i]) || islower(p[i]) || isdigit(p[i])))\n            result[i] = p[i];\n    }\n\n    result[i] = '\\0';\n    printf(\"%s\\n\",result);\n\n    return 0;\n}\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "출력값",
+          "accept": [
+            "Nd sc 1",
+            "nd sc 1",
+            "ND SC 1"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "Nd sc 1"
+        }
+      ],
+      "display": "Nd sc 1"
+    },
+    {
+      "id": "2024-1#20",
+      "num": 20,
+      "prompt": "다음 아래의 내용을 보고 알맞는 용어를 작성하시오.",
+      "bodyHtml": "<div class=\"desc-box\">구체적인 클래스에 의존하지 않고 서로 연관되거나 의존적인 객체들의 조합을 만드는 인터페이스를 제공하는 패턴이다.</div>\n<div class=\"desc-box\">연관성이 있는 객체 군이 여러개 있을 경우 이들을 묶어 추상화하고, 어떤 구체적인 상황이 주어지면 팩토리 객체에서 집합으로 묶은 객체 군을 구현화 하는 생성 패턴이다.</div>\n<div class=\"desc-box\">관련성 있는 여러 종류의 객체를 일관된 방식으로 생성하는 경우에 유용하다.</div>\n<div class=\"desc-box\">kit라고도 불린다.</div>",
+      "bodyText": "다음 아래의 내용을 보고 알맞는 용어를 작성하시오.\n\n구체적인 클래스에 의존하지 않고 서로 연관되거나 의존적인 객체들의 조합을 만드는 인터페이스를 제공하는 패턴이다.\n\n연관성이 있는 객체 군이 여러개 있을 경우 이들을 묶어 추상화하고, 어떤 구체적인 상황이 주어지면 팩토리 객체에서 집합으로 묶은 객체 군을 구현화 하는 생성 패턴이다.\n\n관련성 있는 여러 종류의 객체를 일관된 방식으로 생성하는 경우에 유용하다.\n\nkit라고도 불린다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "Abstract Factory",
+            "추상 팩토리",
+            "추상팩토리",
+            "Abstract Factory Pattern",
+            "추상 팩토리 패턴"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "Abstract Factory"
+        }
+      ],
+      "display": "Abstract Factory (추상 팩토리 패턴)"
+    }
+  ]
+}

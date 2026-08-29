@@ -1,0 +1,98 @@
+/* ranking.css — 랭킹 화면 전용.
+   표·헤더·버튼·힌트는 app.css 가 소유한다(table.list / header.page / .btnbar / .hint).
+   여기에는 랭킹 표에만 필요한 것과, battle.css 에만 있어서 이 페이지에서 빠지는
+   두 조각(.banner / .empty)만 둔다. 폰 화면에서 표가 깨지지 않게 가로 스크롤을 준다. */
+
+/* ------------------------------------------------- battle.css 미로드 보완 */
+
+.banner {
+  border-radius: 8px;
+  padding: 11px 14px;
+  margin-bottom: 14px;
+  font-size: 0.92rem;
+  font-weight: bold;
+}
+.banner.err { background: #fbdcdc; color: #7f1d1d; border: 1px solid #e9b8b8; }
+.banner.warn { background: #fff4d6; color: #6b4a05; border: 1px solid #e6d98a; }
+.banner.info { background: #dff3e7; color: #14532d; border: 1px solid #a9d8bf; }
+
+.empty {
+  color: #77857e;
+  text-align: center;
+  padding: 26px 12px;
+  font-size: 0.95rem;
+}
+
+.topnav .who { white-space: nowrap; }
+
+/* --------------------------------------------------------------- 랭킹 표 */
+
+/* 좁은 화면에서는 페이지가 아니라 이 상자만 가로로 밀린다. */
+.rank-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+
+table.rank-table {
+  min-width: 460px; /* 7열이 눌려 붙지 않는 최소치 */
+}
+table.rank-table td { white-space: nowrap; }
+table.rank-table td.nick {
+  text-align: left;
+  white-space: normal;
+  word-break: break-all;
+  min-width: 110px;
+}
+table.rank-table td.pts { font-weight: bold; color: var(--deep); }
+table.rank-table td.rank { width: 56px; }
+
+/* 순위 배지. 1~3위만 색을 준다. */
+.rankno {
+  display: inline-block;
+  min-width: 26px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-weight: bold;
+  font-size: 0.86rem;
+  background: #eceff0;
+  color: #55645c;
+}
+.rankno.r1 { background: #d4af37; color: #3a2c00; }
+.rankno.r2 { background: #c2c8cc; color: #2c3236; }
+.rankno.r3 { background: #cd7f32; color: #2f1a06; }
+
+/* 내 줄 강조 — 배경과 왼쪽 띠를 함께 준다(색맹 대비). */
+table.rank-table tr.me td,
+table.list tr.me:nth-child(even) td {
+  background: #eafaf0;
+  font-weight: bold;
+}
+table.rank-table tr.me td:first-child { box-shadow: inset 4px 0 0 var(--ok); }
+
+.mine-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--ok);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: bold;
+  vertical-align: 1px;
+}
+
+/* ---------------------------------------------------------------- 모바일 */
+
+@media (max-width: 620px) {
+  table.rank-table { font-size: 0.88rem; }
+  table.rank-table th, table.rank-table td { padding: 7px 8px; }
+  .btnbar button { width: auto; padding: 12px 22px; }
+  .btnbar button.secondary { margin-left: 8px; margin-top: 0; }
+}
+
+@media (max-width: 380px) {
+  .btnbar button { width: 100%; }
+  .btnbar button.secondary { margin-left: 0; margin-top: 10px; }
+}

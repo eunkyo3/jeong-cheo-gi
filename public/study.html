@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학습 모드 — 정처기 배틀</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="wrap">
+    <a class="brand" href="/">정처기 배틀</a>
+    <a href="/">학습</a>
+    <a href="/battle.html">대전</a>
+    <a href="/ranking.html">랭킹</a>
+    <span class="spacer"></span>
+    <span class="who" id="navWho"></span>
+    <button type="button" id="navLogout" hidden>로그아웃</button>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <header class="page">
+    <h1 id="roundTitle">회차를 불러오는 중&hellip;</h1>
+    <p id="roundMeta"></p>
+
+    <!-- 학습 타이머 (선택형). 시간을 고르고 "시작"을 눌러야 흐르기 시작한다. -->
+    <div class="study-tools" id="studyTools" hidden>
+      <label for="timerSelect">학습 타이머</label>
+      <select id="timerSelect">
+        <option value="0">타이머 없음</option>
+        <option value="30">30분</option>
+        <option value="60">60분</option>
+        <option value="90">90분</option>
+      </select>
+      <button type="button" id="timerBtn">시작</button>
+      <span class="timer-out" id="timerOut" hidden></span>
+    </div>
+  </header>
+
+  <!-- 자동 저장된 답안을 복원했을 때의 안내 (study.js 가 채운다) -->
+  <div class="notice" id="restoreNotice" hidden></div>
+
+  <div id="scoreBoard">
+    <div class="score"></div>
+    <div class="pass"></div>
+  </div>
+
+  <div id="questions">
+    <p class="muted">문제를 불러오는 중&hellip;</p>
+  </div>
+
+  <div class="btnbar" id="btnbar" hidden>
+    <button type="button" id="submitBtn">제출하고 채점하기</button>
+    <button type="button" id="resetBtn" class="secondary" hidden>다시 풀기</button>
+  </div>
+
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="/js/api.js"></script>
+<script src="/js/clipboard.js"></script>
+<script src="/js/study.js"></script>
+</body>
+</html>

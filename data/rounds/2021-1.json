@@ -1,0 +1,678 @@
+{
+  "round": "2021-1",
+  "title": "2021년 1회",
+  "sourceUrl": "https://chobopark.tistory.com/191",
+  "questions": [
+    {
+      "id": "2021-1#1",
+      "num": 1,
+      "prompt": "물리 네트워크(MAC) 주소에 해당하는 IP 주소를 알려주는 프로토콜로 역순 주소 결정 프로토콜을 무엇이라고 하는지 쓰시오.",
+      "bodyHtml": "",
+      "bodyText": "물리 네트워크(MAC) 주소에 해당하는 IP 주소를 알려주는 프로토콜로 역순 주소 결정 프로토콜을 무엇이라고 하는지 쓰시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "RARP",
+            "rarp",
+            "Reverse Address Resolution Protocol",
+            "RARP(Reverse Address Resolution Protocol)",
+            "역순 주소 결정 프로토콜"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "RARP"
+        }
+      ],
+      "display": "RARP (Reverse Address Resolution Protocol)"
+    },
+    {
+      "id": "2021-1#2",
+      "num": 2,
+      "prompt": "다음은 DB 설계 절차에 관한 설명이다. 다음 빈칸에 들어갈 알맞은 용어를 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;1&nbsp;&nbsp;)은/는 특정 DBMS의 특성 및 성능을 고려하여 데이터베이스 저장 구조로 변환하는 과정으로 결과로 나오는 명세서는 테이블 정의서 등이 있다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;2&nbsp;&nbsp;)은/는 현실 세계에 대한 인식을 추상적, 개념적으로 표현하여 개념적 구조를 도출하는 과정으로 주요 산출물에는 E-R 다이어그램이 있다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;3&nbsp;&nbsp;)은/는 목표 DBMS에 맞는 스키마 설계, 트랜잭션 인터페이스를 설계하는 정규화 과정을 수행한다.</div>\n<div class=\"boki\"><b>[보기]</b> 구현 / 개념적 설계 / 논리적 설계 / 요구사항 분석 / 물리적 설계</div>",
+      "bodyText": "다음은 DB 설계 절차에 관한 설명이다. 다음 빈칸에 들어갈 알맞은 용어를 쓰시오.\n\n- (  1  )은/는 특정 DBMS의 특성 및 성능을 고려하여 데이터베이스 저장 구조로 변환하는 과정으로 결과로 나오는 명세서는 테이블 정의서 등이 있다.\n- (  2  )은/는 현실 세계에 대한 인식을 추상적, 개념적으로 표현하여 개념적 구조를 도출하는 과정으로 주요 산출물에는 E-R 다이어그램이 있다.\n- (  3  )은/는 목표 DBMS에 맞는 스키마 설계, 트랜잭션 인터페이스를 설계하는 정규화 과정을 수행한다.\n\n[보기]\n구현 / 개념적 설계 / 논리적 설계 / 요구사항 분석 / 물리적 설계",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "물리적 설계",
+            "물리적설계",
+            "물리 설계",
+            "physical design"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "물리적 설계"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "개념적 설계",
+            "개념적설계",
+            "개념 설계",
+            "conceptual design"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "개념적 설계"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "논리적 설계",
+            "논리적설계",
+            "논리 설계",
+            "logical design"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "논리적 설계"
+        }
+      ],
+      "display": "(1) 물리적 설계 / (2) 개념적 설계 / (3) 논리적 설계"
+    },
+    {
+      "id": "2021-1#3",
+      "num": 3,
+      "prompt": "다음은 요구사항의 분류에 대한 설명이다. 괄호 (&nbsp;&nbsp;) 안에 들어갈 요구사항의 유형에 대해서 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;1&nbsp;&nbsp;) 요구사항은 시스템이 제공하는 기능, 서비스에 대한 요구사항이다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;2&nbsp;&nbsp;) 요구사항은 시스템이 수행하는 기능 이외의 사항, 시스템 구축에 대한 제약사항에 관한 요구사항이다.</div>",
+      "bodyText": "다음은 요구사항의 분류에 대한 설명이다. 괄호 (  ) 안에 들어갈 요구사항의 유형에 대해서 쓰시오.\n\n- (  1  ) 요구사항은 시스템이 제공하는 기능, 서비스에 대한 요구사항이다.\n- (  2  ) 요구사항은 시스템이 수행하는 기능 이외의 사항, 시스템 구축에 대한 제약사항에 관한 요구사항이다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "기능적",
+            "기능",
+            "기능적 요구사항",
+            "기능 요구사항",
+            "functional",
+            "functional requirement"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "기능적"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "비기능적",
+            "비 기능적",
+            "비기능",
+            "비기능적 요구사항",
+            "비기능 요구사항",
+            "non-functional",
+            "nonfunctional",
+            "non-functional requirement"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "비기능적"
+        }
+      ],
+      "display": "(1) 기능적 / (2) 비기능적"
+    },
+    {
+      "id": "2021-1#4",
+      "num": 4,
+      "prompt": "웹 서비스명, 제공 위치, 메세지 포맷, 프로토콜 정보 등 웹 서비스에 대한 상세 정보가 기술된 XML 형식으로 구성된 언어를 무엇이라고 하는지 쓰시오.",
+      "bodyHtml": "",
+      "bodyText": "웹 서비스명, 제공 위치, 메세지 포맷, 프로토콜 정보 등 웹 서비스에 대한 상세 정보가 기술된 XML 형식으로 구성된 언어를 무엇이라고 하는지 쓰시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "WSDL",
+            "wsdl",
+            "Web Services Description Language",
+            "WSDL(Web Services Description Language)",
+            "웹 서비스 기술 언어"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "WSDL"
+        }
+      ],
+      "display": "WSDL (Web Services Description Language)"
+    },
+    {
+      "id": "2021-1#5",
+      "num": 5,
+      "prompt": "다음은 파이썬 코드이다. 출력 결과를 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">class good :\n\tli = [\"seoul\", \"kyeonggi\",\"inchon\",\"daejeon\",\"daegu\",\"pusan\"]\n\ng = good()\nstr01 = ''\nfor i in g.li:\n\tstr01 = str01 + i[0]\n\nprint(str01)</pre>",
+      "bodyText": "다음은 파이썬 코드이다. 출력 결과를 쓰시오.\n\n```python\nclass good :\n\tli = [\"seoul\", \"kyeonggi\",\"inchon\",\"daejeon\",\"daegu\",\"pusan\"]\n\ng = good()\nstr01 = ''\nfor i in g.li:\n\tstr01 = str01 + i[0]\n\nprint(str01)\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "skiddp",
+            "SKIDDP"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "skiddp"
+        }
+      ],
+      "display": "skiddp"
+    },
+    {
+      "id": "2021-1#6",
+      "num": 6,
+      "prompt": "다음 SQL 실행 결과를 숫자만 쓰시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>EMPNO</th><th>SAL</th></tr>\n<tr><td>100</td><td>1000</td></tr>\n<tr><td>200</td><td>3000</td></tr>\n<tr><td>300</td><td>1500</td></tr>\n</table>\n<pre class=\"code\">SELECT COUNT(*) FROM 급여\nWHERE EMPNO &gt; 100 AND SAL &gt;= 3000 OR EMPNO = 200;</pre>",
+      "bodyText": "다음 SQL 실행 결과를 숫자만 쓰시오.\n\n| EMPNO | SAL |\n| --- | --- |\n| 100 | 1000 |\n| 200 | 3000 |\n| 300 | 1500 |\n\n```sql\nSELECT COUNT(*) FROM 급여\nWHERE EMPNO > 100 AND SAL >= 3000 OR EMPNO = 200;\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "1"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "1"
+        }
+      ],
+      "display": "1"
+    },
+    {
+      "id": "2021-1#7",
+      "num": 7,
+      "prompt": "다음 Java 프로그램 결과를 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">public class good{\n\tpublic static void main(String[] args){\n    \tint[][]arr = new int[][]{{45,50,75},{89}};\n        System.out.println(arr[0].length);\n        System.out.println(arr[1].length);\n        System.out.println(arr[0][0]);\n        System.out.println(arr[0][1]);\n        System.out.println(arr[1][0]);</pre>",
+      "bodyText": "다음 Java 프로그램 결과를 쓰시오. (출력되는 순서대로 다섯 줄을 각각 쓰시오.)\n\n```java\npublic class good{\n\tpublic static void main(String[] args){\n    \tint[][]arr = new int[][]{{45,50,75},{89}};\n        System.out.println(arr[0].length);\n        System.out.println(arr[1].length);\n        System.out.println(arr[0][0]);\n        System.out.println(arr[0][1]);\n        System.out.println(arr[1][0]);\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번째 줄",
+          "accept": [
+            "3"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "3"
+        },
+        {
+          "label": "2번째 줄",
+          "accept": [
+            "1"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "1"
+        },
+        {
+          "label": "3번째 줄",
+          "accept": [
+            "45"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "45"
+        },
+        {
+          "label": "4번째 줄",
+          "accept": [
+            "50"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "50"
+        },
+        {
+          "label": "5번째 줄",
+          "accept": [
+            "89"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "89"
+        }
+      ],
+      "display": "3 / 1 / 45 / 50 / 89"
+    },
+    {
+      "id": "2021-1#8",
+      "num": 8,
+      "prompt": "정규화된 엔티티, 속성, 관계에 대해 성능 향상과 개발 운영의 단순화를 위해 중복, 통합, 분리 등을 수행하는 데이터 모델링의 기법을 무엇이라고 하는지 쓰시오.",
+      "bodyHtml": "",
+      "bodyText": "정규화된 엔티티, 속성, 관계에 대해 성능 향상과 개발 운영의 단순화를 위해 중복, 통합, 분리 등을 수행하는 데이터 모델링의 기법을 무엇이라고 하는지 쓰시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "비정규화",
+            "반정규화",
+            "역정규화",
+            "denormalization",
+            "de-normalization"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "반정규화"
+        }
+      ],
+      "display": "비정규화 (반정규화, 역정규화)"
+    },
+    {
+      "id": "2021-1#9",
+      "num": 9,
+      "prompt": "다음은 블랙박스 기법에 대한 예제이다. 각 예제에 해당하는 블랙박스 기법을 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">예)</div>\n<div class=\"desc-box\">1. 0 &lt;= x &lt;= 10이면 -1 0 10 11 검사</div>\n<div class=\"desc-box\">2. 입력 데이터의 영역을 유사한 도메인별로 유횻값 / 무횻값을 그룹핑하여 나누어서 검사</div>",
+      "bodyText": "다음은 블랙박스 기법에 대한 예제이다. 블랙박스 기법 두 가지를 쓰시오. (예제 1, 2에 각각 해당하는 기법을 쓰시오.)\n\n예)\n1. 0 <= x <= 10이면 -1 0 10 11 검사\n2. 입력 데이터의 영역을 유사한 도메인별로 유횻값 / 무횻값을 그룹핑하여 나누어서 검사",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번",
+          "accept": [
+            "경곗값 분석",
+            "경계값 분석",
+            "경계값분석",
+            "경곗값분석",
+            "경계 값 분석",
+            "경계값 분석 검사",
+            "경계값분석기법",
+            "boundary value analysis",
+            "경계값 분석(boundary value analysis)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "경곗값 분석"
+        },
+        {
+          "label": "2번",
+          "accept": [
+            "동등분할 테스트",
+            "동등분할",
+            "동등 분할",
+            "동등분할기법",
+            "동등분할검사",
+            "동치분할",
+            "동치 분할",
+            "동치분할 검사",
+            "동치분할검사",
+            "equivalence partitioning",
+            "동치분할(equivalence partitioning)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "동등분할 테스트"
+        }
+      ],
+      "display": "1. 경곗값 분석 / 2. 동등분할 테스트"
+    },
+    {
+      "id": "2021-1#10",
+      "num": 10,
+      "prompt": "다음은 테스트 종류에 대한 설명이다. 빈칸에 들어갈 알맞은 용어를 보기에서 찾아 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;1&nbsp;&nbsp;) 은/는 개별 모듈, 서브루틴이 정상적으로 실행되는지 확인</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;2&nbsp;&nbsp;) 은/는 인터페이스 간 시스템이 정상적으로 실행되는지 확인</div>\n<div class=\"boki\"><b>[보기]</b> 시스템 테스트 / 인수 테스트 / 알파 테스트 / 단위 테스트 / 통합 테스트 / 회귀 테스트</div>",
+      "bodyText": "다음은 테스트 종류에 대한 설명이다. 빈칸에 들어갈 알맞은 용어를 보기에서 찾아 쓰시오.\n\n- (  1  ) 은/는 개별 모듈, 서브루틴이 정상적으로 실행되는지 확인\n- (  2  ) 은/는 인터페이스 간 시스템이 정상적으로 실행되는지 확인\n\n[보기]\n시스템 테스트 / 인수 테스트 / 알파 테스트 / 단위 테스트 / 통합 테스트 / 회귀 테스트",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "단위 테스트",
+            "단위테스트",
+            "unit test",
+            "unit testing",
+            "단위 시험"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "단위 테스트"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "통합 테스트",
+            "통합테스트",
+            "integration test",
+            "integration testing",
+            "통합 시험"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "통합 테스트"
+        }
+      ],
+      "display": "(1) 단위 테스트 / (2) 통합 테스트"
+    },
+    {
+      "id": "2021-1#11",
+      "num": 11,
+      "prompt": "다음은 IP 주소에 대한 설명이다. 빈칸에 들어갈 알맞은 용어를 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">IPv6는 (&nbsp;&nbsp;1&nbsp;&nbsp;) 비트 길이를 가진다.</div>\n<div class=\"desc-box\">IPv4는 길이 32bit이며, (&nbsp;&nbsp;2&nbsp;&nbsp;) 비트씩 네 부분으로 나눈다.</div>",
+      "bodyText": "다음은 IP 주소에 대한 설명이다. 빈칸에 들어갈 알맞은 용어를 쓰시오.\n\n- IPv6는 (  1  ) 비트 길이를 가진다.\n- IPv4는 길이 32bit이며, (  2  ) 비트씩 네 부분으로 나눈다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "128",
+            "128비트",
+            "128bit",
+            "128 bit"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "128"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "8",
+            "8비트",
+            "8bit",
+            "8 bit"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "8"
+        }
+      ],
+      "display": "(1) 128 / (2) 8"
+    },
+    {
+      "id": "2021-1#12",
+      "num": 12,
+      "prompt": "공유메모리, 소켓, 세마포어, 메세지 큐 등 프로세스 간 통신하는 기술을 무엇이라고 하는지 쓰시오.",
+      "bodyHtml": "",
+      "bodyText": "공유메모리, 소켓, 세마포어, 메세지 큐 등 프로세스 간 통신하는 기술을 무엇이라고 하는지 쓰시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "IPC",
+            "ipc",
+            "Inter Process Communication",
+            "inter-process communication",
+            "IPC(Inter Process Communication)",
+            "프로세스 간 통신"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "IPC"
+        }
+      ],
+      "display": "IPC (Inter Process Communication)"
+    },
+    {
+      "id": "2021-1#13",
+      "num": 13,
+      "prompt": "시스템 통합에 사용되는 솔루션으로 구축 유형에는 Point to Point, Hub &amp; Spoke, Message Bus가 있다. 기업에서 운영되는 서로 다른 플랫폼 및 애플리케이션 간의 정보를 전달, 연계, 통합이 가능하도록 해주는 솔루션을 무엇이라고 하는지 쓰시오.",
+      "bodyHtml": "",
+      "bodyText": "시스템 통합에 사용되는 솔루션으로 구축 유형에는 Point to Point, Hub & Spoke, Message Bus가 있다. 기업에서 운영되는 서로 다른 플랫폼 및 애플리케이션 간의 정보를 전달, 연계, 통합이 가능하도록 해주는 솔루션을 무엇이라고 하는지 쓰시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "EAI",
+            "eai",
+            "Enterprise Application Integration",
+            "EAI(Enterprise Application Integration)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "EAI"
+        }
+      ],
+      "display": "EAI (Enterprise Application Integration)"
+    },
+    {
+      "id": "2021-1#14",
+      "num": 14,
+      "prompt": "주어진 테이블의 Cardinality / Degree를 구하시오.",
+      "bodyHtml": "<table class=\"tbl\">\n<tr><th>학번</th><th>이름</th><th>학년</th><th>학과</th></tr>\n<tr><td>20202020</td><td>김제원</td><td>3</td><td>무역과</td></tr>\n<tr><td>20202021</td><td>김한국</td><td>1</td><td>통신과</td></tr>\n<tr><td>20202022</td><td>허달력</td><td>4</td><td>영어과</td></tr>\n<tr><td>20202023</td><td>이소파</td><td>2</td><td>영어과</td></tr>\n<tr><td>20202024</td><td>장가위</td><td>3</td><td>중국어과</td></tr>\n</table>",
+      "bodyText": "주어진 테이블의 Cardinality / Degree를 구하시오.\n\n| 학번 | 이름 | 학년 | 학과 |\n| --- | --- | --- | --- |\n| 20202020 | 김제원 | 3 | 무역과 |\n| 20202021 | 김한국 | 1 | 통신과 |\n| 20202022 | 허달력 | 4 | 영어과 |\n| 20202023 | 이소파 | 2 | 영어과 |\n| 20202024 | 장가위 | 3 | 중국어과 |",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "Cardinality",
+          "accept": [
+            "5"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "5"
+        },
+        {
+          "label": "Degree",
+          "accept": [
+            "4"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "4"
+        }
+      ],
+      "display": "Cardinality : 5 / Degree : 4"
+    },
+    {
+      "id": "2021-1#15",
+      "num": 15,
+      "prompt": "다음은 C언어 프로그램이다. 실행 결과를 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">#include &lt;stdio.h&gt;\n\nstruct good {\n\tchar name[10];\n    int age;\n };\n\n void main(){\n \tstruct good s[] = {\"Kim\",28,\"Lee\",38,\"Seo\",50,\"Park\",35};\n\n    struct good *p;\n    p = s;\n    p++;\n    printf(\"%s\\n\", p-&gt; name);\n    printf(\"%d\\n\", p-&gt; age);</pre>",
+      "bodyText": "다음은 C언어 프로그램이다. 실행 결과를 쓰시오. (출력되는 순서대로 두 줄을 각각 쓰시오.)\n\n```c\n#include <stdio.h>\n\nstruct good {\n\tchar name[10];\n    int age;\n };\n\n void main(){\n \tstruct good s[] = {\"Kim\",28,\"Lee\",38,\"Seo\",50,\"Park\",35};\n\n    struct good *p;\n    p = s;\n    p++;\n    printf(\"%s\\n\", p-> name);\n    printf(\"%d\\n\", p-> age);\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "1번째 줄",
+          "accept": [
+            "Lee",
+            "lee",
+            "LEE"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "Lee"
+        },
+        {
+          "label": "2번째 줄",
+          "accept": [
+            "38"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "38"
+        }
+      ],
+      "display": "Lee / 38"
+    },
+    {
+      "id": "2021-1#16",
+      "num": 16,
+      "prompt": "다음은 데이터 모델의 구성요소에 대한 설명이다. 빈칸에 들어갈 알맞은 용어를 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">데이터베이스에 저장된 실제 데이터를 처리하는 작업에 대한 명세로서 데이터베이스를 조작하는 기본 도구이다.</div>\n<div class=\"desc-box\">개체 데이터 모델에서는 (&nbsp;&nbsp;1&nbsp;&nbsp;) 을/를 이용하여 실제 데이터를 처리하는 작업에 대한 명세를 나타내는데 논리 데이터 모델에서는 (&nbsp;&nbsp;2&nbsp;&nbsp;) 을/를 어떻게 나타낼 것인지 표현한다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;3&nbsp;&nbsp;) 은/는 데이터 무결성 유지를 위한 db의 보편적 방법으로 릴레이션의 특정 칼럼에 설정하는 제약을 의미하며, 개체무결성과 참조 무결성 등이 있다.</div>",
+      "bodyText": "다음은 데이터 모델의 구성요소에 대한 설명이다. 빈칸에 들어갈 알맞은 용어를 쓰시오.\n\n- 데이터베이스에 저장된 실제 데이터를 처리하는 작업에 대한 명세로서 데이터베이스를 조작하는 기본 도구이다.\n- 개체 데이터 모델에서는 (  1  ) 을/를 이용하여 실제 데이터를 처리하는 작업에 대한 명세를 나타내는데 논리 데이터 모델에서는 (  2  ) 을/를 어떻게 나타낼 것인지 표현한다.\n- (  3  ) 은/는 데이터 무결성 유지를 위한 db의 보편적 방법으로 릴레이션의 특정 칼럼에 설정하는 제약을 의미하며, 개체무결성과 참조 무결성 등이 있다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "연산",
+            "operation",
+            "operations",
+            "연산(operation)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "연산"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "구조",
+            "structure",
+            "구조(structure)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "구조"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "제약조건",
+            "제약 조건",
+            "constraint",
+            "constraints",
+            "제약조건(constraint)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "제약조건"
+        }
+      ],
+      "display": "(1) 연산 / (2) 구조 / (3) 제약조건"
+    },
+    {
+      "id": "2021-1#17",
+      "num": 17,
+      "prompt": "다음은 Java 프로그램이다. 실행 결과를 쓰시오.",
+      "bodyHtml": "<pre class=\"code\">public class good {\n\tpublic static void main(String[] args){\n    int i, j;\n    for(j=0, i=0; i&lt;=5; i++){\n    j+=i;\n    System.out.print(i);\n    if(i==5){\n    System.out.print(\"=\");\n    System.out.print(j);\n   }else{\n   \tSystem.out.print(\"+\");\n\t}\n   }\n  }\n }</pre>",
+      "bodyText": "다음은 Java 프로그램이다. 실행 결과를 쓰시오.\n\n```java\npublic class good {\n\tpublic static void main(String[] args){\n    int i, j;\n    for(j=0, i=0; i<=5; i++){\n    j+=i;\n    System.out.print(i);\n    if(i==5){\n    System.out.print(\"=\");\n    System.out.print(j);\n   }else{\n   \tSystem.out.print(\"+\");\n\t}\n   }\n  }\n }\n```",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "0+1+2+3+4+5=15",
+            "0 + 1 + 2 + 3 + 4 + 5 = 15"
+          ],
+          "normalize": "keepSpace",
+          "validator": null,
+          "sampleAnswer": "0+1+2+3+4+5=15"
+        }
+      ],
+      "display": "0+1+2+3+4+5=15"
+    },
+    {
+      "id": "2021-1#18",
+      "num": 18,
+      "prompt": "시스템 객체의 접근을 개인 또는 그룹의 식별자에 기반을 둔 방법으로, 어떤 종류의 접근 권한을 가진 사용자가 다른 사용자에게 자신의 판단에 따라 권한을 허용하는 접근제어 방식은 무엇인지 쓰시오.",
+      "bodyHtml": "",
+      "bodyText": "시스템 객체의 접근을 개인 또는 그룹의 식별자에 기반을 둔 방법으로, 어떤 종류의 접근 권한을 가진 사용자가 다른 사용자에게 자신의 판단에 따라 권한을 허용하는 접근제어 방식은 무엇인지 쓰시오.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "DAC",
+            "dac",
+            "임의적 접근 통제",
+            "임의적 접근통제",
+            "임의접근통제",
+            "임의적 접근 제어",
+            "Discretionary Access Control",
+            "DAC(Discretionary Access Control)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "DAC"
+        }
+      ],
+      "display": "임의적 접근 통제 / DAC (Discretionary Access Control)"
+    },
+    {
+      "id": "2021-1#19",
+      "num": 19,
+      "prompt": "다음은 결합도에 대한 설명이다. 빈칸에 들어갈 알맞은 용어를 보기에서 찾아 쓰시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;1&nbsp;&nbsp;) 은/는 다른 모듈 내부에 있는 변수나 기능을 다른 모듈에서 사용하는 경우의 결합도</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;2&nbsp;&nbsp;) 은/는 모듈 간의 인터페이스로 배열이나 객체, 구조 등이 전달되는 경우의 결합도</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;3&nbsp;&nbsp;) 은/는 파라미터가 아닌 모듈 밖에 선언된 전역 변수를 참조하고 전역 변수를 갱신하는 식으로 상호작용하는 경우의 결합도</div>\n<div class=\"boki\"><b>[보기]</b> 자료 결합도 / 스탬프 결합도 / 제어 결합도 / 공통 결합도 / 내용 결합도 / 외부 결합도</div>",
+      "bodyText": "다음은 결합도에 대한 설명이다. 빈칸에 들어갈 알맞은 용어를 보기에서 찾아 쓰시오.\n\n- (  1  ) 은/는 다른 모듈 내부에 있는 변수나 기능을 다른 모듈에서 사용하는 경우의 결합도\n- (  2  ) 은/는 모듈 간의 인터페이스로 배열이나 객체, 구조 등이 전달되는 경우의 결합도\n- (  3  ) 은/는 파라미터가 아닌 모듈 밖에 선언된 전역 변수를 참조하고 전역 변수를 갱신하는 식으로 상호작용하는 경우의 결합도\n\n[보기]\n자료 결합도 / 스탬프 결합도 / 제어 결합도 / 공통 결합도 / 내용 결합도 / 외부 결합도",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "(1)",
+          "accept": [
+            "내용 결합도",
+            "내용결합도",
+            "content coupling",
+            "내용 결합도(content coupling)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "내용 결합도"
+        },
+        {
+          "label": "(2)",
+          "accept": [
+            "스탬프 결합도",
+            "스탬프결합도",
+            "stamp coupling",
+            "스탬프 결합도(stamp coupling)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "스탬프 결합도"
+        },
+        {
+          "label": "(3)",
+          "accept": [
+            "공통 결합도",
+            "공통결합도",
+            "common coupling",
+            "공통 결합도(common coupling)"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "공통 결합도"
+        }
+      ],
+      "display": "(1) 내용 결합도 / (2) 스탬프 결합도 / (3) 공통 결합도"
+    },
+    {
+      "id": "2021-1#20",
+      "num": 20,
+      "prompt": "괄호 안에 공통으로 들어갈 공격 기법을 적으시오.",
+      "bodyHtml": "<div class=\"desc-box\">(&nbsp;&nbsp;&nbsp;&nbsp;) 은/는 '세션을 가로채다' 라는 의미로 정상적 연결을 RST 패킷을 통해 종료시킨 후 재연결 시 희생자가 아닌 공격자에게 연결한다.</div>\n<div class=\"desc-box\">(&nbsp;&nbsp;&nbsp;&nbsp;) 은/는 세션 관리 취약점을 이용한 공격 기법이다.</div>",
+      "bodyText": "괄호 안에 공통으로 들어갈 공격 기법을 적으시오.\n\n- (    ) 은/는 '세션을 가로채다' 라는 의미로 정상적 연결을 RST 패킷을 통해 종료시킨 후 재연결 시 희생자가 아닌 공격자에게 연결한다.\n- (    ) 은/는 세션 관리 취약점을 이용한 공격 기법이다.",
+      "sourceImages": [],
+      "answerMode": "ordered",
+      "fields": [
+        {
+          "label": "답",
+          "accept": [
+            "세션 하이재킹",
+            "세션하이재킹",
+            "session hijacking",
+            "세션 하이재킹(session hijacking)",
+            "세션 가로채기",
+            "tcp 세션 하이재킹"
+          ],
+          "normalize": "default",
+          "validator": null,
+          "sampleAnswer": "세션 하이재킹"
+        }
+      ],
+      "display": "세션 하이재킹 (Session Hijacking)"
+    }
+  ]
+}

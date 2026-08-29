@@ -1,0 +1,528 @@
+'use strict';
+/**
+ * index.js — HTTP + socket.io 서버 엔트리.
+ *
+ * 담당: 정적 파일, 학습 모드 REST(회차·랜덤 모의고사·오답노트·학습 이력), 인증 REST, 정답 이의 제기.
+ * 대전/랭킹 라우트와 소켓 핸들러는 `server/battle-io.js` 가 붙인다.
+ * battle-io.js 가 아직 없어도 서버는 기동한다 (학습 모드만 동작).
+ *
+ * battle-io.js 연결 규약:
+ *   module.exports = function ({ app, server, io, db, rounds, auth }) { ... }
+ *   또는 module.exports = { attach({ app, server, io, db, rounds, auth }) { ... } }
+ *   또는 require('./index.js') 로 순환 참조해 스스로 붙는 형태(그 시점에 exports 는 이미 채워져 있다).
+ * battle-io 를 require 한 뒤에 404/에러 핸들러를 등록하므로 라우트 추가 순서가 어긋나지 않는다.
+ */
+
+const http = require('node:http');
+const os = require('node:os');
+const fs = require('node:fs');
+const path = require('node:path');
+const express = require('express');
+const { Server } = require('socket.io');
+
+const dbModule = require('./db.js');
+const rounds = require('./rounds.js');
+const auth = require('./auth.js');
+const battle = require('./battle.js'); // 순수 모듈 — 랜덤 모의고사 출제에 buildQuestionSet 만 빌려 쓴다
+const { gradeSet } = require('./grader.js');
+
+const PORT = Number(process.env.PORT) || 3000;
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+// DATA_DIR env 로 데이터 디렉터리를 옮길 수 있다 (E2E 테스트가 격리된 임시 디렉터리를 쓴다). 회차 JSON 은 항상 repo 의 data/rounds 에서 읽는다.
+const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, '..', 'data');
+const REPORTS_FILE = path.join(DATA_DIR, 'reports.json');
+
+// ------------------------------------------------------------------- 로깅
+
+/** 한 사건 = 한 줄. 타임스탬프는 로컬 시각 HH:MM:SS. */
+function log(...parts) {
+  const t = new Date().toTimeString().slice(0, 8);
+  console.log('[' + t + '] ' + parts.join(' '));
+}
+
+function logErr(...parts) {
+  const t = new Date().toTimeString().slice(0, 8);
+  console.error('[' + t + '] ' + parts.join(' '));
+}
+
+// ---------------------------------------------------------------- 부팅 준비
+
+const db = dbModule.open({ dir: DATA_DIR });
+auth.loadSecret(DATA_DIR); // 최초 기동 시 {DATA_DIR}/secret.key 생성
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { path: '/socket.io' });
+
+// battle-io.js 가 순환 require 로 들어와도 채워진 exports 를 보도록 먼저 공개한다
+module.exports = { app: app, server: server, io: io, db: db, rounds: rounds, auth: auth, log: log, start: start };
+
+// ---------------------------------------------------------------- 미들웨어
+
+app.disable('x-powered-by');
+app.use(express.json({ limit: '256kb' }));
+app.use(auth.attachUser(db));
+
+// 한국어 데이터 — 텍스트 응답은 항상 utf-8 로 못박는다
+app.use(function (req, res, next) {
+  res.set('Charset', 'utf-8');
+  next();
+});
+
+app.use(express.static(PUBLIC_DIR, {
+  index: 'index.html',
+  setHeaders: function (res, filePath) {
+    if (/\.html$/i.test(filePath)) res.set('Content-Type', 'text/html; charset=utf-8');
+    else if (/\.css$/i.test(filePath)) res.set('Content-Type', 'text/css; charset=utf-8');
+    else if (/\.js$/i.test(filePath)) res.set('Content-Type', 'text/javascript; charset=utf-8');
+  },
+}));
+
+// ------------------------------------------------------------------- 인증
+
+app.post('/api/auth/signup', function (req, res) {
+  const body = req.body || {};
+  const result = auth.signup(db, body.nickname, body.password);
+  if (!result.ok) return res.status(400).json({ error: result.error });
+  auth.setSessionCookie(res, result.user);
+  log('signup', result.user.nickname, '(#' + result.user.id + ')');
+  res.json({ user: result.user });
+});
+
+app.post('/api/auth/login', function (req, res) {
+  const body = req.body || {};
+  const user = auth.login(db, body.nickname, body.password);
+  if (!user) return res.status(401).json({ error: '닉네임 또는 비밀번호가 올바르지 않습니다.' });
+  auth.setSessionCookie(res, user);
+  log('login', user.nickname, '(#' + user.id + ')');
+  res.json({ user: user });
+});
+
+app.post('/api/auth/logout', function (req, res) {
+  auth.clearSessionCookie(res);
+  if (req.user) log('logout', req.user.nickname);
+  res.json({ ok: true });
+});
+
+app.get('/api/auth/me', function (req, res) {
+  res.json({ user: req.user || null });
+});
+
+// ------------------------------------------------------------------- 회차
+
+app.get('/api/rounds', function (req, res) {
+  res.json(rounds.listRounds());
+});
+
+app.get('/api/rounds/:id', function (req, res) {
+  const round = rounds.getRound(req.params.id); // 인메모리 화이트리스트 — 경로 순회 불가
+  if (!round) return res.status(404).json({ error: '없는 회차입니다.' });
+  res.json({
+    round: round.round,
+    title: round.title || round.round,
+    sourceUrl: round.sourceUrl || '',
+    questions: round.questions.map(rounds.publicQuestion), // 정답 계열 필드 제거
+  });
+});
+
+/**
+ * 제출 답안 정리: 주어진 문항 목록에 실제로 있는 문항 id 만, 필드 수만큼만, 문자열로.
+ * 클라이언트가 뭘 보내든 채점기에 이상한 값이 들어가지 않게 한다.
+ * (회차 채점과 모의고사/오답노트 채점이 같은 규칙을 쓰도록 문항 배열을 받는다.)
+ */
+function sanitizeAnswers(questions, raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object') return out;
+  for (const q of questions) {
+    const given = raw[q.id];
+    if (!Array.isArray(given)) continue;
+    out[q.id] = q.fields.map(function (_f, i) {
+      const v = given[i];
+      return typeof v === 'string' ? v.slice(0, 500) : '';
+    });
+  }
+  return out;
+}
+
+/** 채점 결과 details → 틀린 문항 id 배열. study_results.wrong_ids 에 그대로 들어간다. */
+function wrongIdsOf(details) {
+  const out = [];
+  for (const d of details || []) if (d.correct === false) out.push(d.questionId);
+  return out;
+}
+
+app.post('/api/rounds/:id/grade', function (req, res) {
+  const round = rounds.getRound(req.params.id);
+  if (!round) return res.status(404).json({ error: '없는 회차입니다.' });
+
+  const answers = sanitizeAnswers(round.questions, (req.body || {}).answers);
+  const result = gradeSet(round.questions, answers);
+
+  // 채점 이후에는 정답 표기(display)와 지문 원문(bodyText)을 내보내도 된다.
+  // bodyText 는 "AI에게 질문하기" 프롬프트 조립용 — 채점 전에는 절대 내보내지 않는다.
+  const bodyTexts = {};
+  for (const q of round.questions) bodyTexts[q.id] = q.bodyText == null ? '' : q.bodyText;
+
+  if (req.user) {
+    try {
+      // 학습 이력·오답노트가 문항 단위로 되짚을 수 있도록 출제 문항과 틀린 문항을 함께 남긴다.
+      db.saveStudyResult(req.user.id, round.round, result.score,
+        round.questions.map(function (q) { return q.id; }), wrongIdsOf(result.details));
+    } catch (e) {
+      logErr('study 저장 실패', round.round, req.user.nickname, '-', e.message);
+    }
+  }
+  log('grade', round.round, result.correctCount + '/' + result.totalCount,
+    result.score + '점', req.user ? req.user.nickname : '(비로그인)');
+
+  res.json({
+    round: round.round,
+    correctCount: result.correctCount,
+    totalCount: result.totalCount,
+    score: result.score,
+    details: result.details,
+    bodyTexts: bodyTexts,
+  });
+});
+
+// --------------------------------------- 학습 이력 · 오답노트 · 랜덤 모의고사
+
+const HISTORY_SCAN_LIMIT = 1000;  // 집계를 위해 훑는 최대 기록 수
+const HISTORY_RECENT_MAX = 20;    // 응답에 싣는 최근 기록 수
+const PRACTICE_COUNT_MIN = 5;
+const PRACTICE_COUNT_MAX = 60;
+const PRACTICE_GRADE_MAX = 200;   // 한 번에 채점할 수 있는 문항 수 상한
+
+/** study_results 의 id 컬럼(JSON 문자열) → 배열. 값이 없거나 깨졌으면 null(= 문항 단위 정보 없음). */
+function parseIdColumn(v) {
+  if (typeof v !== 'string' || v === '') return null;
+  try {
+    const parsed = JSON.parse(v);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** 최신 먼저 정렬된 학습 기록. 조회 실패는 빈 이력으로 다룬다(이력은 부가 기능 — 500 을 내지 않는다). */
+function studyRows(userId) {
+  try {
+    return db.listStudyResults(userId, HISTORY_SCAN_LIMIT);
+  } catch (e) {
+    logErr('study 이력 조회 실패', '#' + userId, '-', e.message);
+    return [];
+  }
+}
+
+/**
+ * 현재 오답 문항 id 목록.
+ * 문항별로 **가장 최근 판정**만 본다: 최신 기록부터 훑다가 그 문항을 처음 만나는 순간 결론이 나고
+ * (wrong_ids 에 있으면 오답, question_ids 에만 있으면 해제) 그보다 오래된 기록은 무시한다.
+ * question_ids 가 없는 예전 기록은 문항 단위 판정이 불가능하므로 건너뛴다.
+ * 반환 순서는 회차 순(rounds 정렬) → 문항 순이고, 지금 데이터에 없는 문항 id 는 빠진다.
+ */
+function currentWrongIds(userId) {
+  const decided = new Set();
+  const wrong = new Set();
+  for (const row of studyRows(userId)) {
+    const qids = parseIdColumn(row.question_ids);
+    if (!qids) continue;
+    const wrongSet = new Set(parseIdColumn(row.wrong_ids) || []);
+    for (const qid of qids) {
+      if (decided.has(qid)) continue;
+      decided.add(qid);
+      if (wrongSet.has(qid)) wrong.add(qid);
+    }
+  }
+  const ordered = [];
+  for (const meta of rounds.listRounds()) {
+    const round = rounds.getRound(meta.round);
+    if (!round) continue;
+    for (const q of round.questions) if (wrong.has(q.id)) ordered.push(q.id);
+  }
+  return ordered;
+}
+
+app.get('/api/me/history', auth.requireAuth, function (req, res) {
+  const rows = studyRows(req.user.id); // 최신 먼저
+  const bySet = {};
+  const recent = [];
+
+  for (const row of rows) {
+    const qids = parseIdColumn(row.question_ids);
+    const wrongIds = parseIdColumn(row.wrong_ids);
+    // 문항 수/정답 수는 컬럼이 있을 때만 셀 수 있다. 예전 기록은 점수만 남아 있으므로 null.
+    const total = qids ? qids.length : null;
+    const correct = qids ? qids.length - (wrongIds ? wrongIds.length : 0) : null;
+
+    let agg = bySet[row.round];
+    if (!agg) {
+      // 최신 먼저 훑으므로 그 집합에서 처음 만난 기록이 곧 마지막 기록이다
+      agg = bySet[row.round] = { count: 0, best: row.score, last: row.score, lastAt: row.taken_at };
+    }
+    agg.count += 1;
+    if (row.score > agg.best) agg.best = row.score;
+
+    if (recent.length < HISTORY_RECENT_MAX) {
+      recent.push({
+        round: row.round, score: row.score, takenAt: row.taken_at, total: total, correct: correct,
+      });
+    }
+  }
+
+  res.json({ rounds: bySet, recent: recent, wrongCount: currentWrongIds(req.user.id).length });
+});
+
+app.get('/api/me/wrong', auth.requireAuth, function (req, res) {
+  const questions = [];
+  for (const qid of currentWrongIds(req.user.id)) {
+    const q = rounds.getQuestion(qid);
+    if (q) questions.push(rounds.publicQuestion(q)); // 정답 계열 필드 제거
+  }
+  res.json({ setKey: 'wrong', title: '오답노트', questions: questions });
+});
+
+app.get('/api/practice', function (req, res) {
+  const rawCount = typeof req.query.count === 'string' ? req.query.count.trim() : '';
+  const count = /^\d+$/.test(rawCount) ? Number(rawCount) : NaN;
+  if (!Number.isInteger(count) || count < PRACTICE_COUNT_MIN || count > PRACTICE_COUNT_MAX) {
+    return res.status(400).json({
+      error: '문항 수는 ' + PRACTICE_COUNT_MIN + '~' + PRACTICE_COUNT_MAX + ' 사이의 정수여야 합니다.',
+    });
+  }
+
+  const rawRounds = typeof req.query.rounds === 'string' ? req.query.rounds.trim() : '';
+  let roundIds;
+  if (rawRounds === '' || rawRounds === 'all') {
+    roundIds = rounds.listRounds().map(function (r) { return r.round; });
+  } else {
+    roundIds = [];
+    for (const part of rawRounds.split(',')) {
+      const id = part.trim();
+      if (id === '') continue;
+      if (!rounds.hasRound(id)) return res.status(400).json({ error: '없는 회차입니다: ' + id });
+      if (roundIds.indexOf(id) === -1) roundIds.push(id); // 중복 회차는 한 번만
+    }
+  }
+  if (roundIds.length === 0) return res.status(400).json({ error: '회차를 하나 이상 선택해야 합니다.' });
+
+  // 대전의 random 출제와 같은 규칙(회차별 균등 배분 + 나머지 무작위)을 그대로 쓴다.
+  const built = battle.buildQuestionSet({
+    mode: 'random',
+    rounds: roundIds.map(function (id) {
+      const r = rounds.getRound(id);
+      return { round: r.round, questions: r.questions };
+    }),
+    questionCount: count,
+  });
+  if (!built.ok) return res.status(400).json({ error: built.error }); // 유효 문항 총합 부족 등
+
+  log('practice', roundIds.length + '회차', built.questions.length + '문항',
+    req.user ? req.user.nickname : '(비로그인)');
+
+  res.json({
+    setKey: 'practice',
+    title: '랜덤 모의고사 · ' + roundIds.length + '회차 ' + built.questions.length + '문항',
+    roundIds: roundIds,
+    questions: built.questions.map(rounds.publicQuestion), // 정답 계열 필드 제거
+  });
+});
+
+/**
+ * 모의고사/오답노트 채점. 회차가 고정돼 있지 않으므로 **제출한 답안의 키**로 문항 집합을 복원한다.
+ * (문항 id 는 전역 화이트리스트로만 조회하므로 모르는 id 는 그냥 빠진다.)
+ * 응답 형태는 회차 채점과 같다 — 프런트가 같은 결과 화면을 쓴다.
+ */
+app.post('/api/practice/grade', function (req, res) {
+  const body = req.body || {};
+  const setKey = body.setKey === 'practice' || body.setKey === 'wrong' ? body.setKey : null;
+  if (!setKey) return res.status(400).json({ error: '알 수 없는 문제 집합입니다.' });
+
+  const raw = body.answers && typeof body.answers === 'object' ? body.answers : {};
+  const questions = [];
+  for (const qid of Object.keys(raw)) {
+    if (questions.length >= PRACTICE_GRADE_MAX) break;
+    const q = rounds.getQuestion(qid);
+    if (q) questions.push(q);
+  }
+  if (questions.length === 0) return res.status(400).json({ error: '채점할 문항이 없습니다.' });
+
+  const answers = sanitizeAnswers(questions, raw);
+  const result = gradeSet(questions, answers);
+
+  const bodyTexts = {};
+  for (const q of questions) bodyTexts[q.id] = q.bodyText == null ? '' : q.bodyText;
+
+  if (req.user) {
+    try {
+      db.saveStudyResult(req.user.id, setKey, result.score,
+        questions.map(function (q) { return q.id; }), wrongIdsOf(result.details));
+    } catch (e) {
+      logErr('study 저장 실패', setKey, req.user.nickname, '-', e.message);
+    }
+  }
+  log('grade', setKey, result.correctCount + '/' + result.totalCount,
+    result.score + '점', req.user ? req.user.nickname : '(비로그인)');
+
+  res.json({
+    round: setKey,
+    correctCount: result.correctCount,
+    totalCount: result.totalCount,
+    score: result.score,
+    details: result.details,
+    bodyTexts: bodyTexts,
+  });
+});
+
+// ------------------------------------------------------------- 이의 제기
+
+/** 읽기-수정-쓰기. 동기 I/O 라 요청 사이에 끼어들 수 없고, 교체는 rename 으로 원자적이다. */
+function appendReport(entry) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  let list = [];
+  try {
+    const parsed = JSON.parse(fs.readFileSync(REPORTS_FILE, 'utf8'));
+    if (Array.isArray(parsed)) list = parsed;
+    else logErr('reports.json 이 배열이 아닙니다 — 새 배열로 시작합니다.');
+  } catch (e) {
+    if (e.code !== 'ENOENT') logErr('reports.json 읽기 실패 — 새 배열로 시작합니다:', e.message);
+  }
+  list.push(entry);
+  const tmp = REPORTS_FILE + '.tmp-' + process.pid + '-' + Date.now();
+  fs.writeFileSync(tmp, JSON.stringify(list, null, 2), 'utf8');
+  fs.renameSync(tmp, REPORTS_FILE);
+  return list.length;
+}
+
+app.post('/api/reports', function (req, res) {
+  const body = req.body || {};
+  const questionId = typeof body.questionId === 'string' ? body.questionId.trim() : '';
+  if (!questionId) return res.status(400).json({ error: '문항 id 가 필요합니다.' });
+  if (!rounds.getQuestion(questionId)) return res.status(400).json({ error: '없는 문항입니다.' });
+
+  const comment = typeof body.comment === 'string' ? body.comment.trim().slice(0, 2000) : '';
+  if (!comment) return res.status(400).json({ error: '어떤 점이 이상한지 적어 주세요.' });
+
+  const myAnswer = Array.isArray(body.myAnswer)
+    ? body.myAnswer.map(function (v) { return typeof v === 'string' ? v.slice(0, 500) : ''; })
+    : typeof body.myAnswer === 'string' ? body.myAnswer.slice(0, 500) : '';
+
+  try {
+    const total = appendReport({
+      at: new Date().toISOString(),
+      questionId: questionId,
+      myAnswer: myAnswer,
+      comment: comment,
+      byUserId: req.user ? req.user.id : null,
+    });
+    log('report', questionId, 'by', req.user ? req.user.nickname : '(비로그인)', '- 누적', total + '건');
+    res.json({ ok: true });
+  } catch (e) {
+    logErr('report 저장 실패', questionId, '-', e.message);
+    res.status(500).json({ error: '신고 저장에 실패했습니다.' });
+  }
+});
+
+// -------------------------------------------------------------- 소켓 로깅
+
+io.on('connection', function (socket) {
+  const who = socket.data && socket.data.user ? socket.data.user.nickname : '(미인증)';
+  log('socket connect', socket.id, who);
+  socket.on('disconnect', function (reason) {
+    log('socket disconnect', socket.id, who, reason);
+  });
+});
+
+// ---------------------------------------------------- battle-io 연결(선택)
+
+function attachBattleIo() {
+  let mod;
+  try {
+    mod = require('./battle-io.js');
+  } catch (e) {
+    if (e.code === 'MODULE_NOT_FOUND' && /battle-io/.test(e.message)) {
+      log('battle-io.js 없음 — 학습 모드만 제공합니다.');
+      return;
+    }
+    logErr('battle-io.js 로드 실패 — 학습 모드만 제공합니다:', e.message);
+    return;
+  }
+  try {
+    const ctx = { app: app, server: server, io: io, db: db, rounds: rounds, auth: auth, log: log };
+    if (typeof mod === 'function') mod(ctx);
+    else if (mod && typeof mod.attach === 'function') mod.attach(ctx);
+    log('battle-io.js 연결 완료');
+  } catch (e) {
+    logErr('battle-io.js 초기화 실패 — 학습 모드만 제공합니다:', e.message);
+  }
+}
+
+attachBattleIo();
+
+// ------------------------------------------------- 마무리 핸들러 (항상 마지막)
+
+app.use('/api', function (req, res) {
+  res.status(404).json({ error: '없는 API 경로입니다: ' + req.method + ' ' + req.originalUrl });
+});
+
+app.use(function (req, res) {
+  res.status(404).type('text/plain; charset=utf-8').send('404 — 페이지를 찾을 수 없습니다.');
+});
+
+// eslint-disable-next-line no-unused-vars
+app.use(function (err, req, res, next) {
+  logErr('요청 처리 오류', req.method, req.originalUrl, '-', err.message);
+  if (res.headersSent) return;
+  const status = err.status && err.status >= 400 && err.status < 600 ? err.status : 500;
+  const message = status === 400 ? '요청 형식이 올바르지 않습니다.'
+    : status === 413 ? '요청 본문이 너무 큽니다. (256KB 이하)'
+      : '서버 오류가 발생했습니다.';
+  res.status(status).json({ error: message });
+});
+
+// -------------------------------------------------------------------- 기동
+
+/** 접속 가능한 주소 목록. 100.x 는 Tailscale 로 표기한다. */
+function accessUrls(port) {
+  const list = [{ label: '로컬', url: 'http://localhost:' + port }];
+  const ifaces = os.networkInterfaces();
+  for (const name of Object.keys(ifaces)) {
+    for (const addr of ifaces[name] || []) {
+      if (addr.family !== 'IPv4' && addr.family !== 4) continue;
+      if (addr.internal) continue;
+      // 169.254.* 는 DHCP 실패 시 붙는 link-local 자동 주소 — 접속 불가라 배너에서 뺀다
+      // (scripts/setup-firewall.ps1 도 같은 대역을 건너뛴다).
+      if (addr.address.startsWith('169.254.')) continue;
+      const label = addr.address.split('.')[0] === '100' ? 'Tailscale' : 'LAN';
+      list.push({ label: label, url: 'http://' + addr.address + ':' + port });
+    }
+  }
+  return list;
+}
+
+function printBanner(port) {
+  const urls = accessUrls(port);
+  const width = urls.reduce(function (m, u) { return Math.max(m, u.label.length); }, 0);
+  console.log('');
+  console.log('  정처기 배틀 서버 기동 (' + db.kind + ' 어댑터, 회차 ' + rounds.listRounds().length + '개)');
+  for (const u of urls) console.log('  ' + u.label.padEnd(width + 2) + u.url);
+  console.log('');
+  console.log('  종료: Ctrl+C   /   다른 기기에서 접속하려면 방화벽 인바운드 허용이 필요합니다.');
+  console.log('');
+}
+
+function start(port) {
+  const p = port || PORT;
+  server.on('error', function (err) {
+    if (err.code === 'EADDRINUSE') {
+      logErr('포트 ' + p + ' 이(가) 이미 사용 중입니다. 다른 프로그램을 종료하거나 PORT=' + (p + 1) + ' 로 실행하세요.');
+      process.exit(1);
+    }
+    logErr('서버 오류:', err.message);
+    process.exit(1);
+  });
+  server.listen(p, function () { printBanner(p); });
+  return server;
+}
+
+if (require.main === module) start();

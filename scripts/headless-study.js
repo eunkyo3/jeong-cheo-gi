@@ -1,0 +1,421 @@
+#!/usr/bin/env node
+// headless-study.js — 학습 모드 프런트를 jsdom 으로 실서버에 붙여 종단 검증한다 (브라우저 없이).
+// 격리 임시 DATA_DIR + 임의 포트. 검증 항목: 메인 회차 버튼 수 / 풀이→채점 점수 / 오답 카드의 AI 복사 버튼 →
+// 클립보드 3단 폴백의 최종 단계(모달) 진입 + 프롬프트 4요소 / 인라인 이의 제기 → reports.json 적재 /
+// 답안 자동 저장·복원 / Enter→다음 칸 / 학습 이력 카드·회차 뱃지 / 오답노트 / 랜덤 모의고사 / favicon /
+// 가입→me→로그아웃.
+//   npm run headless
+'use strict';
+const path = require('path');
+const os = require('os');
+const fs = require('fs');
+const { spawn } = require('child_process');
+const { JSDOM, VirtualConsole } = require('jsdom');
+
+const ROOT = path.resolve(__dirname, '..');
+const PORT = 3000 + Math.floor(Math.random() * 20000);
+const BASE = 'http://localhost:' + PORT;
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'jpk-headless-'));
+const T0 = Date.now();
+const log = (...a) => console.log('[' + String(Date.now() - T0).padStart(5) + 'ms]', ...a);
+let failures = 0;
+const check = (cond, label, detail) => { log((cond ? 'PASS ' : 'FAIL ') + label + (detail !== undefined ? ' — ' + detail : '')); if (!cond) failures++; };
+
+const srv = spawn(process.execPath, [path.join(ROOT, 'server', 'index.js')], {
+  env: { ...process.env, PORT: String(PORT), DATA_DIR: TMP }, stdio: ['ignore', 'pipe', 'pipe'],
+});
+let srvLog = '';
+srv.stdout.on('data', d => { srvLog += d; });
+srv.stderr.on('data', d => { srvLog += d; });
+const ready = new Promise((res, rej) => {
+  const t = setInterval(() => { if (srvLog.includes('battle-io.js 연결 완료')) { clearInterval(t); res(); } }, 100);
+  setTimeout(() => { clearInterval(t); rej(new Error('server start timeout\n' + srvLog)); }, 15000);
+});
+function shutdown(code) {
+  try { srv.kill(); } catch (_) { /* gone */ }
+  try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (_) { /* best effort */ }
+  process.exit(code);
+}
+
+// ---- 쿠키 항아리 + fetch 폴리필 (jsdom 에는 fetch 가 없다) ----
+const jar = new Map();
+function cookieHeader() { return [...jar.entries()].map(([k, v]) => k + '=' + v).join('; '); }
+function absorb(resp) {
+  const sc = resp.headers.getSetCookie ? resp.headers.getSetCookie() : [];
+  for (const line of sc) {
+    const [kv, ...attrs] = line.split(';');
+    const [k, v] = kv.split('=');
+    const maxAge = attrs.map(a => a.trim()).find(a => /^max-age=/i.test(a));
+    if (maxAge && Number(maxAge.split('=')[1]) <= 0) jar.delete(k.trim()); else jar.set(k.trim(), v);
+  }
+}
+function makeFetch() {
+  return async function (input, init) {
+    const url = new URL(typeof input === 'string' ? input : input.url, BASE).href;
+    const headers = Object.assign({}, (init && init.headers) || {});
+    if (jar.size) headers.cookie = cookieHeader();
+    const resp = await fetch(url, Object.assign({}, init, { headers }));
+    absorb(resp);
+    return resp;
+  };
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function waitFor(fn, label, ms = 8000) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) { const v = fn(); if (v) return v; await sleep(50); }
+  throw new Error('timeout: ' + label);
+}
+
+// jsdom 인스턴스끼리 localStorage 를 공유하지 않는다. "새로고침" 을 흉내 내려면
+// 스크립트가 돌기 전(beforeParse) 에 저장분을 심어 줘야 한다.
+async function load(p, beforeParse) {
+  const vc = new VirtualConsole();
+  const errors = [];
+  vc.on('jsdomError', e => errors.push(String(e.message || e)));
+  vc.on('error', m => errors.push(String(m)));
+  const opts = { runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true, virtualConsole: vc };
+  if (beforeParse) opts.beforeParse = beforeParse;
+  const dom = await JSDOM.fromURL(BASE + p, opts);
+  dom.window.fetch = makeFetch();
+  dom.errors = errors;
+  await new Promise(r => { if (dom.window.document.readyState === 'complete') r(); else dom.window.addEventListener('load', r); });
+  return dom;
+}
+
+const readStore = (win, key) => { try { return win.localStorage.getItem(key); } catch (_) { return undefined; } };
+
+(async () => {
+  await ready; log('server up on', PORT);
+
+  // ---------- 0. 정적 자산 ----------
+  const fav = await makeFetch()('/favicon.svg');
+  check(fav.status === 200, 'favicon: GET /favicon.svg → 200', fav.status);
+
+  // ---------- 1. 메인 페이지: 회차 버튼 ----------
+  const idx = await load('/');
+  check(!!idx.window.document.querySelector('link[rel="icon"][href="/favicon.svg"]'), 'favicon: index.html <head> 에 link 태그');
+  const roundsApi = await (await makeFetch()('/api/rounds')).json();
+  const btns = await waitFor(() => { const a = [...idx.window.document.querySelectorAll('a[href*="study.html?round="], button[data-round]')]; return a.length >= roundsApi.length ? a : null; }, 'round buttons');
+  check(btns.length === roundsApi.length, 'index: 회차 버튼 수 == /api/rounds', btns.length + ' / ' + roundsApi.length);
+  check(roundsApi.length === 21, 'index: 21회차 전부 노출', roundsApi.length);
+  check(idx.errors.length === 0, 'index: JS 오류 없음', idx.errors.slice(0, 2).join(' | '));
+
+  // 랜덤 모의고사 카드 (B1) — 비로그인 상태에서도 보여야 한다
+  const pStart = await waitFor(() => idx.window.document.querySelector('#practiceStart'), '랜덤 모의고사 시작 링크', 4000).catch(() => null);
+  check(!!pStart && /set=practice/.test(pStart.getAttribute('href') || ''), 'index: 랜덤 모의고사 카드 + 시작 링크', pStart ? pStart.getAttribute('href') : '없음');
+  check(/로그인하면 점수 이력과 오답노트가 저장됩니다/.test(idx.window.document.body.textContent), 'index: 비로그인 시 학습 이력 안내 한 줄');
+
+  // 가입 → me → 로그아웃 (index 의 폼을 통해)
+  const nick = 'hl' + (T0 % 100000);
+  const nickInput = idx.window.document.querySelector('input[name="nickname"], #nickname');
+  const pwInput = idx.window.document.querySelector('input[name="password"], #password, input[type="password"]');
+  const signupBtn = [...idx.window.document.querySelectorAll('button')].find(b => /가입/.test(b.textContent));
+  check(!!(nickInput && pwInput && signupBtn), 'index: 가입 폼 존재');
+  check(/비밀번호는 복구할 수 없습니다/.test(idx.window.document.body.textContent), 'index: 비밀번호 복구 불가 안내 (D3)');
+
+  let logoutBtn = null;
+  if (nickInput && pwInput && signupBtn) {
+    nickInput.value = nick; pwInput.value = 'pw1234';
+    nickInput.dispatchEvent(new idx.window.Event('input', { bubbles: true }));
+    pwInput.dispatchEvent(new idx.window.Event('input', { bubbles: true }));
+    signupBtn.click();
+    await waitFor(() => jar.size > 0, 'session cookie after signup');
+    const me = await (await makeFetch()('/api/auth/me')).json();
+    check(me.user && me.user.nickname === nick, 'auth: 가입 후 /api/auth/me 가 나를 반환', JSON.stringify(me.user));
+    const shown = await waitFor(() => idx.window.document.body.textContent.includes(nick) ? true : null, 'nickname shown', 4000).catch(() => false);
+    check(shown === true, 'index: 로그인 후 닉네임 표시');
+    logoutBtn = await waitFor(() => [...idx.window.document.querySelectorAll('button')].find(b => /로그아웃/.test(b.textContent)) || null, 'logout button', 4000).catch(() => null);
+    check(!!logoutBtn, 'index: 로그아웃 버튼 표시');
+
+    // ---- 로그인 상태로 battle.html / ranking.html 회귀 테스트 (아직 로그아웃하지 않은 시점) ----
+    // window.api.me() 는 user 를 직접(비로그인이면 null) 반환한다 — {user} 로 감싸지 않는다.
+    // 이 계약이 깨지면 두 페이지 모두 항상 '/?msg=...' 로 리다이렉트된다.
+    const bt = await load('/battle.html');
+    await waitFor(() => {
+      var el = bt.window.document.getElementById('view');
+      return el && /새 대전방 만들기/.test(el.textContent) ? true : null;
+    }, 'battle.html #view 렌더', 2000).catch(() => null);
+    const btView = bt.window.document.getElementById('view');
+    const btNavErr = bt.errors.some(e => /navigation/i.test(e));
+    check(
+      !btNavErr && !!btView && /새 대전방 만들기/.test(btView.textContent),
+      'battle: 로그인 상태로 접근 시 리다이렉트 없이 로비가 렌더된다',
+      btNavErr ? 'navigation 시도됨: ' + bt.errors.join(' | ') : (btView ? btView.textContent.slice(0, 40) : '#view 없음')
+    );
+
+    const rkIn = await load('/ranking.html');
+    await waitFor(() => {
+      var el = rkIn.window.document.getElementById('view');
+      return el && /아직 대전 기록이 없습니다|순위/.test(el.textContent) ? true : null;
+    }, 'ranking.html #view 렌더', 2000).catch(() => null);
+    const rkInView = rkIn.window.document.getElementById('view');
+    const rkInNavErr = rkIn.errors.some(e => /navigation/i.test(e));
+    check(
+      !rkInNavErr && !!rkInView && /아직 대전 기록이 없습니다|순위/.test(rkInView.textContent),
+      'ranking: 로그인 상태로 접근 시 리다이렉트 없이 랭킹 화면이 렌더된다',
+      rkInNavErr ? 'navigation 시도됨: ' + rkIn.errors.join(' | ') : (rkInView ? rkInView.textContent.slice(0, 40) : '#view 없음')
+    );
+
+    // ---- index.html ?msg= 안내 표시 ----
+    const msgPage = await load('/?msg=' + encodeURIComponent('대전은 로그인이 필요합니다.'));
+    const msgShown = await waitFor(
+      () => msgPage.window.document.body.textContent.includes('대전은 로그인이 필요합니다.') ? true : null,
+      '?msg= 안내 문구 표시', 2000
+    ).catch(() => false);
+    check(msgShown === true, 'index: ?msg= 쿼리의 안내 문구가 화면에 표시된다');
+  }
+
+  // ---------- 2. 학습 페이지: 자동 저장 → 풀이 → 채점 ----------
+  // 여기부터는 로그인 상태다 (학습 이력·오답노트가 쌓여야 뒤의 검사가 성립한다).
+  const SKEY = 'jpk-study:2026-2';
+  const st = await load('/study.html?round=2026-2');
+  const w = st.window, d = w.document;
+  const cards = await waitFor(() => { const c = d.querySelectorAll('.q'); return c.length === 20 ? c : null; }, '20 question cards');
+  check(cards.length === 20, 'study: 문항 카드 20개');
+  check(/총\s*20\s*문항/.test(d.body.textContent) && /100\s*점/.test(d.body.textContent), 'study: 헤더 "총 20문항 · 100점 만점" 동적 표기');
+  const inputs = d.querySelectorAll('input.ans');
+  check(inputs.length === 26, 'study: 입력 필드 26개 (단일 17 + Q9 4 + Q10 3 + Q12 2)', inputs.length);
+
+  // ---- B5: Enter → 다음 답안 칸 ----
+  inputs[0].focus();
+  inputs[0].dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  check(d.activeElement === inputs[1], 'study: Enter 로 다음 답안 칸으로 이동 (B5)',
+    d.activeElement ? d.activeElement.id : '(없음)');
+  // Shift+Enter 는 무시한다 — 포커스가 그대로 두 번째 칸에 남아 있어야 한다
+  inputs[1].dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true }));
+  check(d.activeElement === inputs[1], 'study: Shift+Enter 는 이동하지 않는다', d.activeElement ? d.activeElement.id : '(없음)');
+
+  // ---- B3: 학습 타이머 ----
+  const timerSelect = d.getElementById('timerSelect');
+  const timerBtn = d.getElementById('timerBtn');
+  const timerOut = d.getElementById('timerOut');
+  check(!!(timerSelect && timerBtn && timerOut), 'timer: 학습 타이머 컨트롤 존재 (B3)');
+  if (timerSelect && timerBtn && timerOut) {
+    check([...timerSelect.options].map(o => o.textContent).join('/') === '타이머 없음/30분/60분/90분',
+      'timer: 선택지 4개 (없음/30/60/90)', [...timerSelect.options].map(o => o.textContent).join('/'));
+    check(timerBtn.disabled === true, 'timer: "타이머 없음" 이면 시작 버튼 비활성');
+    timerSelect.value = '30';
+    timerSelect.dispatchEvent(new w.Event('change', { bubbles: true }));
+    check(timerBtn.disabled === false, 'timer: 시간을 고르면 시작 버튼 활성');
+    check(readStore(w, 'jpk-study:timer') === '30', 'timer: 고른 분이 localStorage["jpk-study:timer"] 에 저장', String(readStore(w, 'jpk-study:timer')));
+    timerBtn.click();
+    await sleep(80);
+    check(timerOut.hidden === false && /^(30:00|29:5\d)$/.test(timerOut.textContent),
+      'timer: 시작하면 mm:ss 카운트다운 표시', JSON.stringify(timerOut.textContent));
+    check(timerBtn.textContent === '중지' && timerSelect.disabled === true,
+      'timer: 진행 중에는 버튼이 "중지", 선택은 잠긴다', timerBtn.textContent);
+  }
+
+  const setAns = (qnum, fi, val) => { const card = [...cards].find(c => c.querySelector('.num') && c.querySelector('.num').textContent.trim() === String(qnum)); const inp = card.querySelectorAll('input.ans')[fi]; inp.value = val; inp.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  setAns(1, 0, 'ㄱ'); setAns(2, 0, '10a20b'); setAns(10, 0, '192.168.35.72'); setAns(10, 1, '129.200.8.249'); setAns(10, 2, '192.168.36.249'); setAns(15, 0, '509'); setAns(3, 0, 'ㄴ'); // Q3 오답
+
+  // ---- A2: 자동 저장 (디바운스 300ms) ----
+  await sleep(500);
+  const rawSaved = readStore(w, SKEY);
+  check(!!rawSaved && rawSaved.includes('192.168.35.72'),
+    'autosave: 입력 후 localStorage["' + SKEY + '"] 에 답안 저장',
+    rawSaved === undefined ? 'localStorage 접근 불가' : String(rawSaved).slice(0, 90));
+
+  // ---- A2: "새로고침" 후 복원 + 안내 배너 ----
+  if (rawSaved) {
+    const st2 = await load('/study.html?round=2026-2', win => {
+      try { win.localStorage.setItem(SKEY, rawSaved); } catch (_) { /* 저장 불가 환경 */ }
+    });
+    const d2 = st2.window.document;
+    await waitFor(() => d2.querySelectorAll('.q').length === 20 ? true : null, 'reload: 20 question cards');
+    await sleep(150);
+    const q10r = [...d2.querySelectorAll('.q')].find(c => c.querySelector('.num').textContent.trim() === '10');
+    const restored = q10r ? q10r.querySelectorAll('input.ans')[0].value : '';
+    check(restored === '192.168.35.72', 'autosave: 새로고침 후 입력값 복원', JSON.stringify(restored));
+    const notice = d2.getElementById('restoreNotice');
+    check(!!notice && notice.hidden === false && /이전에 입력하던 답안을 불러왔습니다/.test(notice.textContent),
+      'autosave: 복원 안내 배너 표시', notice ? notice.textContent.slice(0, 60) : '#restoreNotice 없음');
+  }
+
+  const submit = [...d.querySelectorAll('button')].find(b => /제출하고 채점/.test(b.textContent));
+  check(!!submit, 'study: 제출 버튼 존재');
+  submit.click();
+  await waitFor(() => d.querySelector('.q.correct, .q.wrong'), 'graded cards');
+  await sleep(200);
+  // 채점 시 render(state) 가 카드를 재생성하므로 이전 노드 참조는 무효 — 재조회
+  const cardsAfter = d.querySelectorAll('.q');
+  const inputsAfter = d.querySelectorAll('input.ans');
+  const correct = d.querySelectorAll('.q.correct').length, wrong = d.querySelectorAll('.q.wrong').length;
+  check(correct === 4 && wrong === 16, 'study: 정답 4 / 오답 16 카드 표시', correct + '/' + wrong);
+  check(/20\s*점/.test(d.body.textContent), 'study: 점수 20점 표시 (4/20)', (d.body.textContent.match(/\d+\s*점\s*\/\s*100/) || [])[0]);
+  const q3 = [...cardsAfter].find(c => c.querySelector('.num').textContent.trim() === '3');
+  check(q3.classList.contains('wrong') && /내용결합도/.test(q3.textContent), 'study: 오답 카드에 display(정답) 노출', (q3.querySelector('.feedback') || {}).textContent);
+  check(inputsAfter[0].readOnly === true || inputsAfter[0].disabled === true, 'study: 채점 후 입력 read-only/disabled');
+
+  // ---- A5: 채점 후 상단 안내 갱신 ----
+  const metaText = (d.getElementById('roundMeta') || {}).textContent || '';
+  check(/채점 완료/.test(metaText) && /오답\s*16\s*문항/.test(metaText),
+    'study: 채점 후 상단 안내가 "채점 완료 — 오답 N문항" 으로 갱신 (A5)', metaText.slice(0, 80));
+
+  // ---- A2: 채점 성공 시 저장분 삭제 ----
+  const afterSave = readStore(w, SKEY);
+  check(afterSave === null, 'autosave: 채점 성공 후 저장분 삭제', String(afterSave));
+
+  // ---- B3: 채점되면 타이머가 멎고 컨트롤이 사라진다 ----
+  if (timerOut) {
+    check(timerOut.hidden === true && d.getElementById('studyTools').hidden === true,
+      'timer: 채점 후 타이머 정지 + 컨트롤 숨김',
+      'out.hidden=' + timerOut.hidden + ' tools.hidden=' + d.getElementById('studyTools').hidden);
+  }
+
+  // ---------- 3. AI 질문 복사 → 폴백 모달 ----------
+  const copyBtn = [...q3.querySelectorAll('button')].find(b => /AI/.test(b.textContent));
+  check(!!copyBtn, 'study: 오답 카드에 "AI에게 질문하기" 버튼');
+  const q1 = [...cardsAfter].find(c => c.querySelector('.num').textContent.trim() === '1');
+  check(![...q1.querySelectorAll('button')].some(b => /AI/.test(b.textContent)), 'study: 정답 카드에는 복사 버튼 없음');
+  // jsdom: navigator.clipboard 없음, execCommand 미구현 → 3단계(모달)로 떨어져야 한다
+  w.document.execCommand = undefined;
+  copyBtn.click();
+  const modal = await waitFor(() => d.querySelector('.modal textarea, textarea.modal-text, [role="dialog"] textarea'), 'clipboard fallback modal', 4000).catch(() => null);
+  check(!!modal, 'clipboard: 3단 폴백 최종 단계(모달) 진입');
+  if (modal) {
+    const txt = modal.value;
+    check(txt.includes('[문제]') && txt.includes('[내 답]') && txt.includes('[정답]') && txt.includes('풀이 과정을 설명해줘'), 'clipboard: 프롬프트 4요소 포함');
+    check(txt.includes('내용결합도') && txt.includes('ㄴ') && /결합도\(Coupling\)/.test(txt), 'clipboard: 지문(bodyText)+내 답+정답 실제 값 포함');
+    check(!/<[a-z]+[^>]*>|&[a-z]+;/i.test(txt.replace(/<stdio\.h>/g, '')), 'clipboard: 프롬프트에 HTML 태그/엔티티 없음');
+    const sel = d.activeElement === modal || (modal.selectionStart === 0 && modal.selectionEnd === txt.length);
+    check(sel, 'clipboard: 모달 textarea 전체 선택 상태', 'active=' + (d.activeElement === modal) + ' sel=' + modal.selectionStart + '..' + modal.selectionEnd + '/' + txt.length);
+    check(/Ctrl\+C|길게 눌러/.test(d.body.textContent), 'clipboard: 기기별 안내 문구 표시');
+    // 모달이 남아 있으면 뒤의 클릭·포커스 검사를 방해한다 — 걷어낸다
+    const backdrop = d.querySelector('.modal-backdrop');
+    if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+  }
+
+  // ---------- 4. 정답 이의 제기(인라인 textarea) → reports.json ----------
+  // 토글/전송마다 render() 가 카드를 다시 만든다 — 매번 data-q 로 다시 찾는다.
+  const findQ3 = () => d.querySelector('.q[data-q="2026-2#3"]');
+  check(!!findQ3(), 'study: 오답 카드를 data-q 로 식별', findQ3() ? findQ3().getAttribute('data-q') : '없음');
+  const reportBtn = [...findQ3().querySelectorAll('button')].find(b => /정답 이의 제기/.test(b.textContent));
+  check(!!reportBtn, 'study: 오답 카드에 "정답 이의 제기" 버튼');
+  if (reportBtn) {
+    check(!findQ3().querySelector('.report-box'), 'report: 처음에는 입력 상자가 닫혀 있다');
+    reportBtn.click();
+    await sleep(80);
+    const ta = findQ3().querySelector('.report-box textarea');
+    check(!!ta, 'report: 버튼을 누르면 인라인 textarea 가 열린다 (A6)');
+    if (ta) {
+      ta.value = 'headless 테스트 신고';
+      ta.dispatchEvent(new w.Event('input', { bubbles: true }));
+      const send = [...findQ3().querySelectorAll('.report-box button')].find(b => /보내기/.test(b.textContent));
+      check(!!send, 'report: "보내기" 버튼 존재');
+      if (send) {
+        send.click();
+        const rep = await waitFor(() => { try { const j = JSON.parse(fs.readFileSync(path.join(TMP, 'reports.json'), 'utf8')); return j.length ? j : null; } catch (_) { return null; } }, 'reports.json entry', 5000).catch(() => null);
+        check(!!rep && rep[0].questionId === '2026-2#3' && /신고/.test(rep[0].comment || ''), 'reports: reports.json 에 1건 적재 (questionId, comment)', JSON.stringify(rep && rep[0]));
+        await sleep(150);
+        const done = [...findQ3().querySelectorAll('button')].find(b => /이의 제기 접수됨/.test(b.textContent));
+        check(!!done && done.disabled === true, 'report: 접수 후 버튼이 "이의 제기 접수됨" 으로 잠긴다',
+          done ? 'disabled=' + done.disabled : '버튼 없음');
+        check(/접수되었습니다/.test(findQ3().textContent), 'report: 접수 상태 문구가 카드에 남는다');
+      }
+    }
+  }
+  check(st.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0, 'study: JS 오류 없음 (jsdom 미구현 경고 제외)', st.errors.slice(0, 2).join(' | '));
+
+  // ---------- 5. 학습 이력 (A1) ----------
+  const hist = await (await makeFetch()('/api/me/history')).json().catch(() => null);
+  check(!!hist && hist.rounds && typeof hist.wrongCount === 'number',
+    'history: GET /api/me/history 계약 형태', JSON.stringify(hist && { rounds: Object.keys(hist.rounds || {}), wrongCount: hist.wrongCount, recent: (hist.recent || []).length }));
+
+  const idx2 = await load('/');
+  await waitFor(() => idx2.window.document.querySelector('#studyBox .card'), '내 학습 카드', 6000).catch(() => null);
+  const sBox = idx2.window.document.getElementById('studyBox');
+  check(!!sBox && !sBox.hidden && /오답노트\s*\(\d+문항\)/.test(sBox.textContent),
+    'index: 로그인 시 "내 학습" 카드 + 오답노트 버튼(문항 수)', sBox ? sBox.textContent.replace(/\s+/g, ' ').slice(0, 90) : '없음');
+  const wrongLink = idx2.window.document.querySelector('#studyBox a[href="/study.html?set=wrong"]');
+  check(!!wrongLink && /오답노트 \(16문항\)/.test(wrongLink.textContent),
+    'index: 오답노트 링크가 오답 16문항을 가리킨다', wrongLink ? wrongLink.textContent : '링크 없음');
+  check(/2026년 2회|2026-2/.test(sBox ? sBox.textContent : ''), 'index: 최근 결과 목록에 방금 푼 회차 표시',
+    sBox ? (sBox.querySelector('.history-list') || {}).textContent : '없음');
+
+  const badge = await waitFor(() => idx2.window.document.querySelector('a[href*="round=2026-2"] .badge'), '회차 뱃지', 6000).catch(() => null);
+  check(!!badge && /최근\s*20점/.test(badge.textContent) && /1회/.test(badge.textContent),
+    'index: 회차 버튼에 "최근 N점 · 최고 M점 · K회" 뱃지', badge ? badge.textContent : '뱃지 없음');
+
+  // ---------- 6. 오답노트 (B2) ----------
+  const wr = await load('/study.html?set=wrong');
+  const wrongN = hist ? hist.wrongCount : 0;
+  const wrCards = await waitFor(() => { const c = wr.window.document.querySelectorAll('.q'); return c.length > 0 ? c : null; }, '오답노트 문항', 6000).catch(() => null);
+  check(!!wrCards && wrCards.length === wrongN,
+    'wrong: /study.html?set=wrong 문항 수 == history.wrongCount', (wrCards ? wrCards.length : 0) + ' / ' + wrongN);
+  check(/오답노트/.test(wr.window.document.getElementById('roundTitle').textContent),
+    'wrong: 제목이 "오답노트"', wr.window.document.getElementById('roundTitle').textContent);
+
+  // ---------- 7. 랜덤 모의고사 (B1) ----------
+  const pr = await load('/study.html?set=practice&rounds=all&count=10');
+  const prCards = await waitFor(() => { const c = pr.window.document.querySelectorAll('.q'); return c.length === 10 ? c : null; }, '모의고사 10문항', 6000).catch(() => null);
+  check(!!prCards && prCards.length === 10, 'practice: rounds=all&count=10 → 문항 10개', prCards ? prCards.length : (pr.window.document.getElementById('questions') || {}).textContent);
+  const prSubmit = [...pr.window.document.querySelectorAll('button')].find(b => /제출하고 채점/.test(b.textContent));
+  check(!!prSubmit, 'practice: 제출 버튼 존재');
+  if (prSubmit) {
+    prSubmit.click();
+    const prBoard = await waitFor(() => { const b = pr.window.document.getElementById('scoreBoard'); return b && b.classList.contains('shown') ? b : null; }, 'practice 채점 결과', 6000).catch(() => null);
+    check(!!prBoard && /\d+점\s*\/\s*100점/.test(prBoard.textContent),
+      'practice: POST /api/practice/grade 로 채점되고 점수판이 뜬다', prBoard ? prBoard.textContent.replace(/\s+/g, ' ').slice(0, 50) : '점수판 없음');
+  }
+  check(pr.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0, 'practice: JS 오류 없음', pr.errors.slice(0, 2).join(' | '));
+
+  // ---------- 8. 로그아웃 → 랭킹 페이지 리다이렉트 ----------
+  if (logoutBtn) {
+    logoutBtn.click();
+    await sleep(400);
+    const me2 = await (await makeFetch()('/api/auth/me')).json();
+    check(me2.user === null, 'auth: 로그아웃 후 me 가 null', JSON.stringify(me2));
+  }
+
+  const rk = await load('/ranking.html');
+  await sleep(600);
+  const rkText = rk.window.document.body.textContent;
+  // ranking.js 는 비로그인 시 location.replace('/?msg=…') 로 보낸다. jsdom 은 내비게이션을 구현하지 않고 'Not implemented: navigation' 오류를 낸다 → 그 오류가 곧 리다이렉트 시도의 증거.
+  const navAttempt = rk.errors.some(e => /navigation/i.test(e));
+  check(navAttempt || /로그인/.test(rkText) || rk.window.location.pathname === '/', 'ranking: 비로그인 시 로그인 페이지로 리다이렉트 시도', navAttempt ? 'location.replace 호출됨' : rk.window.location.pathname);
+
+  // 비로그인 오답노트 → 로그인 안내
+  const wrOut = await load('/study.html?set=wrong');
+  await waitFor(() => /로그인이 필요합니다/.test(wrOut.window.document.body.textContent) ? true : null, '오답노트 로그인 안내', 5000).catch(() => null);
+  check(/로그인이 필요합니다/.test(wrOut.window.document.body.textContent),
+    'wrong: 비로그인 접근 시 "로그인이 필요합니다" 안내',
+    (wrOut.window.document.getElementById('questions') || {}).textContent);
+
+  // ---------- 9. 채점 기록이 없는 새 계정 — 빈 오답노트 ----------
+  // 서버는 questions: [] / wrongCount: 0 을 200 으로 준다 (오류가 아니다).
+  const nick2 = 'hz' + (T0 % 100000);
+  const su2 = await makeFetch()('/api/auth/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nickname: nick2, password: 'pw1234' }),
+  });
+  check(su2.status === 200, 'auth: 두 번째 계정 가입', su2.status);
+  const hist0 = await (await makeFetch()('/api/me/history')).json();
+  check(hist0.wrongCount === 0 && (hist0.recent || []).length === 0,
+    'history: 기록 없는 계정은 wrongCount 0 / recent 빈 배열', JSON.stringify(hist0));
+
+  const idx3 = await load('/');
+  await waitFor(() => idx3.window.document.querySelector('#studyBox .card'), '새 계정 내 학습 카드', 6000).catch(() => null);
+  const sBox0 = idx3.window.document.getElementById('studyBox');
+  check(!!sBox0 && /오답노트\s*\(0문항\)/.test(sBox0.textContent) && /아직 채점 기록이 없습니다/.test(sBox0.textContent),
+    'index: 기록 없는 계정 — 빈 이력 안내 + 오답노트 (0문항)',
+    sBox0 ? sBox0.textContent.replace(/\s+/g, ' ').slice(0, 90) : '없음');
+  check(!idx3.window.document.querySelector('#studyBox a[href="/study.html?set=wrong"]')
+    && !!idx3.window.document.querySelector('#studyBox .btn-link.disabled'),
+    'index: 오답노트가 비면 링크 대신 비활성 버튼');
+  check(!idx3.window.document.querySelector('.round-btn .badge'), 'index: 기록 없는 계정에는 회차 뱃지 없음');
+
+  const wr0 = await load('/study.html?set=wrong');
+  await waitFor(() => wr0.window.document.querySelector('.empty-state'), '빈 오답노트 화면', 6000).catch(() => null);
+  const empty = wr0.window.document.querySelector('.empty-state');
+  check(!!empty && /틀린 문항이 없습니다/.test(empty.textContent)
+    && !!empty.querySelector('a[href="/"]'),
+    'wrong: 오답노트가 비면 빈 상태 UI + 돌아가기 링크', empty ? empty.textContent.replace(/\s+/g, ' ').slice(0, 70) : '.empty-state 없음');
+  check(wr0.window.document.getElementById('btnbar').hidden === true, 'wrong: 빈 오답노트에서는 제출 버튼을 숨긴다');
+  check(wr0.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0, 'wrong: JS 오류 없음', wr0.errors.slice(0, 2).join(' | '));
+
+  console.log('\n' + (failures === 0 ? 'HEADLESS OK' : 'HEADLESS FAIL — ' + failures + ' check(s) failed'));
+  shutdown(failures === 0 ? 0 : 1);
+})().catch(e => { console.error('HEADLESS ERROR', e.stack || e.message); shutdown(1); });

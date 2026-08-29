@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대전 · 정처기 배틀</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="/css/battle.css">
+</head>
+<body>
+
+<!--
+  화면은 전부 public/js/battle.js 가 그린다.
+  이 문서에 있는 것은 스크립트가 통째로 채워 넣는 세 개의 빈 그릇뿐이다:
+    #nav    상단 내비 (부팅 시 1회)
+    #notice 연결 상태 배너 · 토스트 (매 렌더마다 통째 재작성)
+    #view   로비 / 대기실 / 대전 / 결과 (패널 단위 통째 재작성)
+  마크업을 여기에 미리 심어 두면 부분 DOM 패치의 유혹이 생기므로 일부러 비워 둔다.
+-->
+
+<nav class="topnav" id="nav"></nav>
+
+<div class="wrap">
+  <div id="notice"></div>
+  <noscript>
+    <div class="banner err">이 페이지는 자바스크립트가 필요합니다. 브라우저에서 자바스크립트를 켜 주세요.</div>
+  </noscript>
+  <main id="view">
+    <div class="empty">불러오는 중…</div>
+  </main>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/clipboard.js"></script>
+<script src="/js/battle.js"></script>
+</body>
+</html>
