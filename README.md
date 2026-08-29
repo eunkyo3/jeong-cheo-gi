@@ -13,6 +13,28 @@
 (나중에 그 문항을 맞히면 노트에서 빠집니다). 여러 회차를 섞어 5~60문항을 뽑는 **랜덤 모의고사**도 학습 모드에서 바로 풀 수 있습니다.
 오답노트와 모의고사 결과 역시 이력에 함께 기록됩니다.
 
+## 실행 화면
+
+| 메인 — 학습 이력 · 오답노트 · 랜덤 모의고사 | 학습 모드 — 채점 결과 (타이머·오답 카드) |
+|---|---|
+| ![메인](docs/screenshots/01-index.png) | ![채점 결과](docs/screenshots/03-study-graded.png) |
+
+| 오답 카드 — AI 질문 복사 · 이의 제기 | 대전 로비 — 방 코드 참여 · 랜덤 회차 전체 선택 |
+|---|---|
+| ![오답 카드](docs/screenshots/04-study-wrong-card.png) | ![대전 로비](docs/screenshots/05-battle-lobby.png) |
+
+| 대기실 — 방 코드 공유 | 대전 진행 — 남은 시간 · 실시간 진행 현황 |
+|---|---|
+| ![대기실](docs/screenshots/06-waiting-room.png) | ![대전 진행](docs/screenshots/07-battle-playing.png) |
+
+| 대전 결과 — 승자 판정 · 문항별 채점 | 랭킹 — 승/무/패/승점 |
+|---|---|
+| ![대전 결과](docs/screenshots/08-result.png) | ![랭킹](docs/screenshots/09-ranking.png) |
+
+| 모바일 — 오답노트 채점 | 모바일 — AI 질문 복사(클립보드 폴백 모달) |
+|---|---|
+| <img src="docs/screenshots/10-mobile-wrong-note.png" width="300"> | <img src="docs/screenshots/11-mobile-ai-copy-modal.png" width="300"> |
+
 ---
 
 ## 실행
@@ -113,11 +135,37 @@ HTTPS, 이메일 인증, 비밀번호 찾기, 계정 잠금, 요청 제한(rate 
 
 ## 문제 데이터
 
-- 출처: [chobopark.tistory.com](https://chobopark.tistory.com/561) 의 복원 기출 (2020년 1회 ~ 2026년 2회, **총 21회차**).
+- 출처: [chobopark.tistory.com](https://chobopark.tistory.com) 의 복원 기출 (2020년 1회 ~ 2026년 2회, **총 21회차 420문항**). 회차별 출처는 아래 표와 각 JSON 의 `sourceUrl` 에 있습니다.
 - 수집 시점에 텍스트/HTML로 변환해 `data/rounds/*.json` 에 저장합니다.
   블로그 이미지 URL은 서명이 만료되므로 **핫링크하지 않습니다**(표·코드는 판독해 HTML로 재현).
 - 판독 불가로 제외한 문항은 `data/excluded.md` 에 사유와 함께 기록됩니다.
 - 회차별 복원·검증·감사 진행 상황은 `data/PROGRESS.md` 에 있습니다.
+
+### 회차별 출처
+
+| 회차 | 문항 수 | 출처 |
+|---|---|---|
+| 2020년 1회 | 20 | <https://chobopark.tistory.com/196> |
+| 2020년 2회 | 20 | <https://chobopark.tistory.com/195> |
+| 2020년 3회 | 20 | <https://chobopark.tistory.com/194> |
+| 2020년 4회 | 20 | <https://chobopark.tistory.com/192> |
+| 2021년 1회 | 20 | <https://chobopark.tistory.com/191> |
+| 2021년 2회 | 20 | <https://chobopark.tistory.com/210> |
+| 2021년 3회 | 20 | <https://chobopark.tistory.com/217> |
+| 2022년 1회 | 20 | <https://chobopark.tistory.com/271> |
+| 2022년 2회 | 20 | <https://chobopark.tistory.com/423> |
+| 2022년 3회 | 20 | <https://chobopark.tistory.com/424> |
+| 2023년 1회 | 20 | <https://chobopark.tistory.com/372> |
+| 2023년 2회 | 20 | <https://chobopark.tistory.com/420> |
+| 2023년 3회 | 20 | <https://chobopark.tistory.com/453> |
+| 2024년 1회 | 20 | <https://chobopark.tistory.com/476> |
+| 2024년 2회 | 20 | <https://chobopark.tistory.com/483> |
+| 2024년 3회 | 20 | <https://chobopark.tistory.com/495> |
+| 2025년 1회 | 20 | <https://chobopark.tistory.com/540> |
+| 2025년 2회 | 20 | <https://chobopark.tistory.com/554> |
+| 2025년 3회 | 20 | <https://chobopark.tistory.com/558> |
+| 2026년 1회 | 20 | <https://chobopark.tistory.com/561> |
+| 2026년 2회 | 20 | <https://chobopark.tistory.com/562> |
 
 ### 저작권 방침
 
