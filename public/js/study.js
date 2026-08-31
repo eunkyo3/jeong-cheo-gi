@@ -30,8 +30,9 @@
     roundId: '',      // mode==='round' 일 때만 의미 있다
     round: null,      // {round,title,sourceUrl,questions[]}
     answers: {},      // qid -> [string]
-    result: null,     // {correctCount,totalCount,score,details[],bodyTexts{}}
+    result: null,     // {correctCount,totalCount,score,details[],bodyTexts{},explanations{}}
     submitting: false,
+    showExplain: {},  // qid -> true (해설 펼침 — 채점 후에만 의미 있다)
     // 이의 제기 인라인 상자 (battle.js 와 같은 모양)
     reportOpen: {},   // qid -> true
     reportText: {},   // qid -> string
@@ -478,6 +479,42 @@
       });
   }
 
+  /**
+   * 문항 해설 HTML. 채점 응답의 최상위 `explanations[qid]` 에서 온다 —
+   * 채점 전에는 서버가 보내지 않으므로 항상 빈 문자열이다.
+   */
+  function explanationOf(qid) {
+    var map = (state.result && state.result.explanations) || {};
+    var html = map[qid];
+    return typeof html === 'string' ? html : '';
+  }
+
+  /**
+   * "해설 보기" 토글 + 펼쳐진 해설 상자.
+   * 정답·오답 카드 모두에 달린다. 해설이 없는 문항에는 버튼조차 만들지 않는다.
+   */
+  function renderExplain(question, actions, card) {
+    var qid = question.id;
+    var html = explanationOf(qid);
+    if (!html) return;
+
+    var open = !!state.showExplain[qid];
+    var toggle = el('button', 'ghost', open ? '해설 닫기' : '해설 보기');
+    toggle.type = 'button';
+    toggle.setAttribute('data-explain', qid);
+    toggle.addEventListener('click', function () {
+      state.showExplain[qid] = !state.showExplain[qid];
+      render();
+    });
+    actions.appendChild(toggle);
+
+    if (!open) return;
+    var box = el('div', 'explain-box');
+    // 서버가 검증(validate:explain)해서 내려주는 신뢰 마크업이다 — 화이트리스트 태그만 들어 있다.
+    box.innerHTML = html;
+    card.appendChild(box);
+  }
+
   function renderReport(question, detail, actions, card) {
     var qid = question.id;
     var sent = state.reportStatus[qid] === REPORT_DONE;
@@ -607,17 +644,21 @@
       }
       card.appendChild(fb);
 
-      if (!detail.correct) {
-        var actions = el('div', 'q-actions');
+      // 해설 상자는 피드백 줄 바로 아래, 버튼 줄 위에 온다.
+      // (아래 insertBefore 가 actions 를 .explain-box 뒤 · .report-box 앞에 끼워 넣는다)
+      var actions = el('div', 'q-actions');
+      renderExplain(question, actions, card);
 
+      if (!detail.correct) {
         var askBtn = el('button', null, 'AI에게 질문하기');
         askBtn.type = 'button';
         askBtn.addEventListener('click', function () { onAskAi(question, detail); });
         actions.appendChild(askBtn);
 
         renderReport(question, detail, actions, card);
-        card.insertBefore(actions, card.querySelector('.report-box'));
       }
+
+      if (actions.childNodes.length) card.insertBefore(actions, card.querySelector('.report-box'));
     }
 
     return card;
@@ -758,6 +799,7 @@
   function reset() {
     state.result = null;
     state.answers = {};
+    state.showExplain = {};
     state.reportOpen = {};
     state.reportText = {};
     state.reportStatus = {};

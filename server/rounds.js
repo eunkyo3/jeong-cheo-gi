@@ -14,6 +14,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROUNDS_DIR = path.join(__dirname, '..', 'data', 'rounds');
+const EXPLAIN_DIR = path.join(__dirname, '..', 'data', 'explanations');
 
 /** @type {Array<object>} 연도→회차 오름차순 정렬된 회차 원본 */
 let ordered = [];
@@ -61,6 +62,59 @@ function validateRound(data, file) {
   return data;
 }
 
+// ---------------------------------------------------------------- 해설 부착
+
+/**
+ * `data/explanations/<round>.json` 을 읽어 문항 객체에 `explanationHtml` 을 붙인다.
+ *
+ * **내부 전용 필드다.** publicQuestion() 이 화이트리스트 방식이라 클라이언트로 나가는 문항
+ * 사본에는 절대 실리지 않는다(battle.js 의 publicQuestion 도 마찬가지). 해설은 채점이
+ * 끝난 뒤 채점 응답·battle:finished 페이로드로만 나간다 — PROTOCOL.md "채점 전 비노출".
+ *
+ * 해설은 부가 자산이므로, 파일이 없거나 깨져도 서버는 그냥 뜬다(경고 후 건너뜀).
+ *
+ * @returns {{ files: number, attached: number }}
+ */
+function loadExplanations() {
+  let files = [];
+  try {
+    files = fs.readdirSync(EXPLAIN_DIR).filter(function (f) { return f.toLowerCase().endsWith('.json'); });
+  } catch (e) {
+    if (e.code !== 'ENOENT') console.warn('[rounds] ' + EXPLAIN_DIR + ' 를 읽을 수 없습니다: ' + e.message);
+    return { files: 0, attached: 0 };
+  }
+
+  let ok = 0;
+  let attached = 0;
+  for (const file of files.sort()) {
+    const full = path.join(EXPLAIN_DIR, file);
+    let doc;
+    try {
+      doc = JSON.parse(fs.readFileSync(full, 'utf8'));
+    } catch (e) {
+      console.warn('[rounds] 해설 ' + file + ' 건너뜀 — ' + e.message);
+      continue;
+    }
+    if (!doc || typeof doc !== 'object' || !doc.explanations || typeof doc.explanations !== 'object') {
+      console.warn('[rounds] 해설 ' + file + ' 건너뜀 — explanations 객체가 없습니다.');
+      continue;
+    }
+    ok++;
+    for (const qid of Object.keys(doc.explanations)) {
+      const html = doc.explanations[qid];
+      if (typeof html !== 'string' || html === '') continue;
+      const q = byQuestionId.get(qid);
+      if (!q) {
+        console.warn('[rounds] 해설 ' + file + ': 알 수 없는 문항 id ' + qid + ' — 무시합니다.');
+        continue;
+      }
+      q.explanationHtml = html;
+      attached++;
+    }
+  }
+  return { files: ok, attached: attached };
+}
+
 // -------------------------------------------------------------------- 로드
 
 function reload() {
@@ -106,7 +160,11 @@ function reload() {
   }
 
   ordered.sort(compareRounds);
-  return { loaded: ordered.length, skipped: skipped };
+
+  // 문항 인덱스가 완성된 뒤에 해설을 얹는다.
+  const ex = loadExplanations();
+
+  return { loaded: ordered.length, skipped: skipped, explanationFiles: ex.files, explanations: ex.attached };
 }
 
 // -------------------------------------------------------------------- 조회
@@ -148,10 +206,23 @@ function hasRound(id) {
 }
 
 /**
+ * 문항 해설 HTML. 없으면 빈 문자열.
+ * **채점이 끝난 뒤에만** 응답에 실어야 한다(PROTOCOL.md "채점 전 비노출").
+ */
+function explanationOf(qid) {
+  const q = byQuestionId.get(qid);
+  return q && typeof q.explanationHtml === 'string' ? q.explanationHtml : '';
+}
+
+/**
  * 클라이언트 전송용 문항 사본.
  * 남기는 것: id, num, prompt, bodyHtml, fields[].label
- * 제거하는 것: accept, sampleAnswer, validator, normalize, display, bodyText, sourceImages, answerMode
+ * 제거하는 것: accept, sampleAnswer, validator, normalize, display, bodyText, sourceImages,
+ *              answerMode, explanationHtml
  * (SCHEMA.md "클라이언트에 절대 전송 금지")
+ *
+ * **화이트리스트 방식**이라 문항 객체에 무슨 필드가 새로 붙든 자동으로 걸러진다 —
+ * explanationHtml 도 여기서는 절대 나가지 않는다(채점 응답에서만 나간다).
  */
 function publicQuestion(q) {
   return {
@@ -169,6 +240,9 @@ const stats = reload();
 if (stats.loaded === 0) {
   console.warn('[rounds] 로드된 회차가 없습니다. data/rounds/*.json 을 확인하세요.');
 }
+if (stats.explanationFiles === 0) {
+  console.warn('[rounds] 해설 파일이 없습니다. data/explanations/*.json (해설 없이도 동작합니다).');
+}
 
 module.exports = {
   ROUNDS_DIR: ROUNDS_DIR,
@@ -177,6 +251,7 @@ module.exports = {
   getQuestion: getQuestion,
   allQuestions: allQuestions,
   hasRound: hasRound,
+  explanationOf: explanationOf,
   publicQuestion: publicQuestion,
   reload: reload,
 };

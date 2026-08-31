@@ -125,6 +125,45 @@ sqlite 어댑터는 기동 시 `PRAGMA table_info` 로 두 컬럼이 없으면 `
 랭킹: 매치당 1등 +3, 그 외 참가 +1, 무승부 매치는 전원 +1(1등 없음).
 표시: 순위·닉네임·승·무·패(=참가−승−무)·승점. 정렬: 승점 → 승수 → 닉네임.
 
+## 해설 JSON 스키마 (`data/explanations/{round}.json`)
+
+문항 해설은 **회차 파일과 완전히 분리된 별도 자산**이다. 감사 완료된 `data/rounds/*.json` 은 건드리지 않는다.
+
+```json
+{
+  "round": "2026-2",
+  "explanations": {
+    "2026-2#1": "<p>정답은 <mark>내용 결합도</mark>입니다.</p><p>…</p>",
+    "2026-2#2": "…"
+  }
+}
+```
+
+| 규칙 | 내용 |
+|---|---|
+| 파일 1개 = 회차 1개 | 파일명은 `{round}.json`, 최상위 `round` 필드가 **파일명과 일치**해야 한다 |
+| 커버리지 | 그 회차의 **모든 문항 id 를 정확히** 커버한다 — 누락·잉여 모두 실패 |
+| 값 | 문자열 HTML. 길이 **150~1500자**(태그 포함) |
+| 허용 태그 | `p b mark br ul ol li code pre` **만**. `<br/>` `<br />` 도 허용, 대소문자 무시 |
+| 속성 | **전면 금지** (`<p class="x">` 는 실패) |
+| 이스케이프 | 코드·수식의 `<` `>` `&` 는 엔티티(`&lt;` `&gt;` `&amp;`)로 쓴다 — 태그가 아닌 날 `<` 는 실패 |
+| 금지 | `<script`(대소문자 무시), `javascript:` 는 즉시 실패 |
+| 인코딩 | UTF-8 |
+
+검증: `npm run validate:explain` (전체 모드 — 전 회차 파일 필수) /
+`node scripts/validate-explanations.mjs --partial` (집필 중 체크포인트 — 존재하는 파일만).
+`npm run preflight` 의 ⑥단계가 전체 모드로 게이트한다(해설 파일이 0개면 건너뛴다).
+
+**노출 시점**: 서버는 기동 시 이 파일들을 읽어 문항 객체에 `explanationHtml` 로 붙인다(내부 전용).
+클라이언트에는 **채점이 끝난 뒤에만** 나간다 — 아래 "클라이언트에 절대 전송 금지" 참조.
+
+작성 지침은 `data/explanations/_TEMPLATE.md`, 진행 현황은 `data/explanations/PROGRESS.md`.
+
 ## 클라이언트에 절대 전송 금지
 
-`accept`, `sampleAnswer`, `validator`, `display`(채점 전) — 서버에서 반드시 제거하고 내보낸다.
+`accept`, `sampleAnswer`, `validator`, `display`(채점 전), `explanationHtml` — 서버에서 반드시 제거하고 내보낸다.
+
+`explanationHtml` 은 정답을 그대로 서술하므로 **채점 전 노출은 정답 유출과 같다.**
+`rounds.publicQuestion()` · `battle.publicQuestion()` 은 둘 다 **화이트리스트 방식**이라 문항 객체에
+어떤 필드가 새로 붙어도 자동으로 걸러진다. 해설은 채점 응답의 `explanations{}` 맵과
+`battle:finished` 페이로드로만 나간다(PROTOCOL.md).

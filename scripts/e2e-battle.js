@@ -136,6 +136,9 @@ function readStudyResults() {
   log('questions received by B:', qs.questions.length, '| leak check:', JSON.stringify(Object.keys(qs.questions[0])), '| field keys:', JSON.stringify(Object.keys(qs.questions[0].fields[0])));
   const leak = qs.questions.some(q => q.accept || q.sampleAnswer || q.display || q.sourceImages || q.fields.some(f => f.accept || f.validator || f.sampleAnswer));
   log('ANSWER LEAK:', leak ? 'YES — FAIL' : 'none');
+  // 해설은 정답을 그대로 담고 있다 — 대전 중 페이로드에는 흔적조차 없어야 한다(PROTOCOL "채점 전 비노출").
+  check(!/explanationHtml|"explanations"/.test(JSON.stringify(qs)),
+    'battle:questions 에 explanationHtml/explanations 없음');
   // A answers 2 questions (values unknown -> just fill), B answers 1
   const q0 = qs.questions[0], q1 = qs.questions[1];
   sA.emit('battle:answer', { questionId: q0.id, fieldIndex: 0, value: 'x' });
@@ -149,6 +152,8 @@ function readStudyResults() {
   const sB2 = await sock(b.cookie, 'B2');
   const rs = await waitFor(sB2, 'battle:resync', () => true, 5000);
   const restored = rs.myAnswers && rs.myAnswers[q0.id] && rs.myAnswers[q0.id][0]; log('B2 resync:', rs.state, 'questions', rs.questions.length, 'remainingMs', rs.remainingMs, '| restored answer:', JSON.stringify(restored), restored === 'B-typed-this' ? 'OK' : 'FAIL — not restored');
+  check(!/explanationHtml|"explanations"/.test(JSON.stringify(rs)),
+    'battle:resync 에 explanationHtml/explanations 없음');
 
   // ------------------------------- 제출자 간 정오 공유 (battle:marks, 제출자 전용 개별 발송)
   // A 만 제출한 시점: A 는 자기 정오표를 받고, 미제출자 B 는 한 건도 받지 못해야 한다.
@@ -172,6 +177,25 @@ function readStudyResults() {
   sB2.emit('battle:submit', {});
   const fin = await waitFor(sA, 'battle:finished');
   log('FINISHED winner', fin.winnerUserId, 'results', JSON.stringify(fin.results.map(r => [r.userId, r.correctCount, r.score])), 'details', fin.details ? fin.details.length : 'none');
+
+  // ---- 해설: 채점이 끝난 battle:finished 에서만 나간다 (전 문항 키 존재, 값은 집필 진행에 따라 빈 문자열일 수 있다)
+  check(fin.explanations && typeof fin.explanations === 'object',
+    'battle:finished 에 최상위 explanations 맵이 있다: ' + typeof fin.explanations);
+  const exKeys = Object.keys(fin.explanations || {});
+  check(exKeys.length === qs.questions.length && qs.questions.every(q => q.id in fin.explanations),
+    'explanations 는 출제 전 문항 id 를 키로 갖는다 (' + exKeys.length + '/' + qs.questions.length + ')');
+  check(exKeys.every(k => typeof fin.explanations[k] === 'string'),
+    'explanations 값은 전부 문자열이다');
+  // 해설 데이터가 이미 집필됐다면 실제로 실려 나오는지까지 본다(집필 전에는 건너뛴다).
+  const EXPLAIN_2026_2 = path.join(ROOT, 'data', 'explanations', '2026-2.json');
+  if (fs.existsSync(EXPLAIN_2026_2)) {
+    const wrote = JSON.parse(fs.readFileSync(EXPLAIN_2026_2, 'utf8')).explanations || {};
+    const someQid = qs.questions.map(q => q.id).find(id => typeof wrote[id] === 'string' && wrote[id] !== '');
+    check(!!someQid && fin.explanations[someQid] === wrote[someQid],
+      'battle:finished 가 data/explanations/2026-2.json 의 해설을 그대로 싣는다 (' + someQid + ')');
+  } else {
+    log('SKIP', 'data/explanations/2026-2.json 미작성 — 해설 실체 검사 건너뜀');
+  }
   await sleep(300);
   const marksCount = s => s.__seen.filter(e => e === 'battle:marks').length;
   check(marksCount(sA) === 1, '종료 이벤트에는 marks 를 내지 않는다 — A 의 battle:marks 누계 1건 (실제 ' + marksCount(sA) + ')');

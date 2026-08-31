@@ -369,6 +369,55 @@ table.res td {
 table.res tr.win td { background: #f3fbf6; font-weight: bold; }
 table.res tr.self td { box-shadow: inset 3px 0 0 #2e9e5b; }
 
+/* 해설 상자 — 채점 후 "해설 보기" 로 펼친다. 서버가 검증한 화이트리스트 마크업만 들어온다
+   (p b mark br ul ol li code pre). 정답·오답 카드 양쪽에서 같은 모양으로 읽혀야 한다. */
+.explain-box {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid #dde4ea;
+  border-left: 4px solid #2c5445;
+  border-radius: 8px;
+  background: #f7f9fb;
+  color: #2a3138;
+  font-size: 0.92rem;
+  line-height: 1.75;         /* 긴 설명을 읽어 내려가야 한다 */
+  word-break: break-word;
+}
+.explain-box > * + * { margin-top: 8px; }
+.explain-box p { margin: 0; }
+.explain-box b { color: #16324a; }
+.explain-box ul,
+.explain-box ol { margin: 0; padding-left: 1.35em; }
+.explain-box li + li { margin-top: 4px; }
+.explain-box code {
+  font-family: Consolas, "D2Coding", monospace;
+  font-size: 0.9em;
+  background: #eceff3;
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+.explain-box pre {
+  font-family: Consolas, "D2Coding", monospace;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  background: #eceff3;
+  border-radius: 6px;
+  padding: 10px 12px;
+  overflow-x: auto;          /* 코드는 카드를 밀지 않고 스스로 스크롤한다 */
+  white-space: pre;
+}
+.explain-box pre code { background: none; padding: 0; }
+
+/* 형광펜 강조. 정답 배경(연녹)·오답 배경(연적) 위에서도 읽히는 톤이다. */
+.explain-box mark,
+.feedback mark {
+  background: #fff08a;
+  color: #4a3b00;
+  padding: 0 3px;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
 .qactions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .reportbox { margin-top: 10px; border-top: 1px dashed #d9dedb; padding-top: 10px; }
 .reportbox textarea {

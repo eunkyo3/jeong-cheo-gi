@@ -85,7 +85,8 @@
     floatVisible: false,   // 스크롤이 상단 'live' 패널을 지나쳤는가 — 플로팅 현황 패널 노출 여부(요구 1)
 
     // 결과
-    result: null,         // {results[], winnerUserId, details[], reason}
+    result: null,         // {results[], winnerUserId, details[], reason, explanations{}}
+    showExplain: {},      // {qid: true} — 결과 카드의 해설 펼침
     reportOpen: {},       // {qid: true}
     reportText: {},       // {qid: string}
     reportStatus: {},     // {qid: '...'}
@@ -1009,6 +1010,7 @@
       key: [
         state.result ? state.result.winnerUserId : '',
         state.result ? state.result.results.length : 0,
+        JSON.stringify(state.showExplain),
         JSON.stringify(state.reportOpen),
         JSON.stringify(state.reportStatus),
         JSON.stringify(state.copied),
@@ -1134,6 +1136,16 @@
       });
   }
 
+  /**
+   * 문항 해설 HTML. battle:finished 페이로드의 최상위 `explanations[qid]` 에서 온다 —
+   * battle:questions / battle:resync 에는 들어 있지 않으므로 대전 중에는 항상 빈 문자열이다.
+   */
+  function explanationOf(qid) {
+    var map = (state.result && state.result.explanations) || {};
+    var html = map[qid];
+    return typeof html === 'string' ? html : '';
+  }
+
   function buildDetailCard(detail) {
     var q = questionById(detail.questionId);
     var qid = detail.questionId;
@@ -1164,7 +1176,25 @@
       ]),
     ];
 
+    // 해설 — 정답·오답 카드 모두. 피드백 줄 바로 아래, 버튼 줄 위에 온다.
+    var explainHtml = explanationOf(qid);
+    if (explainHtml && state.showExplain[qid]) {
+      // 서버가 검증(validate:explain)해서 내려주는 신뢰 마크업이다 — 화이트리스트 태그만 들어 있다.
+      kids.push(h('div', { class: 'explain-box', html: explainHtml }));
+    }
+
     var actions = [];
+    if (explainHtml) {
+      actions.push(h('button', {
+        class: 'btn ghost sm',
+        'data-explain': qid,
+        text: state.showExplain[qid] ? '해설 닫기' : '해설 보기',
+        onclick: function () {
+          state.showExplain[qid] = !state.showExplain[qid];
+          render();
+        },
+      }));
+    }
     if (!detail.correct) {
       actions.push(h('button', {
         class: 'btn ghost sm',
@@ -1312,6 +1342,7 @@
     state.progress = {};
     state.submitted = false;
     state.submitPending = false;
+    state.showExplain = {};
     state.reportOpen = {};
     state.reportText = {};
     state.reportStatus = {};
@@ -1566,7 +1597,9 @@
         winnerUserId: p.winnerUserId == null ? null : p.winnerUserId,
         details: p.details || [],
         reason: p.reason || '',
+        explanations: p.explanations && typeof p.explanations === 'object' ? p.explanations : {},
       };
+      state.showExplain = {};
       state.submitPending = false;
       state.marks = []; // 결과 화면이 대체한다 — 채점 현황 카드·플로팅 요약은 더 이상 안 보인다(요구 2)
       state.floatVisible = false;

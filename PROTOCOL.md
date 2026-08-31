@@ -10,7 +10,7 @@
 | GET | `/api/auth/me` | – | `{user}` 또는 `{user:null}` |
 | GET | `/api/rounds` | – | `[{round,title,questionCount}]` (연도 그룹핑은 클라이언트) |
 | GET | `/api/rounds/:id` | – | `{round,title,sourceUrl,questions:[{id,num,prompt,bodyHtml,fields:[{label}]}]}` |
-| POST | `/api/rounds/:id/grade` | `{answers:{qid:[string]}}` | `{round,correctCount,totalCount,score,details[],bodyTexts{}}` (로그인 시 `study_results` 적재) |
+| POST | `/api/rounds/:id/grade` | `{answers:{qid:[string]}}` | `{round,correctCount,totalCount,score,details[],bodyTexts{},explanations{}}` (로그인 시 `study_results` 적재) |
 | GET | `/api/practice` | `?rounds=all\|<id,id,…>&count=<5..60>` | `{setKey:"practice", title, roundIds[], questions:[{id,num,prompt,bodyHtml,fields:[{label}]}]}` / 400 |
 | POST | `/api/practice/grade` | `{setKey:"practice"\|"wrong", answers:{qid:[string]}}` | 회차 채점과 동일 형태(`round`=setKey) / 400 |
 | GET | `/api/me/history` | – (로그인 필수) | `{rounds:{setKey:{count,best,last,lastAt}}, recent:[{round,score,takenAt,total,correct}](≤20, 최신 먼저), wrongCount}` |
@@ -35,6 +35,23 @@
 `/api/rounds/:id` 는 학습 모드 채점 응답의 `bodyTexts` 맵으로 채점 후에만 내보낸다. `sourceImages` 는 어느 쪽에도 보내지 않는다.
 회차 id 는 **인메모리 화이트리스트**로 검사해 경로 순회를 차단한다.
 
+### 해설 — 채점 전 비노출 (동결)
+
+문항 해설(`data/explanations/*.json`, SCHEMA.md)은 정답을 그대로 서술한다. 서버는 기동 시 이를 읽어
+문항 객체에 `explanationHtml` 로 붙이지만 **이 필드는 내부 전용**이다.
+
+- **나가지 않는 곳**: `GET /api/rounds/:id`, `GET /api/practice`, `GET /api/me/wrong`,
+  `battle:questions`, `battle:resync`, `battle:marks` — 전부 `publicQuestion()` 화이트리스트를 거치므로
+  `explanationHtml` 은 구조적으로 실리지 않는다.
+- **나가는 곳(채점 후에만)**:
+  - `POST /api/rounds/:id/grade` · `POST /api/practice/grade` → 최상위 `explanations: {qid: html}`
+    (`bodyTexts` 와 같은 패턴. 해설이 없는 문항은 **빈 문자열**이므로 키는 언제나 전 문항을 덮는다)
+  - `battle:finished` → 최상위 `explanations: {qid: html}` (수신자와 무관하게 **모두 같은 맵**)
+
+프런트는 채점 결과에서만 이 맵을 읽어 "해설 보기" 토글로 `.explain-box` 에 `innerHTML` 로 넣는다 —
+서버가 `validate:explain` 으로 태그 화이트리스트를 강제한 신뢰 마크업이기 때문이다.
+해설이 빈 문자열인 문항에는 버튼 자체를 만들지 않는다.
+
 ## 소켓 이벤트 (전 이벤트 서버 권위, 클라이언트는 표시만)
 
 | 이벤트 | 방향 | 페이로드 |
@@ -51,7 +68,7 @@
 | `battle:marks` | S→C | `{players:[{userId, nickname, marks:{"<qid>": true\|false}}]}` — **제출자에게만 개별 발송(`to=userId`)**. 새 제출이 생길 때마다 제출 완료자 전원에게 최신 전체 목록 재발송. **정오 불리언만** |
 | `battle:tick` | S→C | `{remainingMs}` — 10초 주기 재동기 |
 | `battle:resync` | S→C | `{state, questions, myAnswers, remainingMs, players[], marks?}` — 재접속 시 **스냅샷 1회** (이벤트 재생 금지). `marks` 는 수신자가 제출자이고 `state==="playing"` 일 때만 실린다 |
-| `battle:finished` | S→C | `{results:[{userId,correctCount,score,submittedAt}], winnerUserId(무승부 null), details[](문항별 정오·display)}` |
+| `battle:finished` | S→C | `{results:[{userId,correctCount,score,submittedAt}], winnerUserId(무승부 null), details[](문항별 정오·display), explanations:{qid:html}}` |
 
 **제출자 간 정오 공유 (`battle:marks`)**: 먼저 제출한 사람이 결과를 기다리는 동안 서로의 정오만 확인할 수 있게 한다.
 

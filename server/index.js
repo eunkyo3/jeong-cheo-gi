@@ -158,10 +158,15 @@ app.post('/api/rounds/:id/grade', function (req, res) {
   const answers = sanitizeAnswers(round.questions, (req.body || {}).answers);
   const result = gradeSet(round.questions, answers);
 
-  // 채점 이후에는 정답 표기(display)와 지문 원문(bodyText)을 내보내도 된다.
-  // bodyText 는 "AI에게 질문하기" 프롬프트 조립용 — 채점 전에는 절대 내보내지 않는다.
+  // 채점 이후에는 정답 표기(display)·지문 원문(bodyText)·해설(explanationHtml)을 내보내도 된다.
+  // bodyText 는 "AI에게 질문하기" 프롬프트 조립용, explanations 는 "해설 보기" 용 —
+  // 둘 다 채점 전에는 절대 내보내지 않는다(PROTOCOL.md "채점 전 비노출").
   const bodyTexts = {};
-  for (const q of round.questions) bodyTexts[q.id] = q.bodyText == null ? '' : q.bodyText;
+  const explanations = {};
+  for (const q of round.questions) {
+    bodyTexts[q.id] = q.bodyText == null ? '' : q.bodyText;
+    explanations[q.id] = q.explanationHtml == null ? '' : q.explanationHtml;
+  }
 
   if (req.user) {
     try {
@@ -182,6 +187,7 @@ app.post('/api/rounds/:id/grade', function (req, res) {
     score: result.score,
     details: result.details,
     bodyTexts: bodyTexts,
+    explanations: explanations,
   });
 });
 
@@ -350,8 +356,13 @@ app.post('/api/practice/grade', function (req, res) {
   const answers = sanitizeAnswers(questions, raw);
   const result = gradeSet(questions, answers);
 
+  // 채점 후에만 나가는 부가 자산 — 회차 채점과 같은 규칙이다.
   const bodyTexts = {};
-  for (const q of questions) bodyTexts[q.id] = q.bodyText == null ? '' : q.bodyText;
+  const explanations = {};
+  for (const q of questions) {
+    bodyTexts[q.id] = q.bodyText == null ? '' : q.bodyText;
+    explanations[q.id] = q.explanationHtml == null ? '' : q.explanationHtml;
+  }
 
   if (req.user) {
     try {
@@ -371,6 +382,7 @@ app.post('/api/practice/grade', function (req, res) {
     score: result.score,
     details: result.details,
     bodyTexts: bodyTexts,
+    explanations: explanations,
   });
 });
 

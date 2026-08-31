@@ -9,6 +9,8 @@
  *   ③ 골든 회귀     node scripts/golden-check.mjs
  *   ④ 종단 대전     node scripts/e2e-battle.js (격리 임시 DATA_DIR, 실서버 2인 소켓 대전)
  *   ⑤ 커버리지 집계 data/PROGRESS.md + data/excluded.md 판독 (게이트 아님, 보고)
+ *   ⑥ 해설 검증   node scripts/validate-explanations.mjs (전체 모드)
+ *                 — data/explanations 에 json 이 하나도 없으면 집필 전이므로 SKIP
  *
  * 회차 파일이 20개 더 늘어나도 그대로 동작해야 하므로 현재 상태를 하나도 못박지 않는다.
  * 테스트 파일 목록도 회차 목록도 진행 표도 전부 **디스크에서 읽어** 센다.
@@ -24,6 +26,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TESTS_DIR = path.join(ROOT, 'tests');
 const DATA_DIR = path.join(ROOT, 'data');
 const ROUNDS_DIR = path.join(DATA_DIR, 'rounds');
+const EXPLAIN_DIR = path.join(DATA_DIR, 'explanations');
 const PROGRESS_FILE = path.join(DATA_DIR, 'PROGRESS.md');
 const EXCLUDED_FILE = path.join(DATA_DIR, 'excluded.md');
 
@@ -248,6 +251,26 @@ function main() {
     }
   } else {
     results.push({ name: '⑤ 커버리지 집계', ok: null, ms: 0, detail: '미실행' });
+  }
+
+  // ⑥ 해설 검증 — 해설 파일이 하나라도 있으면 **전체 모드**로 게이트한다.
+  // 집필 전(파일 0개)에는 게이트할 것이 없으므로 건너뛴다. 집필이 끝나면 자동으로 전 회차 필수가 된다.
+  let explainFiles = 0;
+  try {
+    explainFiles = fs.readdirSync(EXPLAIN_DIR).filter((f) => f.toLowerCase().endsWith('.json')).length;
+  } catch { /* 디렉터리 없음 = 0개 */ }
+
+  if (failed) {
+    results.push({ name: '⑥ 해설 검증', ok: null, ms: 0, detail: '미실행' });
+  } else if (explainFiles === 0) {
+    console.log('');
+    console.log('=== ⑥ 해설 검증 ===');
+    console.log('    data/explanations/*.json 이 0개 — 집필 전이므로 건너뜁니다.');
+    results.push({ name: '⑥ 해설 검증', ok: null, ms: 0, detail: '해설 파일 0개 — 건너뜀' });
+  } else {
+    const r = run('⑥ 해설 검증', [path.join(ROOT, 'scripts', 'validate-explanations.mjs')]);
+    results.push({ name: '⑥ 해설 검증', ok: r.ok, ms: r.ms, detail: r.detail });
+    if (!r.ok) failed = '⑥ 해설 검증';
   }
 
   // ------------------------------------------------------------- 요약 출력

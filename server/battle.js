@@ -143,6 +143,8 @@ function publicQuestion(q) {
     prompt: q.prompt,
     bodyHtml: q.bodyHtml,
     bodyText: q.bodyText, // 결과 화면 "AI에게 질문하기" 프롬프트용 — 정답 정보가 아니므로 허용 (PROTOCOL 치팅 방어 참조)
+    // explanationHtml 은 화이트리스트에 없다 — 정답을 그대로 담고 있어 battle:finished 에서만 나간다.
+
     answerMode: q.answerMode === 'unordered' ? 'unordered' : 'ordered',
     fields: (q.fields || []).map(function (f) { return { label: f.label == null ? null : f.label }; }),
   };
@@ -413,6 +415,14 @@ function finish(s, ctx, reason) {
     });
   }
 
+  // 채점이 끝났으므로 해설을 내보내도 된다. 수신자와 무관하게 같은 맵이다(순수성 유지 —
+  // 필요한 데이터는 이미 s.questions 에 있다). battle:questions / resync / marks 에는 절대 싣지 않는다.
+  const explanations = {};
+  for (let i = 0; i < s.questions.length; i++) {
+    const q = s.questions[i];
+    explanations[q.id] = q.explanationHtml == null ? '' : q.explanationHtml;
+  }
+
   const winnerUserId = pickWinner(rows);
   const publicResults = rows.map(function (r) {
     return {
@@ -440,6 +450,7 @@ function finish(s, ctx, reason) {
       winnerUserId: winnerUserId,
       details: detailsByUser[rows[i].userId],
       reason: reason,
+      explanations: explanations,
     }, rows[i].userId));
   }
 

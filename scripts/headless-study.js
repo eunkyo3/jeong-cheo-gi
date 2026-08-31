@@ -179,6 +179,13 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   check(!!firstOrigin && /2026년\s*2회/.test(firstOrigin.textContent),
     'study: 첫 문항 카드에 회차 뱃지 "2026년 2회" 표시', firstOrigin ? firstOrigin.textContent : '.q-origin 없음');
   check(/총\s*20\s*문항/.test(d.body.textContent) && /100\s*점/.test(d.body.textContent), 'study: 헤더 "총 20문항 · 100점 만점" 동적 표기');
+  // ---- 해설: 채점 전에는 버튼도 데이터도 없어야 한다 (PROTOCOL "채점 전 비노출") ----
+  check(![...d.querySelectorAll('button')].some(b => /해설/.test(b.textContent)),
+    'study: 채점 전 DOM 에 "해설" 버튼 없음');
+  const roundRaw = await (await makeFetch()('/api/rounds/2026-2')).text();
+  check(!/explanationHtml|"explanations"/.test(roundRaw),
+    'study: GET /api/rounds/2026-2 응답에 해설 필드 없음');
+
   const inputs = d.querySelectorAll('input.ans');
   check(inputs.length === 26, 'study: 입력 필드 26개 (단일 17 + Q9 4 + Q10 3 + Q12 2)', inputs.length);
 
@@ -267,6 +274,46 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
     check(timerOut.hidden === true && d.getElementById('studyTools').hidden === true,
       'timer: 채점 후 타이머 정지 + 컨트롤 숨김',
       'out.hidden=' + timerOut.hidden + ' tools.hidden=' + d.getElementById('studyTools').hidden);
+  }
+
+  // ---- 해설 토글 (data/explanations/2026-2.json 이 있을 때만) ----
+  const EXPLAIN_FILE = path.join(ROOT, 'data', 'explanations', '2026-2.json');
+  if (fs.existsSync(EXPLAIN_FILE)) {
+    const wrote = JSON.parse(fs.readFileSync(EXPLAIN_FILE, 'utf8')).explanations || {};
+    // 채점된 카드 중 해설이 있는 첫 문항 — 정답/오답을 가리지 않는다.
+    const target = [...d.querySelectorAll('.q')]
+      .map(c => c.getAttribute('data-q'))
+      .find(id => typeof wrote[id] === 'string' && wrote[id] !== '');
+    if (!target) {
+      check(false, 'explain: 2026-2 해설 파일에 이 회차 문항 해설이 하나도 없다');
+    } else {
+      const findCard = () => d.querySelector('.q[data-q="' + target + '"]');
+      const explainBtn = () => [...findCard().querySelectorAll('button')].find(b => /해설 보기|해설 닫기/.test(b.textContent));
+      check(!!explainBtn(), 'explain: 채점된 카드에 "해설 보기" 버튼', target);
+      check(!findCard().querySelector('.explain-box'), 'explain: 처음에는 해설 상자가 닫혀 있다');
+
+      explainBtn().click();
+      const box = await waitFor(() => findCard().querySelector('.explain-box'), '해설 상자', 4000).catch(() => null);
+      check(!!box, 'explain: 클릭하면 .explain-box 가 열린다');
+      if (box) {
+        check(!!box.querySelector('mark, b'), 'explain: 해설 마크업(<mark>/<b>)이 HTML 로 렌더된다',
+          box.innerHTML.replace(/\s+/g, ' ').slice(0, 70));
+        check(box.textContent.trim().length >= 50, 'explain: 해설 본문이 실려 있다', box.textContent.length + '자');
+        // 피드백 줄 아래 · 버튼 줄 위
+        const order = [...findCard().children].map(n => n.className);
+        const iFb = order.findIndex(c => /feedback/.test(c));
+        const iEx = order.findIndex(c => /explain-box/.test(c));
+        const iAc = order.findIndex(c => /q-actions/.test(c));
+        check(iFb >= 0 && iFb < iEx && iEx < iAc, 'explain: 배치가 피드백 → 해설 → 버튼 줄 순서', JSON.stringify(order));
+      }
+      check(/해설 닫기/.test(explainBtn().textContent), 'explain: 열린 뒤 버튼 문구가 "해설 닫기"');
+      explainBtn().click();
+      const closed = await waitFor(() => (findCard().querySelector('.explain-box') ? null : true), '해설 상자 닫힘', 4000).catch(() => null);
+      check(closed === true, 'explain: 다시 클릭하면 해설이 닫힌다');
+      check(/해설 보기/.test(explainBtn().textContent), 'explain: 닫힌 뒤 버튼 문구가 "해설 보기"');
+    }
+  } else {
+    log('SKIP  explain: data/explanations/2026-2.json 미작성 — 해설 UI 검사 건너뜀');
   }
 
   // ---------- 3. AI 질문 복사 → 폴백 모달 ----------
