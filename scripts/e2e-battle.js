@@ -303,6 +303,47 @@ function readStudyResults() {
   sB3.emit('room:join', { roomId: room3.json.roomId });
   const goodState = await goodJoin;
   check(goodState.settings.roomId === room3.json.roomId, '올바른 방 코드로 room:join -> room:state 수신');
+  check(goodState.settings.type === null, '유형 미지정 방은 settings.type === null (전체): ' + JSON.stringify(goodState.settings.type));
+
+  // ---------------------------------------------- 유형 필터 방 (feat-question-types)
+  // 방 생성 시 1회만 적용되고 settings.type 으로 보존된다 — 양쪽이 같은 문항을 봐야 하기 때문이다.
+  log('type filter scenario start');
+  const badType = await req('POST', '/api/rooms',
+    { name: 'x', mode: 'round', roundIds: ['2026-2'], type: 'nope', timeLimitS: 600 }, a.cookie);
+  check(badType.status === 400, '잘못된 type 은 400: ' + badType.status + ' ' + JSON.stringify(badType.json));
+
+  const roundsMeta = await req('GET', '/api/rounds', null, a.cookie);
+  const meta = roundsMeta.json.find(r => r.round === '2026-2');
+  check(!!meta && !!meta.counts && meta.counts.code + meta.counts.sql + meta.counts.theory === meta.questionCount,
+    'GET /api/rounds 의 counts 합계 == questionCount: ' + JSON.stringify(meta && meta.counts));
+
+  const room4 = await req('POST', '/api/rooms',
+    { name: 'e2e-code', mode: 'round', roundIds: ['2026-2'], type: 'code', timeLimitS: 600 }, a.cookie);
+  check(room4.status === 200, 'type=code 방 생성: ' + room4.status + ' ' + JSON.stringify(room4.json));
+  const rid4 = room4.json.roomId;
+
+  // 목록은 참가자가 1명 이상인 waiting 방만 싣는다 — 방장이 들어간 뒤에 조회한다.
+  sA.emit('room:join', { roomId: rid4 });
+  const st4 = await waitFor(sA, 'room:state', p => p.settings.roomId === rid4, 5000);
+  check(st4.settings.type === 'code', 'room:state settings.type === "code": ' + JSON.stringify(st4.settings.type));
+
+  const list4 = await req('GET', '/api/rooms', null, b.cookie);
+  const row4 = list4.json.find(r => r.roomId === rid4);
+  check(!!row4 && row4.type === 'code', 'GET /api/rooms 행에 type=code 가 실린다: ' + JSON.stringify(row4));
+  check(!!row4 && row4.questionCount === meta.counts.code,
+    '방 문항 수 == 그 회차 code 문항 수 (' + (row4 && row4.questionCount) + ' vs ' + meta.counts.code + ')');
+  sB3.emit('room:join', { roomId: rid4 });
+  await waitFor(sA, 'room:state', p => p.players.length === 2, 5000);
+  sA.emit('room:start', {});
+  const qs4 = await waitFor(sA, 'battle:questions', () => true, 10000);
+  check(qs4.questions.length === meta.counts.code,
+    'battle:questions 가 code 문항 수만큼 온다 (' + qs4.questions.length + '/' + meta.counts.code + ')');
+  check(qs4.questions.every(q => q.type === 'code'),
+    '출제된 전 문항이 type==="code": ' + JSON.stringify([...new Set(qs4.questions.map(q => q.type))]));
+  check(qs4.questions.every(q => !q.accept && !q.sampleAnswer && !q.display),
+    'type 이 붙어도 정답 계열 필드는 여전히 없다');
+  check(!/explanationHtml|"explanations"/.test(JSON.stringify(qs4)),
+    'type 필터 방의 battle:questions 에도 해설은 없다');
 
   sA.close(); sB2.close(); sB3.close();
   console.log(leak ? 'E2E FAIL (leak)' : 'E2E OK');

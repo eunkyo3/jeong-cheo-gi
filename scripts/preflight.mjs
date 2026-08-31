@@ -27,6 +27,7 @@ const TESTS_DIR = path.join(ROOT, 'tests');
 const DATA_DIR = path.join(ROOT, 'data');
 const ROUNDS_DIR = path.join(DATA_DIR, 'rounds');
 const EXPLAIN_DIR = path.join(DATA_DIR, 'explanations');
+const TYPES_DIR = path.join(DATA_DIR, 'types');
 const PROGRESS_FILE = path.join(DATA_DIR, 'PROGRESS.md');
 const EXCLUDED_FILE = path.join(DATA_DIR, 'excluded.md');
 
@@ -271,6 +272,25 @@ function main() {
     const r = run('⑥ 해설 검증', [path.join(ROOT, 'scripts', 'validate-explanations.mjs')]);
     results.push({ name: '⑥ 해설 검증', ok: r.ok, ms: r.ms, detail: r.detail });
     if (!r.ok) failed = '⑥ 해설 검증';
+  }
+
+  // ⑦ 유형 검증 — 분류 파일이 하나라도 있으면 **전체 모드**로 게이트한다(⑥ 와 같은 규칙).
+  let typeFiles = 0;
+  try {
+    typeFiles = fs.readdirSync(TYPES_DIR).filter((f) => f.toLowerCase().endsWith('.json')).length;
+  } catch { /* 디렉터리 없음 = 0개 */ }
+
+  if (failed) {
+    results.push({ name: '⑦ 유형 검증', ok: null, ms: 0, detail: '미실행' });
+  } else if (typeFiles === 0) {
+    console.log('');
+    console.log('=== ⑦ 유형 검증 ===');
+    console.log('    data/types/*.json 이 0개 — 분류 전이므로 건너뜁니다.');
+    results.push({ name: '⑦ 유형 검증', ok: null, ms: 0, detail: '분류 파일 0개 — 건너뜀' });
+  } else {
+    const r = run('⑦ 유형 검증', [path.join(ROOT, 'scripts', 'validate-types.mjs')]);
+    results.push({ name: '⑦ 유형 검증', ok: r.ok, ms: r.ms, detail: r.detail });
+    if (!r.ok) failed = '⑦ 유형 검증';
   }
 
   // ------------------------------------------------------------- 요약 출력

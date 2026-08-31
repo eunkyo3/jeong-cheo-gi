@@ -47,6 +47,8 @@
 
   <!-- ------------------------------------------------------------- 회차 -->
   <h2 class="section">회차 선택</h2>
+  <!-- 유형 칩 (전체/코드/SQL/이론). /api/rounds 가 counts 를 주지 않는 구버전 서버면 계속 숨긴다. -->
+  <div class="type-filter" id="roundTypeFilter" hidden></div>
   <div id="roundList">
     <p class="muted">회차를 불러오는 중&hellip;</p>
   </div>
@@ -61,10 +63,18 @@
 
   var sessionBox = document.getElementById('sessionBox');
   var roundList = document.getElementById('roundList');
+  var roundTypeFilter = document.getElementById('roundTypeFilter');
   var navWho = document.getElementById('navWho');
   var studySection = document.getElementById('studySection');
   var studyBox = document.getElementById('studyBox');
   var practiceBox = document.getElementById('practiceBox');
+
+  // 문항 유형 — 서버 계약(data/types/*.json)의 값 셋과 화면 표기.
+  var TYPE_ORDER = ['code', 'sql', 'theory'];
+  var TYPE_LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
+  var roundType = '';   // 회차 목록 위 유형 칩에서 고른 값 ('' = 전체)
+  var wrongType = '';   // 오답노트 옆 유형 선택
+  var practiceType = ''; // 랜덤 모의고사 유형 선택
 
   // 회차 목록과 학습 이력은 따로 도착한다. 둘 다 여기에 모아 두고,
   // 어느 쪽이 늦게 오든 그때마다 화면을 다시 그린다.
@@ -77,6 +87,76 @@
     if (className) node.className = className;
     if (text != null) node.textContent = text;
     return node;
+  }
+
+  // ------------------------------------------------------------- 문항 유형
+
+  /** 회차 하나라도 counts 를 들고 있으면 유형 UI 를 켠다 (구버전 서버면 조용히 생략). */
+  function hasCounts(list) {
+    for (var i = 0; i < (list || []).length; i++) {
+      var c = list[i].counts;
+      if (c && typeof c === 'object') return true;
+    }
+    return false;
+  }
+
+  /** {code:8,sql:1,theory:11} → "코드 8 · SQL 1 · 이론 11" (0인 유형은 생략). */
+  function countsText(counts) {
+    if (!counts || typeof counts !== 'object') return '';
+    var parts = [];
+    TYPE_ORDER.forEach(function (t) {
+      var n = Number(counts[t]) || 0;
+      if (n > 0) parts.push(TYPE_LABEL[t] + ' ' + n);
+    });
+    return parts.join(' · ');
+  }
+
+  /** 전체/코드/SQL/이론 <select>. 고른 값을 onPick 으로 돌려준다. */
+  function typeSelect(id, current, onPick) {
+    var sel = document.createElement('select');
+    if (id) sel.id = id;
+    sel.className = 'type-select';
+    [{ v: '', label: '전체 유형' }].concat(TYPE_ORDER.map(function (t) {
+      return { v: t, label: TYPE_LABEL[t] };
+    })).forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o.v;
+      opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
+    sel.value = current || '';
+    sel.addEventListener('change', function () { onPick(sel.value); });
+    return sel;
+  }
+
+  /** 링크 뒤에 붙일 `&type=…` (전체면 빈 문자열). */
+  function typeTail(type) {
+    return type ? '&type=' + encodeURIComponent(type) : '';
+  }
+
+  /** 회차 목록 위 유형 칩. counts 가 없으면 통째로 숨긴다. */
+  function renderRoundTypeFilter() {
+    if (!roundTypeFilter) return;
+    roundTypeFilter.textContent = '';
+    if (!hasCounts(roundsData)) {
+      roundTypeFilter.hidden = true;
+      return;
+    }
+    roundTypeFilter.hidden = false;
+    roundTypeFilter.appendChild(el('span', 'type-filter-label', '유형'));
+    [{ v: '', label: '전체' }].concat(TYPE_ORDER.map(function (t) {
+      return { v: t, label: TYPE_LABEL[t] };
+    })).forEach(function (o) {
+      var btn = el('button', 'chip' + (roundType === o.v ? ' on' : ''), o.label);
+      btn.type = 'button';
+      btn.setAttribute('data-type', o.v || 'all');
+      btn.addEventListener('click', function () {
+        roundType = o.v;
+        renderRoundTypeFilter();
+        renderRounds();
+      });
+      roundTypeFilter.appendChild(btn);
+    });
   }
 
   // ------------------------------------------------------------ ?msg= 안내
@@ -315,8 +395,15 @@
     var actions = el('div', 'form-actions');
     if (wrongCount > 0) {
       var link = el('a', 'btn-link', '오답노트 (' + wrongCount + '문항)');
-      link.href = '/study.html?set=wrong';
+      link.href = '/study.html?set=wrong' + typeTail(wrongType);
       actions.appendChild(link);
+      // 유형 선택 — 고르면 오답노트도 그 유형만 낸다. counts 를 주는 서버에서만 보인다.
+      if (hasCounts(roundsData)) {
+        actions.appendChild(typeSelect('wrongType', wrongType, function (v) {
+          wrongType = v;
+          link.href = '/study.html?set=wrong' + typeTail(wrongType);
+        }));
+      }
     } else {
       actions.appendChild(el('span', 'btn-link disabled', '오답노트 (0문항)'));
     }
@@ -372,10 +459,23 @@
       group.appendChild(el('h3', null, year === '기타' ? '기타' : year + '년'));
       var grid = el('div', 'grid');
       byYear.groups[year].forEach(function (r) {
-        var a = el('a', 'round-btn');
-        a.href = '/study.html?round=' + encodeURIComponent(r.round);
+        // 고른 유형이 이 회차에 0문항이면 눌러 봐야 서버 400 이다 — 링크를 아예 만들지 않는다.
+        // ('전체' 선택이거나 counts 를 모르는 구버전 서버면 아무것도 막지 않는다.)
+        var zero = !!roundType && !!r.counts && Number(r.counts[roundType]) === 0;
+        var a = el(zero ? 'span' : 'a', 'round-btn' + (zero ? ' empty' : ''));
+        if (zero) {
+          a.title = '이 회차에는 ' + TYPE_LABEL[roundType] + ' 문항이 없습니다.';
+          a.setAttribute('aria-disabled', 'true');
+        } else {
+          a.href = '/study.html?round=' + encodeURIComponent(r.round) + typeTail(roundType);
+        }
         a.appendChild(document.createTextNode(r.title || r.round));
         a.appendChild(el('span', 'cnt', r.questionCount + '문항'));
+        // 유형 구성 — 서버가 counts 를 줄 때만 (구버전이면 조용히 생략)
+        var ct = countsText(r.counts);
+        if (ct) a.appendChild(el('span', 'types', ct));
+        // 왜 눌리지 않는지 툴팁 없이도 보이게 한 줄 적어 둔다
+        if (zero) a.appendChild(el('span', 'empty-note', TYPE_LABEL[roundType] + ' 문항 없음'));
         var h = hist[r.round];
         if (h && Number(h.count) > 0) {
           a.appendChild(el('span', 'badge',
@@ -436,6 +536,20 @@
     countRow.appendChild(count);
     practiceBox.appendChild(countRow);
 
+    // 유형 선택 — counts 를 주는 서버에서만 보인다 (구버전이면 전체 출제 그대로).
+    var typeRow = null;
+    if (hasCounts(list)) {
+      typeRow = el('div', 'form-row');
+      var typeLabel = el('label', null, '유형');
+      typeLabel.htmlFor = 'practiceType';
+      typeRow.appendChild(typeLabel);
+      typeRow.appendChild(typeSelect('practiceType', practiceType, function (v) {
+        practiceType = v;
+        syncHref();
+      }));
+      practiceBox.appendChild(typeRow);
+    }
+
     var actions = el('div', 'form-actions');
     var start = el('a', 'btn-link', '랜덤 모의고사 시작');
     start.id = 'practiceStart';
@@ -457,7 +571,7 @@
 
     function syncHref() {
       start.href = '/study.html?set=practice&rounds=' + encodeURIComponent(selectedRounds())
-        + '&count=' + encodeURIComponent(count.value);
+        + '&count=' + encodeURIComponent(count.value) + typeTail(practiceType);
     }
     boxes.forEach(function (b) { b.input.addEventListener('change', syncHref); });
     count.addEventListener('change', syncHref);
@@ -473,6 +587,7 @@
 
   api.get('/api/rounds').then(function (list) {
     roundsData = list || [];
+    renderRoundTypeFilter();
     renderRounds();
     renderPractice();
     renderStudyBox();

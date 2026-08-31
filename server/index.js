@@ -110,6 +110,22 @@ app.get('/api/auth/me', function (req, res) {
 
 // ------------------------------------------------------------------- 회차
 
+/**
+ * 유형 파라미터 해석 — 학습·모의고사·오답노트·대전이 전부 같은 규칙을 쓰도록 한 곳에 둔다.
+ * 미지정·빈 값·"all" 은 **전체**(type=null)이고, 그 밖의 값은 `code|sql|theory` 만 허용한다.
+ * @returns {{ok:true, type:string|null} | {ok:false, error:string}}
+ */
+function parseType(raw) {
+  if (raw == null) return { ok: true, type: null };
+  const bad = { ok: false, error: '유형은 ' + rounds.TYPES.join('/') + ' 중 하나여야 합니다.' };
+  if (typeof raw !== 'string') return bad; // ?type=a&type=b 처럼 배열로 들어온 경우
+  const v = raw.trim();
+  if (v === '' || v === 'all') return { ok: true, type: null };
+  return rounds.isType(v) ? { ok: true, type: v } : bad;
+}
+
+const NO_QUESTIONS_OF_TYPE = '해당 유형의 문항이 없습니다.';
+
 app.get('/api/rounds', function (req, res) {
   res.json(rounds.listRounds());
 });
@@ -117,11 +133,18 @@ app.get('/api/rounds', function (req, res) {
 app.get('/api/rounds/:id', function (req, res) {
   const round = rounds.getRound(req.params.id); // 인메모리 화이트리스트 — 경로 순회 불가
   if (!round) return res.status(404).json({ error: '없는 회차입니다.' });
+
+  const t = parseType(req.query.type);
+  if (!t.ok) return res.status(400).json({ error: t.error });
+  const questions = rounds.filterByType(round.questions, t.type);
+  if (t.type && questions.length === 0) return res.status(400).json({ error: NO_QUESTIONS_OF_TYPE });
+
   res.json({
     round: round.round,
     title: round.title || round.round,
     sourceUrl: round.sourceUrl || '',
-    questions: round.questions.map(rounds.publicQuestion), // 정답 계열 필드 제거
+    type: t.type,
+    questions: questions.map(rounds.publicQuestion), // 정답 계열 필드 제거
   });
 });
 
@@ -155,15 +178,22 @@ app.post('/api/rounds/:id/grade', function (req, res) {
   const round = rounds.getRound(req.params.id);
   if (!round) return res.status(404).json({ error: '없는 회차입니다.' });
 
-  const answers = sanitizeAnswers(round.questions, (req.body || {}).answers);
-  const result = gradeSet(round.questions, answers);
+  // 유형을 지정하면 **그 부분집합만** 채점한다. 아래 questions 를 sanitizeAnswers·gradeSet·
+  // study_results.question_ids 가 모두 공유하므로 총점·오답노트가 서로 어긋나지 않는다.
+  const t = parseType((req.body || {}).type);
+  if (!t.ok) return res.status(400).json({ error: t.error });
+  const questions = rounds.filterByType(round.questions, t.type);
+  if (questions.length === 0) return res.status(400).json({ error: NO_QUESTIONS_OF_TYPE });
+
+  const answers = sanitizeAnswers(questions, (req.body || {}).answers);
+  const result = gradeSet(questions, answers);
 
   // 채점 이후에는 정답 표기(display)·지문 원문(bodyText)·해설(explanationHtml)을 내보내도 된다.
   // bodyText 는 "AI에게 질문하기" 프롬프트 조립용, explanations 는 "해설 보기" 용 —
   // 둘 다 채점 전에는 절대 내보내지 않는다(PROTOCOL.md "채점 전 비노출").
   const bodyTexts = {};
   const explanations = {};
-  for (const q of round.questions) {
+  for (const q of questions) {
     bodyTexts[q.id] = q.bodyText == null ? '' : q.bodyText;
     explanations[q.id] = q.explanationHtml == null ? '' : q.explanationHtml;
   }
@@ -171,17 +201,19 @@ app.post('/api/rounds/:id/grade', function (req, res) {
   if (req.user) {
     try {
       // 학습 이력·오답노트가 문항 단위로 되짚을 수 있도록 출제 문항과 틀린 문항을 함께 남긴다.
+      // 유형 필터를 걸었다면 question_ids 도 그 부분집합이어야 오답노트가 어긋나지 않는다.
       db.saveStudyResult(req.user.id, round.round, result.score,
-        round.questions.map(function (q) { return q.id; }), wrongIdsOf(result.details));
+        questions.map(function (q) { return q.id; }), wrongIdsOf(result.details));
     } catch (e) {
       logErr('study 저장 실패', round.round, req.user.nickname, '-', e.message);
     }
   }
-  log('grade', round.round, result.correctCount + '/' + result.totalCount,
+  log('grade', round.round + (t.type ? '/' + t.type : ''), result.correctCount + '/' + result.totalCount,
     result.score + '점', req.user ? req.user.nickname : '(비로그인)');
 
   res.json({
-    round: round.round,
+    round: round.round, // 유형을 걸어도 회차 id 그대로다 (학습 이력 집계 키)
+    type: t.type,
     correctCount: result.correctCount,
     totalCount: result.totalCount,
     score: result.score,
@@ -280,15 +312,24 @@ app.get('/api/me/history', auth.requireAuth, function (req, res) {
 });
 
 app.get('/api/me/wrong', auth.requireAuth, function (req, res) {
+  const t = parseType(req.query.type);
+  if (!t.ok) return res.status(400).json({ error: t.error });
+
+  // 오답이 하나도 없는 상태가 정상이므로 빈 목록은 400 이 아니다(유형 필터도 마찬가지).
   const questions = [];
   for (const qid of currentWrongIds(req.user.id)) {
     const q = rounds.getQuestion(qid);
-    if (q) questions.push(rounds.publicQuestion(q)); // 정답 계열 필드 제거
+    if (!q) continue;
+    if (t.type && rounds.typeOf(q) !== t.type) continue;
+    questions.push(rounds.publicQuestion(q)); // 정답 계열 필드 제거
   }
-  res.json({ setKey: 'wrong', title: '오답노트', questions: questions });
+  res.json({ setKey: 'wrong', title: '오답노트', type: t.type, questions: questions });
 });
 
 app.get('/api/practice', function (req, res) {
+  const t = parseType(req.query.type);
+  if (!t.ok) return res.status(400).json({ error: t.error });
+
   const rawCount = typeof req.query.count === 'string' ? req.query.count.trim() : '';
   const count = /^\d+$/.test(rawCount) ? Number(rawCount) : NaN;
   if (!Number.isInteger(count) || count < PRACTICE_COUNT_MIN || count > PRACTICE_COUNT_MAX) {
@@ -313,23 +354,26 @@ app.get('/api/practice', function (req, res) {
   if (roundIds.length === 0) return res.status(400).json({ error: '회차를 하나 이상 선택해야 합니다.' });
 
   // 대전의 random 출제와 같은 규칙(회차별 균등 배분 + 나머지 무작위)을 그대로 쓴다.
+  // 유형 필터는 **출제 전에 풀을 좁히는 것**으로 끝난다 — 풀이 count 보다 적으면
+  // buildQuestionSet 이 내는 한국어 사유("유효 문항 총합…")가 그대로 400 이 된다.
   const built = battle.buildQuestionSet({
     mode: 'random',
     rounds: roundIds.map(function (id) {
       const r = rounds.getRound(id);
-      return { round: r.round, questions: r.questions };
+      return { round: r.round, questions: rounds.filterByType(r.questions, t.type) };
     }),
     questionCount: count,
   });
   if (!built.ok) return res.status(400).json({ error: built.error }); // 유효 문항 총합 부족 등
 
   log('practice', roundIds.length + '회차', built.questions.length + '문항',
-    req.user ? req.user.nickname : '(비로그인)');
+    t.type || '전체', req.user ? req.user.nickname : '(비로그인)');
 
   res.json({
     setKey: 'practice',
     title: '랜덤 모의고사 · ' + roundIds.length + '회차 ' + built.questions.length + '문항',
     roundIds: roundIds,
+    type: t.type,
     questions: built.questions.map(rounds.publicQuestion), // 정답 계열 필드 제거
   });
 });

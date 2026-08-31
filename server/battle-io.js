@@ -412,6 +412,16 @@ function attach(ctx) {
       }
     }
 
+    // 유형 필터(선택). 방 생성 시 1회만 적용되고 settings.type 으로 보존된다 —
+    // 대전은 양쪽이 같은 문항을 봐야 하므로 진행 중 변경은 없다(handoff "리스크").
+    let type = null;
+    if (body.type != null && body.type !== '' && body.type !== 'all') {
+      type = battle.normalizeType(body.type);
+      if (type == null) {
+        return res.status(400).json({ error: '유형은 ' + battle.TYPES.join('/') + ' 중 하나여야 합니다.' });
+      }
+    }
+
     const override = timeOverrideS();
     let timeLimitS = Number(body.timeLimitS);
     if (override != null) {
@@ -420,12 +430,17 @@ function attach(ctx) {
       return res.status(400).json({ error: '제한 시간은 ' + TIME_LIMITS.join('/') + '초 중에서 고르세요.' });
     }
 
+    const pools = roundIds.map(function (id) {
+      const r = rounds.getRound(id);
+      return { round: r.round, questions: rounds.filterByType(r.questions, type) };
+    });
+    if (type && pools.every(function (p) { return p.questions.length === 0; })) {
+      return res.status(400).json({ error: '해당 유형의 문항이 없습니다.' });
+    }
+
     const built = battle.buildQuestionSet({
       mode: mode,
-      rounds: roundIds.map(function (id) {
-        const r = rounds.getRound(id);
-        return { round: r.round, questions: r.questions };
-      }),
+      rounds: pools,
       questionCount: questionCount,
     });
     // 유효 문항 총합 < questionCount 등 — 리듀서가 만든 한국어 사유를 그대로 400 으로 옮긴다
@@ -452,13 +467,14 @@ function attach(ctx) {
       mode: mode,
       roundIds: roundIds,
       questionCount: questionCount,
+      type: type,
       timeLimitS: timeLimitS,
       questions: built.questions,
       at: Date.now(),
     });
     rooms.set(roomId, created.state);
     runEffects(created.effects);
-    log('battle', roomId, '방 생성', name, mode,
+    log('battle', roomId, '방 생성', name, mode, type || '전체',
       built.questions.length + '문항', timeLimitS + '초', 'by ' + req.user.nickname);
 
     if (inviteUserIds.length > 0) {
@@ -472,6 +488,7 @@ function attach(ctx) {
           mode: mode,
           roundIds: roundIds,
           questionCount: built.questions.length,
+          type: type,
           timeLimitS: timeLimitS,
         },
       };
@@ -501,6 +518,7 @@ function attach(ctx) {
         mode: state.mode,
         state: state.state,
         questionCount: state.questionIds.length,
+        type: state.type == null ? null : state.type,
         timeLimitS: state.timeLimitS,
       });
     }

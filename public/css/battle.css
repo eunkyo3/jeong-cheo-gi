@@ -254,6 +254,14 @@
 
 .q.readonly input.ans { background: #f2f4f3; color: #55645c; }
 
+/* 문항 유형 뱃지 — 대전 문항 카드 / 결과 카드 우상단.
+   자리·크기는 app.css 의 .q-badges / .q-type 을 그대로 쓴다 (battle.html 은 두 파일을 모두 읽는다).
+   여기서는 대전 카드 톤에 맞춘 색만 다시 못 박는다. */
+.q .q-badges { top: 14px; }
+.q .q-type.code { background: #e7eefb; color: #1f4f96; border: 1px solid #c6d8f3; }
+.q .q-type.sql { background: #efe8f8; color: #59389a; border: 1px solid #d9c9ef; }
+.q .q-type.theory { background: #e6ece9; color: #1e3a2f; border: 1px solid #cfe0d7; }
+
 /* 제출자끼리만 보이는 상호 정오 현황 카드(요구 2). .card 톤을 그대로 쓴다. */
 .marks-card .muted { margin-top: 8px; }
 .marks-list { display: flex; flex-direction: column; gap: 8px; }

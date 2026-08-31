@@ -41,7 +41,7 @@ describe('publicQuestion — 해설은 채점 전 문항 사본에 실리지 않
     assert.equal('explanationHtml' in pub, false, 'explanationHtml 키가 남아 있으면 안 된다');
     assert.equal(JSON.stringify(pub).includes('결합도'), false, '해설 본문이 직렬화 결과에 새면 안 된다');
     // 화이트리스트가 바뀌지 않았는지도 함께 못 박는다.
-    assert.deepEqual(Object.keys(pub).sort(), ['bodyHtml', 'fields', 'id', 'num', 'prompt']);
+    assert.deepEqual(Object.keys(pub).sort(), ['bodyHtml', 'fields', 'id', 'num', 'prompt', 'type']);
   });
 
   test('battle.publicQuestion 이 explanationHtml 을 제거한다', () => {
@@ -50,7 +50,7 @@ describe('publicQuestion — 해설은 채점 전 문항 사본에 실리지 않
     assert.equal(JSON.stringify(pub).includes('결합도'), false, '해설 본문이 직렬화 결과에 새면 안 된다');
     assert.deepEqual(
       Object.keys(pub).sort(),
-      ['answerMode', 'bodyHtml', 'bodyText', 'fields', 'id', 'num', 'prompt']
+      ['answerMode', 'bodyHtml', 'bodyText', 'fields', 'id', 'num', 'prompt', 'type']
     );
   });
 

@@ -101,6 +101,7 @@ function cloneState(s) {
     mode: s.mode,
     roundIds: s.roundIds.slice(),
     questionCount: s.questionCount,
+    type: s.type,
     timeLimitS: s.timeLimitS,
     questions: s.questions,        // 불변 데이터 — 참조 공유
     questionIds: s.questionIds.slice(),
@@ -130,6 +131,15 @@ function connectedCount(s) {
   return n;
 }
 
+/** 문항 유형 동결 집합. server/rounds.js · scripts/validate-types.mjs 와 반드시 같아야 한다. */
+const TYPES = ['code', 'sql', 'theory'];
+const DEFAULT_TYPE = 'theory';
+
+/** 문항·방 설정의 유형 정규화. 허용되지 않은 값은 null(= 전체). */
+function normalizeType(v) {
+  return typeof v === 'string' && TYPES.indexOf(v) !== -1 ? v : null;
+}
+
 function questionById(s, id) {
   for (let i = 0; i < s.questions.length; i++) if (s.questions[i].id === id) return s.questions[i];
   return null;
@@ -143,6 +153,7 @@ function publicQuestion(q) {
     prompt: q.prompt,
     bodyHtml: q.bodyHtml,
     bodyText: q.bodyText, // 결과 화면 "AI에게 질문하기" 프롬프트용 — 정답 정보가 아니므로 허용 (PROTOCOL 치팅 방어 참조)
+    type: normalizeType(q.type) || DEFAULT_TYPE, // 유형 뱃지용 — 정답 정보가 아니다
     // explanationHtml 은 화이트리스트에 없다 — 정답을 그대로 담고 있어 battle:finished 에서만 나간다.
 
     answerMode: q.answerMode === 'unordered' ? 'unordered' : 'ordered',
@@ -212,6 +223,7 @@ function settingsPayload(s) {
     mode: s.mode,
     roundIds: s.roundIds.slice(),
     questionCount: s.questionIds.length,
+    type: s.type == null ? null : s.type, // null = 전체 유형
     timeLimitS: s.timeLimitS,
   };
 }
@@ -269,6 +281,8 @@ function createRoom(opts) {
     mode: o.mode === 'random' ? 'random' : 'round',
     roundIds: (o.roundIds || []).slice(),
     questionCount: o.questionCount == null ? null : Number(o.questionCount),
+    // 유형은 방 생성 시 1회만 적용된다 — 진행 중 변경 없음(양쪽이 같은 문항을 본다).
+    type: normalizeType(o.type),
     timeLimitS: Number(o.timeLimitS),
     questions: questions,
     questionIds: questions.map(function (q) { return q.id; }),
@@ -905,6 +919,8 @@ module.exports = {
   isDisposed: isDisposed,
   buildQuestionSet: buildQuestionSet,
   publicQuestion: publicQuestion,
+  normalizeType: normalizeType,
+  TYPES: TYPES,
   answeredCount: answeredCount,
   pickWinner: pickWinner,
   roomStatePayload: roomStatePayload,

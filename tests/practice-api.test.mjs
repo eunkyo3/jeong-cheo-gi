@@ -93,7 +93,7 @@ describe('GET /api/practice', () => {
 
     for (const q of r.json.questions) {
       // 공개 문항의 키 집합을 못박는다 — accept/sampleAnswer/validator/display/bodyText 유출 차단
-      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'num', 'prompt']);
+      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'num', 'prompt', 'type']);
       for (const f of q.fields) assert.deepEqual(Object.keys(f), ['label']);
     }
   });
@@ -181,7 +181,7 @@ describe('학습 이력 · 오답노트', () => {
     assert.equal(w.json.questions.length, TOTAL - 1);
     assert.ok(!w.json.questions.some((q) => q.id === ROUND.questions[0].id)); // 맞힌 문항은 빠진다
     for (const q of w.json.questions) {
-      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'num', 'prompt']);
+      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'num', 'prompt', 'type']);
     }
 
     // 오답노트를 전부 맞히면 비워진다

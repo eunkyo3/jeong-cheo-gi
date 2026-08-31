@@ -3,7 +3,7 @@
 // 격리 임시 DATA_DIR + 임의 포트. 검증 항목: 메인 회차 버튼 수 / 풀이→채점 점수 / 오답 카드의 AI 복사 버튼 →
 // 클립보드 3단 폴백의 최종 단계(모달) 진입 + 프롬프트 4요소 / 인라인 이의 제기 → reports.json 적재 /
 // 답안 자동 저장·복원 / Enter→다음 칸 / 학습 이력 카드·회차 뱃지 / 오답노트 / 랜덤 모의고사 / favicon /
-// 가입→me→로그아웃.
+// 가입→me→로그아웃 / 문항 유형 필터(코드·SQL·이론) — 유형 뱃지·필터 칩·부분집합 채점·메인 유형 구성.
 //   npm run headless
 'use strict';
 const path = require('path');
@@ -143,6 +143,13 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
       'battle: 로그인 상태로 접근 시 리다이렉트 없이 로비가 렌더된다',
       btNavErr ? 'navigation 시도됨: ' + bt.errors.join(' | ') : (btView ? btView.textContent.slice(0, 40) : '#view 없음')
     );
+
+    // ---- 방 만들기 폼의 문항 유형 선택 (전체/코드/SQL/이론) ----
+    const btTypeChips = btView ? [...btView.querySelectorAll('.chip[data-type]')] : [];
+    check(btTypeChips.length === 4
+      && btTypeChips.map(c => c.textContent.trim()).join('/') === '전체/코드/SQL/이론',
+      'battle: 방 만들기 폼에 문항 유형 선택 4개',
+      btTypeChips.map(c => c.textContent.trim()).join('/') || '없음');
 
     const rkIn = await load('/ranking.html');
     await waitFor(() => {
@@ -492,6 +499,203 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
     'wrong: 오답노트가 비면 빈 상태 UI + 돌아가기 링크', empty ? empty.textContent.replace(/\s+/g, ' ').slice(0, 70) : '.empty-state 없음');
   check(wr0.window.document.getElementById('btnbar').hidden === true, 'wrong: 빈 오답노트에서는 제출 버튼을 숨긴다');
   check(wr0.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0, 'wrong: JS 오류 없음', wr0.errors.slice(0, 2).join(' | '));
+
+  // ---------- 10. 문항 유형 필터 (코드 / SQL / 이론) ----------
+  // 서버(types-srv)가 아직 counts/type 을 주지 않으면 통째로 SKIP 한다.
+  // 기능이 들어오면 이 블록은 반드시 통과해야 한다 (SKIP 로그가 남으면 미완성이라는 뜻).
+  const roundsT = await (await makeFetch()('/api/rounds')).json();
+  const r262 = (roundsT || []).find(r => r.round === '2026-2');
+  const counts262 = r262 && r262.counts;
+  const typesReady = !!(counts262 && typeof counts262 === 'object'
+    && ['code', 'sql', 'theory'].every(k => typeof counts262[k] === 'number'));
+
+  if (!typesReady) {
+    log('SKIP  types: /api/rounds 가 아직 counts 를 주지 않는다 — 유형 필터 검사 전체 건너뜀 (서버 미구현)');
+  } else {
+    const codeN = counts262.code;
+
+    // ---- ① 회차 + 유형 필터: 문항 수와 뱃지 ----
+    const ty = await load('/study.html?round=2026-2&type=code');
+    const tyDoc = ty.window.document;
+    const tyCards = await waitFor(() => { const c = tyDoc.querySelectorAll('.q'); return c.length > 0 ? c : null; }, 'type=code 문항 카드', 8000).catch(() => null);
+    check(!!tyCards && tyCards.length === codeN && tyCards.length < 20,
+      'types: ?round=2026-2&type=code → 코드 문항만 (20문항 미만)',
+      (tyCards ? tyCards.length : 0) + '개 / counts.code=' + codeN);
+    const codeBadges = tyCards
+      ? [...tyCards].filter(c => { const b = c.querySelector('.q-type'); return b && b.textContent.trim() === '코드'; }).length
+      : 0;
+    check(!!tyCards && tyCards.length > 0 && codeBadges === tyCards.length,
+      'types: 모든 문항 카드에 "코드" 유형 뱃지', codeBadges + ' / ' + (tyCards ? tyCards.length : 0));
+
+    // ---- ③ 필터 칩 4개 · 채점 전 활성 ----
+    const chips = [...tyDoc.querySelectorAll('#typeFilter button')];
+    check(chips.length === 4, 'types: 학습 상단 유형 필터 칩 4개', chips.length);
+    check(chips.map(b => b.textContent.trim()).join('/') === '전체/코드/SQL/이론',
+      'types: 칩 문구가 전체/코드/SQL/이론', chips.map(b => b.textContent.trim()).join('/'));
+    check(chips.length === 4 && chips.every(b => b.disabled === false), 'types: 채점 전에는 필터가 활성');
+    const onChip = chips.find(b => b.classList.contains('on'));
+    check(!!onChip && onChip.textContent.trim() === '코드',
+      'types: 지금 보고 있는 유형 칩에 .on 표시', onChip ? onChip.textContent.trim() : '없음');
+
+    // ---- ② 채점: 점수판 분모가 그 유형의 문항 수 ----
+    const tySubmit = [...tyDoc.querySelectorAll('button')].find(b => /제출하고 채점/.test(b.textContent));
+    check(!!tySubmit, 'types: 유형 필터 상태에서 제출 버튼 존재');
+    if (tySubmit) {
+      tySubmit.click();
+      const tyBoard = await waitFor(() => { const b = tyDoc.getElementById('scoreBoard'); return b && b.classList.contains('shown') ? b : null; }, '유형 채점 점수판', 8000).catch(() => null);
+      const boardText = tyBoard ? tyBoard.textContent.replace(/\s+/g, ' ') : '';
+      check(new RegExp('\\(\\d+/' + codeN + ' 문제 정답\\)').test(boardText),
+        'types: 채점 점수판 분모 == 유형 문항 수 (' + codeN + ')', boardText.slice(0, 70) || '점수판 없음');
+
+      // ---- ③ 채점 후에는 필터 비활성 ----
+      const chipsAfter = [...tyDoc.querySelectorAll('#typeFilter button')];
+      check(chipsAfter.length === 4 && chipsAfter.every(b => b.disabled === true),
+        'types: 채점 후 유형 필터 비활성', chipsAfter.map(b => b.disabled).join(','));
+
+      // "다시 풀기" 하면 다시 활성
+      const tyReset = [...tyDoc.querySelectorAll('button')].find(b => /다시 풀기/.test(b.textContent));
+      if (tyReset) {
+        tyReset.click();
+        await sleep(200);
+        const chipsReset = [...tyDoc.querySelectorAll('#typeFilter button')];
+        check(chipsReset.length === 4 && chipsReset.every(b => b.disabled === false),
+          'types: "다시 풀기" 후 유형 필터 재활성', chipsReset.map(b => b.disabled).join(','));
+      }
+    }
+    check(ty.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+      'types: 유형 필터 학습 화면 JS 오류 없음', ty.errors.slice(0, 2).join(' | '));
+
+    // ---- 0문항 유형은 아예 못 누르게 막는다 (2025-2 는 SQL 0문항) ----
+    // 어떤 회차가 0인지 하드코딩하지 않는다 — /api/rounds 의 counts 에서 직접 찾는다.
+    const zeroPick = (roundsT || []).map(r => {
+      const c = r && r.counts;
+      if (!c) return null;
+      const t = ['code', 'sql', 'theory'].find(k => Number(c[k]) === 0);
+      return t ? { round: r.round, type: t } : null;
+    }).find(Boolean);
+    check(!!zeroPick, 'types: 특정 유형이 0문항인 회차가 데이터에 존재한다 (필터 비활성 검사 대상)',
+      zeroPick ? zeroPick.round + ' / ' + zeroPick.type + '=0' : '없음 — 검사 대상 회차 없음');
+    if (zeroPick) {
+      const LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
+      const zr = await load('/study.html?round=' + encodeURIComponent(zeroPick.round));
+      const zDoc = zr.window.document;
+      // counts 는 문항과 별도로 도착한다 — 비활성이 반영될 때까지 기다린다.
+      const zChip = await waitFor(() => {
+        const b = zDoc.querySelector('#typeFilter button[data-type="' + zeroPick.type + '"]');
+        return b && b.disabled ? b : null;
+      }, '0문항 유형 칩 비활성', 8000).catch(() => null);
+      check(!!zChip, 'types: 0문항 유형 칩이 비활성 (' + zeroPick.round + ' / ' + LABEL[zeroPick.type] + ')',
+        zChip ? 'disabled=true class=' + zChip.className : '비활성되지 않음');
+      check(!!zChip && zChip.classList.contains('empty'),
+        'types: 0문항 유형 칩에 .empty 표시', zChip ? zChip.className : '없음');
+      const zOthers = [...zDoc.querySelectorAll('#typeFilter button')]
+        .filter(b => b.getAttribute('data-type') !== zeroPick.type);
+      check(zOthers.length === 3 && zOthers.every(b => b.disabled === false),
+        'types: 나머지 유형 칩은 그대로 활성', zOthers.map(b => b.textContent.trim() + '=' + b.disabled).join(','));
+      check(zr.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+        'types: 0문항 회차 화면 JS 오류 없음', zr.errors.slice(0, 2).join(' | '));
+    }
+
+    // ---- 2025-2 는 SQL 0문항 — 회귀로 못 박아 둔다 (실브라우저에서 한 번 놓쳤던 항목).
+    // 회차를 이름으로 짚되 기대값은 서버 counts 에서 가져와, 분류가 바뀌면 조용히 건너뛴다.
+    const r2025_2 = (roundsT || []).find(r => r.round === '2025-2');
+    if (r2025_2 && r2025_2.counts && Number(r2025_2.counts.sql) === 0) {
+      const z2 = await load('/study.html?round=2025-2');
+      const sqlChip = await waitFor(() => {
+        const b = z2.window.document.querySelector('#typeFilter button[data-type="sql"]');
+        return b && b.disabled ? b : null;
+      }, '2025-2 SQL 칩 비활성', 8000).catch(() => null);
+      check(!!sqlChip, 'types: 2025-2(SQL 0문항)에서 SQL 칩이 disabled',
+        sqlChip ? 'disabled=true class=' + sqlChip.className : '활성 상태로 남아 있음');
+    } else {
+      log('SKIP  types: 2025-2 의 SQL 이 더 이상 0문항이 아니다 — 고정 회귀 검사 생략');
+    }
+
+    if (zeroPick) {
+
+      // 그래도 URL 을 직접 치고 들어오면 서버 400 문구를 그대로 보여 준다 (기존 규약 유지)
+      const zDirect = await load('/study.html?round=' + encodeURIComponent(zeroPick.round)
+        + '&type=' + zeroPick.type);
+      await waitFor(() => /해당 유형의 문항이 없습니다/.test(zDirect.window.document.body.textContent) ? true : null,
+        '0문항 유형 직접 진입 안내', 8000).catch(() => null);
+      check(/해당 유형의 문항이 없습니다/.test(zDirect.window.document.body.textContent),
+        'types: 0문항 유형으로 직접 들어오면 서버 400 문구를 그대로 노출',
+        (zDirect.window.document.getElementById('questions') || {}).textContent);
+      check(zDirect.window.document.querySelectorAll('#typeFilter button').length === 4,
+        'types: 400 화면에서도 유형 필터가 남아 있다 (다른 유형으로 되돌아갈 수 있게)');
+    }
+
+    // ---- ④ 메인: 회차 버튼의 유형 구성 + 유형 칩 ----
+    const idxT = await load('/');
+    await waitFor(() => idxT.window.document.querySelector('a.round-btn .types'), '회차 버튼 유형 구성', 8000).catch(() => null);
+    const btn262 = [...idxT.window.document.querySelectorAll('a.round-btn')]
+      .find(a => /round=2026-2(?:&|$)/.test(a.getAttribute('href') || ''));
+    const typesSpan = btn262 ? btn262.querySelector('.types') : null;
+    check(!!typesSpan && /코드\s*\d+/.test(typesSpan.textContent) && /이론\s*\d+/.test(typesSpan.textContent),
+      'index: 회차 버튼에 유형 구성 표시 (코드 N · 이론 M)', typesSpan ? typesSpan.textContent : '.types 없음');
+
+    // 0인 유형은 구성 표기에서 빠진다 (2025-2 → "코드 9 · 이론 11", SQL 없음)
+    if (zeroPick) {
+      const LABEL2 = { code: '코드', sql: 'SQL', theory: '이론' };
+      const btnZero = [...idxT.window.document.querySelectorAll('a.round-btn')]
+        .find(a => new RegExp('round=' + zeroPick.round + '(?:&|$)').test(a.getAttribute('href') || ''));
+      const zSpan = btnZero ? btnZero.querySelector('.types') : null;
+      check(!!zSpan && zSpan.textContent.indexOf(LABEL2[zeroPick.type]) === -1,
+        'index: 0인 유형은 회차 구성 표기에서 생략 (' + zeroPick.round + ' 에 ' + LABEL2[zeroPick.type] + ' 없음)',
+        zSpan ? zSpan.textContent : '.types 없음');
+    }
+
+    const idxChips = [...idxT.window.document.querySelectorAll('#roundTypeFilter button')];
+    check(idxChips.length === 4, 'index: 회차 목록 위 유형 칩 4개', idxChips.length);
+    if (idxChips.length === 4) {
+      idxChips[1].click(); // '코드'
+      await sleep(150);
+      const links = [...idxT.window.document.querySelectorAll('a.round-btn')];
+      check(links.length > 0 && links.every(a => /&type=code/.test(a.getAttribute('href') || '')),
+        'index: 유형 칩을 고르면 회차 링크에 &type=code 가 붙는다',
+        links.length ? links[0].getAttribute('href') : '회차 버튼 없음');
+    }
+
+    // ---- 0문항 회차 버튼은 링크를 죽인다 (0인 (회차,유형) 조합을 counts 에서 동적으로 찾는다) ----
+    if (idxChips.length === 4 && zeroPick) {
+      const LABEL3 = { code: '코드', sql: 'SQL', theory: '이론' };
+      idxChips[['code', 'sql', 'theory'].indexOf(zeroPick.type) + 1].click();
+      await sleep(200);
+      const zDoc2 = idxT.window.document;
+      // 0문항 회차는 <a> 가 아니어야 한다 — 눌러서 400 으로 떨어질 길 자체가 없어야 한다
+      const stillLink = zDoc2.querySelector('a.round-btn[href*="round=' + zeroPick.round + '&"]');
+      check(!stillLink,
+        'index: 0문항 회차(' + zeroPick.round + ' / ' + LABEL3[zeroPick.type] + ')는 링크가 아니다',
+        stillLink ? stillLink.getAttribute('href') : '링크 없음 (정상)');
+      const zBtn = [...zDoc2.querySelectorAll('.round-btn')]
+        .find(b => new RegExp(zeroPick.round.replace('-', '년 ') + '회').test(b.textContent)
+          || b.textContent.indexOf(zeroPick.round) !== -1);
+      check(!!zBtn && zBtn.classList.contains('empty') && zBtn.tagName === 'SPAN',
+        'index: 0문항 회차 버튼이 .empty span 으로 비활성화',
+        zBtn ? zBtn.tagName + '.' + zBtn.className : '버튼 없음');
+      check(!!zBtn && /문항 없음/.test(zBtn.textContent) && !!zBtn.title,
+        'index: 0문항 회차 버튼에 사유 표기 + title',
+        zBtn ? (zBtn.querySelector('.empty-note') || {}).textContent + ' / title=' + zBtn.title : '-');
+      // 나머지 회차는 그대로 링크로 남아 있어야 한다
+      const others = [...zDoc2.querySelectorAll('a.round-btn')];
+      check(others.length > 0 && others.every(a => a.getAttribute('href').indexOf('type=' + zeroPick.type) !== -1),
+        'index: 그 유형이 있는 나머지 회차는 정상 링크', others.length + '개');
+    }
+    check(idxT.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+      'index: 유형 UI JS 오류 없음', idxT.errors.slice(0, 2).join(' | '));
+
+    // ---- ⑤ 랜덤 모의고사 유형 필터 ----
+    const prT = await load('/study.html?set=practice&rounds=all&count=10&type=sql');
+    const prTCards = await waitFor(() => { const c = prT.window.document.querySelectorAll('.q'); return c.length > 0 ? c : null; }, 'SQL 모의고사 문항', 8000).catch(() => null);
+    const sqlBadges = prTCards
+      ? [...prTCards].filter(c => { const b = c.querySelector('.q-type'); return b && b.textContent.trim() === 'SQL'; }).length
+      : 0;
+    check(!!prTCards && prTCards.length > 0 && sqlBadges === prTCards.length,
+      'types: ?set=practice&rounds=all&count=10&type=sql → SQL 문항만 출제',
+      sqlBadges + ' / ' + (prTCards ? prTCards.length : 0));
+    check(prT.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+      'types: SQL 모의고사 JS 오류 없음', prT.errors.slice(0, 2).join(' | '));
+  }
 
   console.log('\n' + (failures === 0 ? 'HEADLESS OK' : 'HEADLESS FAIL — ' + failures + ' check(s) failed'));
   shutdown(failures === 0 ? 0 : 1);

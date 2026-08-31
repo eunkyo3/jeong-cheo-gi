@@ -38,6 +38,9 @@
   var FLOAT_SCROLL_THRESHOLD = 260; // 대전 화면 상단 'live' 패널을 대략 지나치는 스크롤량(요구 1)
 
   var MODE_LABEL = { round: '회차 전체', random: '랜덤' };
+  // 문항 유형 — 서버 계약(data/types/*.json)의 값 셋과 화면 표기.
+  var TYPE_ORDER = ['code', 'sql', 'theory'];
+  var TYPE_LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
   var TIME_CHOICES = [
     { v: 600, label: '10분' },
     { v: 1200, label: '20분' },
@@ -60,7 +63,8 @@
     roomsError: '',
     roundList: [],        // [{round,title,questionCount}]
     roundsError: '',
-    form: { name: '', mode: 'round', roundIds: [], questionCount: 10, timeLimitS: 1200 },
+    // form.type: '' = 전체 유형 (POST /api/rooms 에 아예 싣지 않는다)
+    form: { name: '', mode: 'round', roundIds: [], questionCount: 10, timeLimitS: 1200, type: '' },
     createError: '',
     creating: false,
     joiningRoomId: null,
@@ -175,6 +179,18 @@
       if (!seen[y]) { seen[y] = true; years.push(y); }
     }
     return years;
+  }
+
+  /** 알 수 없는 값은 '' (= 전체) 로 떨어뜨린다 — 서버에 이상한 type 을 보내지 않는다. */
+  function normalizeType(value) {
+    var t = String(value == null ? '' : value).trim().toLowerCase();
+    return TYPE_ORDER.indexOf(t) === -1 ? '' : t;
+  }
+
+  /** 유형 뱃지 (없는 유형이면 null → 뱃지 생략). */
+  function typeBadge(type) {
+    var t = normalizeType(type);
+    return t ? h('span', { class: 'q-type ' + t, text: TYPE_LABEL[t] }) : null;
   }
 
   function roundIdsOfYear(y) {
@@ -462,6 +478,7 @@
           state.form.roundIds.join(','),
           state.form.questionCount,
           state.form.timeLimitS,
+          state.form.type,
           state.roundList.length,
           state.roundsError,
           state.createError,
@@ -486,6 +503,9 @@
         var host = r.host && typeof r.host === 'object' ? (r.host.nickname || '') : (r.host || '');
         var meta = ['방장 ' + host, (r.playerCount || 0) + '명', MODE_LABEL[r.mode] || r.mode || ''];
         if (r.questionCount) meta.push(r.questionCount + '문항');
+        // 유형 필터가 걸린 방만 표기한다 (없으면 전체 출제 — 굳이 적지 않는다).
+        var rType = normalizeType(r.type || (r.settings && r.settings.type));
+        if (rType) meta.push(TYPE_LABEL[rType]);
         if (r.timeLimitS) meta.push(Math.round(r.timeLimitS / 60) + '분');
         return h('div', { class: 'room' }, [
           h('span', { class: 'rname', text: r.name || '(이름 없음)' }),
@@ -654,6 +674,22 @@
       ]));
     }
 
+    // 문항 유형 — 방 생성 시 1회만 적용된다(진행 중 변경 없음). 전체면 서버에 싣지 않는다.
+    fields.push(h('div', { class: 'field' }, [
+      h('span', { class: 'flabel', text: '문항 유형' }),
+      h('div', { class: 'radiorow' }, [{ v: '', label: '전체' }].concat(TYPE_ORDER.map(function (t) {
+        return { v: t, label: TYPE_LABEL[t] };
+      })).map(function (o) {
+        return h('label', { class: 'chip' + (f.type === o.v ? ' on' : ''), 'data-type': o.v || 'all' }, [
+          h('input', {
+            type: 'radio', name: 'qtype', checked: f.type === o.v,
+            onchange: function () { f.type = o.v; state.createError = ''; render(); },
+          }),
+          h('span', { text: o.label }),
+        ]);
+      })),
+    ]));
+
     fields.push(h('div', { class: 'field' }, [
       h('span', { class: 'flabel', text: '제한 시간' }),
       h('div', { class: 'radiorow' }, TIME_CHOICES.map(function (c) {
@@ -731,6 +767,7 @@
         h('div', {}, [h('b', { text: '모드 ' }), MODE_LABEL[s.mode] || s.mode || '-']),
         h('div', {}, [h('b', { text: '회차 ' }), roundText]),
         h('div', {}, [h('b', { text: '문항 수 ' }), (s.questionCount || 0) + '문항']),
+        h('div', {}, [h('b', { text: '문항 유형 ' }), TYPE_LABEL[normalizeType(s.type)] || '전체']),
         h('div', {}, [h('b', { text: '제한 시간 ' }), Math.round((s.timeLimitS || 0) / 60) + '분']),
       ]),
     ]));
@@ -931,7 +968,9 @@
       ]);
     });
 
+    var badge = typeBadge(q.type);
     return h('div', { class: 'q' + (readOnly ? ' readonly' : '') }, [
+      badge ? h('div', { class: 'q-badges' }, [badge]) : null,
       h('div', { class: 'qtitle' }, [
         h('span', { class: 'num', text: String(q.num == null ? '' : q.num) }),
         h('span', { html: q.prompt || '' }), // 서버 자산의 신뢰 마크업
@@ -1114,6 +1153,8 @@
       inviteUserIds: others,
     };
     if (s.mode === 'random') body.questionCount = s.questionCount;
+    // 같은 설정으로 다시 — 유형 필터도 그대로 이어간다.
+    if (normalizeType(s.type)) body.type = normalizeType(s.type);
 
     state.rematching = true;
     render();
@@ -1163,7 +1204,9 @@
       ]);
     });
 
+    var typeChip = typeBadge(q && q.type);
     var kids = [
+      typeChip ? h('div', { class: 'q-badges' }, [typeChip]) : null,
       h('div', { class: 'qtitle' }, [
         h('span', { class: 'num', text: q ? String(q.num) : '?' }),
         h('span', { html: q ? (q.prompt || '') : qid }),
@@ -1401,6 +1444,8 @@
       timeLimitS: f.timeLimitS,
     };
     if (f.mode === 'random') body.questionCount = f.questionCount;
+    // 전체 유형이면 아예 싣지 않는다 (구버전 서버와도 그대로 호환된다).
+    if (normalizeType(f.type)) body.type = normalizeType(f.type);
 
     state.creating = true;
     state.createError = '';

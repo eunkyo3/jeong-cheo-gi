@@ -24,10 +24,18 @@
   var SAVE_DEBOUNCE_MS = 300;
   var REPORT_DONE = '접수되었습니다. 고맙습니다!';
 
+  // 문항 유형 — 서버 계약(data/types/*.json)의 값 셋과 화면 표기.
+  var TYPE_ORDER = ['code', 'sql', 'theory'];
+  var TYPE_LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
+
   var state = {
     mode: 'round',    // 'round' | 'practice' | 'wrong'
     setKey: '',       // 저장 키이자 채점 응답의 round 값
     roundId: '',      // mode==='round' 일 때만 의미 있다
+    typeFilter: '',   // '' | 'code' | 'sql' | 'theory' — 쿼리스트링 ?type= 에서 온다
+    roundCounts: null, // {code,sql,theory} — 회차 모드에서만. 0문항 유형 칩을 비활성화하는 데 쓴다
+    practiceRounds: 'all', // mode==='practice' 일 때 필터 링크를 다시 만들기 위해 보관
+    practiceCount: '20',
     round: null,      // {round,title,sourceUrl,questions[]}
     answers: {},      // qid -> [string]
     result: null,     // {correctCount,totalCount,score,details[],bodyTexts{},explanations{}}
@@ -142,6 +150,12 @@
     return label == null || label === '' ? '답' + (index + 1) : label;
   }
 
+  /** 알 수 없는 값은 전부 '' (= 전체) 로 떨어뜨린다 — 서버에 이상한 type 을 보내지 않는다. */
+  function normalizeType(value) {
+    var t = String(value == null ? '' : value).trim().toLowerCase();
+    return TYPE_ORDER.indexOf(t) === -1 ? '' : t;
+  }
+
   function detailFor(questionId) {
     if (!state.result) return null;
     var list = state.result.details || [];
@@ -205,11 +219,14 @@
 
   var saveTimer = null;
 
-  /** 저장 키. 랜덤 모의고사는 매번 문항이 달라 저장하지 않는다 → null. */
+  /**
+   * 저장 키. 랜덤 모의고사는 매번 문항이 달라 저장하지 않는다 → null.
+   * 유형 필터가 걸리면 문항 묶음 자체가 달라지므로 키도 분리한다 (전체 풀이의 저장분과 섞이지 않게).
+   */
   function saveKey() {
     if (state.mode === 'practice') return null;
     if (!state.setKey) return null;
-    return STORE_PREFIX + state.setKey;
+    return STORE_PREFIX + state.setKey + (state.typeFilter ? ':' + state.typeFilter : '');
   }
 
   function hasAnswers() {
@@ -558,6 +575,94 @@
     card.appendChild(box);
   }
 
+  // ------------------------------------------------------------- 유형 필터
+
+  /**
+   * 유형 필터(전체/코드/SQL/이론). study.html 에는 자리가 없으므로 헤더의 메타 줄 뒤에 만들어 붙인다.
+   * 누르면 지금 출처(회차·오답노트·모의고사)를 그대로 유지한 채 `type=` 만 바꿔 다시 로드한다.
+   * 채점 후에는 전부 비활성 — "다시 풀기" 로 state.result 가 지워지면 다시 활성이 된다.
+   */
+  var elTypeFilter = null;
+  var hasSource = false;
+
+  function ensureTypeFilterNode() {
+    if (elTypeFilter) return elTypeFilter;
+    if (!elMeta || !elMeta.parentNode) return null;
+    elTypeFilter = el('div', 'type-filter');
+    elTypeFilter.id = 'typeFilter';
+    elMeta.parentNode.insertBefore(elTypeFilter, elMeta.nextSibling);
+    return elTypeFilter;
+  }
+
+  /** 지금 출처를 그대로 두고 type 만 바꾼 학습 URL. */
+  function studyUrlForType(type) {
+    var tail = type ? '&type=' + encodeURIComponent(type) : '';
+    if (state.mode === 'wrong') return '/study.html?set=wrong' + tail;
+    if (state.mode === 'practice') {
+      return '/study.html?set=practice&rounds=' + encodeURIComponent(state.practiceRounds)
+        + '&count=' + encodeURIComponent(state.practiceCount) + tail;
+    }
+    return '/study.html?round=' + encodeURIComponent(state.roundId) + tail;
+  }
+
+  /**
+   * 이 회차에 그 유형 문항이 0개인가.
+   * `state.roundCounts` 는 회차 모드에서만·서버가 counts 를 줄 때만 채워진다. 그 밖에는
+   * 항상 false 를 돌려준다 — 모르는 것을 근거로 사용자의 선택지를 막지 않는다.
+   * (모의고사·오답노트는 여러 회차를 합치므로 여기서 미리 판단하지 않고, 비면 서버 400 문구를 그대로 띄운다.)
+   */
+  function typeIsEmpty(type) {
+    if (!type || !state.roundCounts) return false;
+    return Number(state.roundCounts[type]) === 0;
+  }
+
+  function renderTypeFilter() {
+    if (!hasSource) return;
+    var node = ensureTypeFilterNode();
+    if (!node) return;
+    node.textContent = '';
+    node.hidden = false;
+
+    var graded = !!state.result;
+    node.appendChild(el('span', 'type-filter-label', '유형'));
+
+    var options = [{ value: '', label: '전체' }];
+    TYPE_ORDER.forEach(function (t) { options.push({ value: t, label: TYPE_LABEL[t] }); });
+
+    options.forEach(function (opt) {
+      var on = state.typeFilter === opt.value;
+      var empty = typeIsEmpty(opt.value);
+      var btn = el('button', 'chip' + (on ? ' on' : '') + (empty ? ' empty' : ''), opt.label);
+      btn.type = 'button';
+      btn.setAttribute('data-type', opt.value || 'all');
+      // 이 회차에 없는 유형은 눌러 봐야 서버 400 이다 — 누르기 전에 막는다.
+      btn.disabled = graded || empty;
+      if (empty) btn.title = '이 회차에는 ' + opt.label + ' 문항이 없습니다.';
+      btn.addEventListener('click', function () {
+        if (on || state.result) return;    // 지금 보고 있는 유형이면 아무것도 하지 않는다
+        window.location.href = studyUrlForType(opt.value);
+      });
+      node.appendChild(btn);
+    });
+  }
+
+  /**
+   * 회차 모드에서만 /api/rounds 의 counts 를 곁들여 받아 온다 (0문항 유형 칩을 비활성화하기 위함).
+   * 실패·구버전 서버는 조용히 무시한다 — 필터는 counts 없이도 완전히 동작해야 한다.
+   */
+  function loadRoundCounts() {
+    if (state.mode !== 'round' || !state.roundId) return;
+    api.get('/api/rounds').then(function (list) {
+      var found = null;
+      (Array.isArray(list) ? list : []).forEach(function (r) {
+        if (r && r.round === state.roundId) found = r;
+      });
+      if (!found || !found.counts || typeof found.counts !== 'object') return;
+      state.roundCounts = found.counts;
+      renderTypeFilter();
+    }).catch(function () { /* 부가 정보다 — 없으면 없는 대로 */ });
+  }
+
   // ---------------------------------------------------------------- 렌더
 
   /** Enter → 다음 답안 칸. 마지막 칸이면 제출 버튼으로. Shift+Enter 는 그냥 둔다. */
@@ -579,8 +684,12 @@
     if (graded) card.classList.add(detail.correct ? 'correct' : 'wrong');
     card.setAttribute('data-q', question.id);
 
-    // 출처 회차 뱃지 — 우상단, 모든 모드(회차/모의고사/오답노트)에서 항상 표시
-    card.appendChild(el('span', 'q-origin', questionOrigin(question.id)));
+    // 우상단 뱃지 줄 — 유형(있을 때만) + 출처 회차. 회차 뱃지는 모든 모드에서 항상 표시한다.
+    var badges = el('div', 'q-badges');
+    var qType = normalizeType(question.type);
+    if (qType) badges.appendChild(el('span', 'q-type ' + qType, TYPE_LABEL[qType]));
+    badges.appendChild(el('span', 'q-origin', questionOrigin(question.id)));
+    card.appendChild(badges);
 
     // 제목: 번호 + prompt(HTML 자산이므로 HTML 로 삽입)
     var title = el('div', 'qtitle');
@@ -693,13 +802,15 @@
       return line;
     }
     return '총 ' + state.round.questions.length + '문항 · 100점 만점 ('
-      + PASS_SCORE + '점 이상 합격) — 답을 입력하고 맨 아래 제출 버튼을 누르세요';
+      + PASS_SCORE + '점 이상 합격) — 답을 입력하고 맨 아래 제출 버튼을 누르세요'
+      + (state.typeFilter ? ' · ' + TYPE_LABEL[state.typeFilter] + ' 유형만' : '');
   }
 
   /** 오답노트가 비었을 때 — 실패가 아니므로 fail() 이 아니라 축하하는 빈 화면을 준다. */
   function renderEmptyWrong() {
     elTitle.textContent = '오답노트';
     elMeta.textContent = '지금은 다시 풀 오답이 없습니다.';
+    renderTypeFilter();
     elQuestions.textContent = '';
     var box = el('div', 'card empty-state');
     box.appendChild(el('p', null, '🎉 틀린 문항이 없습니다.'));
@@ -722,6 +833,7 @@
 
     elTitle.textContent = round.title || round.round;
     elMeta.textContent = metaText();
+    renderTypeFilter();
 
     elQuestions.textContent = '';
     if (round.questions.length === 0) {
@@ -767,8 +879,12 @@
   function gradeRequest() {
     var answers = collectAnswers();
     if (state.mode === 'round') {
-      return api.post('/api/rounds/' + encodeURIComponent(state.roundId) + '/grade', { answers: answers });
+      // 유형 필터가 걸린 채점은 그 부분집합만 채점한다 (총점도 부분집합 기준).
+      var body = { answers: answers };
+      if (state.typeFilter) body.type = state.typeFilter;
+      return api.post('/api/rounds/' + encodeURIComponent(state.roundId) + '/grade', body);
     }
+    // practice/wrong 세트는 이미 필터된 문항만 들고 있으므로 경로를 바꾸지 않는다.
     return api.post('/api/practice/grade', { setKey: state.setKey, answers: answers });
   }
 
@@ -818,6 +934,9 @@
   function fail(message, extraLink) {
     elTitle.textContent = '학습 모드';
     elMeta.textContent = '';
+    // 유형 필터로 문항이 0개면 서버가 400 을 준다 — 문구는 그대로 띄우되 필터는 남겨 둔다
+    // (다른 유형이나 '전체' 로 곧바로 되돌아갈 수 있어야 한다).
+    renderTypeFilter();
     elQuestions.textContent = '';
     elQuestions.appendChild(el('p', 'error-text', message));
     var back = el('p', 'hint');
@@ -830,11 +949,21 @@
     if (elTools) elTools.hidden = true;
   }
 
-  /** 쿼리스트링 → 어떤 문항 묶음을 어디서 가져올지. */
+  /**
+   * 쿼리스트링 → 어떤 문항 묶음을 어디서 가져올지.
+   * `?type=code|sql|theory` 는 세 출처 모두에 그대로 얹는다 (알 수 없는 값이면 무시 = 전체).
+   */
   function parseSource() {
+    var type = normalizeType(queryParam('type'));
+    var typeQ = type ? '&type=' + encodeURIComponent(type) : '';
     var set = queryParam('set');
     if (set === 'wrong') {
-      return { mode: 'wrong', setKey: 'wrong', url: '/api/me/wrong' };
+      return {
+        mode: 'wrong',
+        setKey: 'wrong',
+        type: type,
+        url: '/api/me/wrong' + (type ? '?type=' + encodeURIComponent(type) : ''),
+      };
     }
     if (set === 'practice') {
       var roundsParam = queryParam('rounds') || 'all';
@@ -842,8 +971,11 @@
       return {
         mode: 'practice',
         setKey: 'practice',
+        type: type,
+        practiceRounds: roundsParam,
+        practiceCount: count,
         url: '/api/practice?rounds=' + encodeURIComponent(roundsParam)
-          + '&count=' + encodeURIComponent(count),
+          + '&count=' + encodeURIComponent(count) + typeQ,
       };
     }
     var round = queryParam('round');
@@ -852,7 +984,9 @@
         mode: 'round',
         setKey: round,
         roundId: round,
-        url: '/api/rounds/' + encodeURIComponent(round),
+        type: type,
+        url: '/api/rounds/' + encodeURIComponent(round)
+          + (type ? '?type=' + encodeURIComponent(type) : ''),
       };
     }
     return null;
@@ -865,6 +999,12 @@
     state.mode = source.mode;
     state.setKey = source.setKey;
     state.roundId = source.roundId || '';
+    state.typeFilter = source.type || '';
+    if (source.practiceRounds) state.practiceRounds = source.practiceRounds;
+    if (source.practiceCount) state.practiceCount = source.practiceCount;
+    hasSource = true;
+    renderTypeFilter();
+    loadRoundCounts();
 
     api.get(source.url)
       .then(function (data) {

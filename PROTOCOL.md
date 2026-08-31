@@ -8,16 +8,16 @@
 | POST | `/api/auth/login` | `{nickname, password}` | `{user:{id,nickname}}` / 401 |
 | POST | `/api/auth/logout` | – | `{ok:true}` (쿠키 삭제) |
 | GET | `/api/auth/me` | – | `{user}` 또는 `{user:null}` |
-| GET | `/api/rounds` | – | `[{round,title,questionCount}]` (연도 그룹핑은 클라이언트) |
-| GET | `/api/rounds/:id` | – | `{round,title,sourceUrl,questions:[{id,num,prompt,bodyHtml,fields:[{label}]}]}` |
-| POST | `/api/rounds/:id/grade` | `{answers:{qid:[string]}}` | `{round,correctCount,totalCount,score,details[],bodyTexts{},explanations{}}` (로그인 시 `study_results` 적재) |
-| GET | `/api/practice` | `?rounds=all\|<id,id,…>&count=<5..60>` | `{setKey:"practice", title, roundIds[], questions:[{id,num,prompt,bodyHtml,fields:[{label}]}]}` / 400 |
+| GET | `/api/rounds` | – | `[{round,title,questionCount,counts:{code,sql,theory}}]` (연도 그룹핑은 클라이언트) |
+| GET | `/api/rounds/:id` | `?type=code\|sql\|theory` (선택) | `{round,title,sourceUrl,type,questions:[{id,num,prompt,bodyHtml,type,fields:[{label}]}]}` |
+| POST | `/api/rounds/:id/grade` | `{answers:{qid:[string]}, type?:"code"\|"sql"\|"theory"}` | `{round,type,correctCount,totalCount,score,details[],bodyTexts{},explanations{}}` (로그인 시 `study_results` 적재) |
+| GET | `/api/practice` | `?rounds=all\|<id,id,…>&count=<5..60>&type=` (선택) | `{setKey:"practice", title, roundIds[], type, questions:[…공개 문항]}` / 400 |
 | POST | `/api/practice/grade` | `{setKey:"practice"\|"wrong", answers:{qid:[string]}}` | 회차 채점과 동일 형태(`round`=setKey) / 400 |
 | GET | `/api/me/history` | – (로그인 필수) | `{rounds:{setKey:{count,best,last,lastAt}}, recent:[{round,score,takenAt,total,correct}](≤20, 최신 먼저), wrongCount}` |
-| GET | `/api/me/wrong` | – (로그인 필수) | `{setKey:"wrong", title:"오답노트", questions:[…공개 문항]}` |
+| GET | `/api/me/wrong` | `?type=` (선택, 로그인 필수) | `{setKey:"wrong", title:"오답노트", type, questions:[…공개 문항]}` |
 | POST | `/api/reports` | `{questionId, myAnswer, comment}` | `{ok:true}` → `data/reports.json` 적재 |
-| POST | `/api/rooms` | `{name, mode:"round"\|"random", roundIds[], questionCount(5\|10\|20, random만), timeLimitS(600\|1200\|1800), inviteUserIds?:number[](최대 8, 생성자·정수 아닌 값 무시)}` | `{roomId}` |
-| GET | `/api/rooms` | – | `[{roomId,name,host,playerCount,mode,state}]` (waiting 이면서 참가자 1명 이상인 방만 — 전원 퇴장 후 GC 유예 중인 빈 방은 제외) |
+| POST | `/api/rooms` | `{name, mode:"round"\|"random", roundIds[], questionCount(5\|10\|20, random만), type?:"code"\|"sql"\|"theory", timeLimitS(600\|1200\|1800), inviteUserIds?:number[](최대 8, 생성자·정수 아닌 값 무시)}` | `{roomId}` |
+| GET | `/api/rooms` | – | `[{roomId,name,host,playerCount,mode,state,questionCount,type,timeLimitS}]` (waiting 이면서 참가자 1명 이상인 방만 — 전원 퇴장 후 GC 유예 중인 빈 방은 제외) |
 | GET | `/api/ranking` | – | `[{rank,userId,nickname,wins,draws,losses,points}]` |
 
 **에러 규약**: REST 는 400 `{error:"사유"}` (잘못된 설정값, **선택 회차의 유효 문항 총합 < questionCount**),
@@ -31,9 +31,39 @@
 
 **치팅 방어**: `/api/rounds/:id` 와 `battle:questions` 페이로드에서 `accept`·`sampleAnswer`·`validator`·`display`
 를 **반드시 제거**한다. `fields` 는 `{label}` 만 남긴다. 채점은 서버에서만 한다.
-`bodyText`(지문 평문) 는 정답 정보가 아니므로 `battle:questions` 에는 포함한다(결과 화면 AI 질문 복사용).
+`bodyText`(지문 평문)·`type`(문항 유형) 은 정답 정보가 아니므로 `battle:questions` 에는 포함한다(각각 결과 화면 AI 질문 복사용·유형 뱃지용).
 `/api/rounds/:id` 는 학습 모드 채점 응답의 `bodyTexts` 맵으로 채점 후에만 내보낸다. `sourceImages` 는 어느 쪽에도 보내지 않는다.
 회차 id 는 **인메모리 화이트리스트**로 검사해 경로 순회를 차단한다.
+
+### 문항 유형 필터 (동결)
+
+문항 분류(`data/types/*.json`, SCHEMA.md)는 서버가 기동 시 문항 객체에 `type` 으로 붙인다.
+값은 `code` / `sql` / `theory` **셋뿐**이고, 분류가 없는 문항은 **`theory`** 로 떨어진다 — `type` 은 언제나 이 셋 중 하나다.
+
+**`type` 은 정답 정보가 아니다.** `rounds.publicQuestion()` · `battle.publicQuestion()` 화이트리스트에 **올라가 있어**
+`/api/rounds/:id`·`/api/practice`·`/api/me/wrong`·`battle:questions`·`battle:resync` 어디서나 **채점 전에도** 나간다
+(문항 카드의 유형 뱃지·유형 필터에 필요하다). 해설(`explanationHtml`)과는 정반대 취급이다.
+
+**파라미터 규칙 (다섯 곳 공통)**
+
+| 경로 | 자리 | 효과 |
+|---|---|---|
+| `GET /api/rounds/:id` | 쿼리 `?type=` | 그 유형 문항만 |
+| `POST /api/rounds/:id/grade` | 본문 `type` | **그 부분집합만 채점** — `totalCount`·`score`·`details`·`bodyTexts`·`explanations`·`study_results.question_ids` 가 전부 부분집합 기준. 응답의 `round` 는 회차 id 그대로다(이력 집계 키) |
+| `GET /api/practice` | 쿼리 `?type=` | 출제 **풀을 먼저 좁힌 뒤** `buildQuestionSet` |
+| `GET /api/me/wrong` | 쿼리 `?type=` | 오답노트 문항 필터 |
+| `POST /api/rooms` | 본문 `type` | 출제 풀 필터. **방 생성 시 1회만** 적용되고 `settings.type` 으로 보존된다 |
+
+- **미지정·빈 값·`"all"` = 전체**(응답의 `type` 은 `null`). 값 주위 공백은 무시한다.
+- 그 밖의 값(`CODE`, `code,sql`, 비문자열 …)은 **400** `{error:"유형은 code/sql/theory 중 하나여야 합니다."}`.
+- 필터 결과가 **0문항**이면 400 `{error:"해당 유형의 문항이 없습니다."}` —
+  `GET /api/rounds/:id`, `POST /api/rounds/:id/grade`, `POST /api/rooms` 에 적용된다.
+  `GET /api/me/wrong` 은 **예외**로, 오답이 없는 상태가 정상이므로 빈 목록을 200 으로 돌려준다.
+  `GET /api/practice` 는 풀이 `count` 보다 적을 때 기존 사유(`선택 회차의 유효 문항 총합…`)로 400 이 난다.
+- **채점 총점이 부분집합 기준으로 바뀌므로** `study_results.question_ids` 도 같은 부분집합이어야 오답노트가 어긋나지 않는다 —
+  `grade` 는 필터된 문항 배열 하나를 채점·저장·응답에 모두 돌려 쓴다.
+- **대전은 방 생성 시 1회만** 필터한다. 양쪽이 같은 문항을 봐야 하므로 진행 중 변경은 없고,
+  `room:state`·`battle:resync` 의 `settings.type` 과 `GET /api/rooms` 행의 `type` 으로 표시만 한다(전체면 `null`).
 
 ### 해설 — 채점 전 비노출 (동결)
 
@@ -59,9 +89,9 @@
 | `room:join` | C→S | `{roomId}` — waiting 상태에서만 허용 |
 | `room:leave` | C→S | `{}` |
 | `room:start` | C→S | `{}` — 방장 소켓 + 2인 이상 검증 |
-| `room:invite` | S→C | `{roomId, name, fromUserId, fromNickname, settings:{mode, roundIds, questionCount, timeLimitS}}` — `POST /api/rooms` 의 `inviteUserIds` 중 **지금 소켓이 붙어 있는** 대상에게 1회 배달. 상태를 만들지 않으며(보관·재시도 없음) 받은 쪽이 `room:join` 을 보내야 참가다 |
-| `room:state` | S→C | `{state, players:[{userId,nickname,connected}], settings}` — 방 상태 변경 시 브로드캐스트 |
-| `battle:questions` | S→C | `{questions[](정답·sampleAnswer 제외), deadlineInfo}` — countdown 종료 시 |
+| `room:invite` | S→C | `{roomId, name, fromUserId, fromNickname, settings:{mode, roundIds, questionCount, type, timeLimitS}}` — `POST /api/rooms` 의 `inviteUserIds` 중 **지금 소켓이 붙어 있는** 대상에게 1회 배달. 상태를 만들지 않으며(보관·재시도 없음) 받은 쪽이 `room:join` 을 보내야 참가다 |
+| `room:state` | S→C | `{state, players:[{userId,nickname,connected}], settings:{roomId,name,hostUserId,mode,roundIds,questionCount,type,timeLimitS}}` — 방 상태 변경 시 브로드캐스트. `settings.type` 은 방 생성 시 고정된 유형(전체면 `null`) |
+| `battle:questions` | S→C | `{questions[](정답·sampleAnswer 제외, 각 문항에 `type` 포함), deadlineInfo}` — countdown 종료 시 |
 | `battle:answer` | C→S | `{questionId, fieldIndex, value}` — 서버가 실시간 보관(제출 아님) |
 | `battle:progress` | S→C | `{userId, answeredCount}` — 400ms 디바운스 브로드캐스트, **정오 비공개** |
 | `battle:submit` | C→S | `{}` — **명시적·비가역**. 서버가 submitted_at 기록, 이후 `battle:answer` 거부 |
