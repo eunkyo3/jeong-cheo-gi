@@ -31,6 +31,10 @@
 |---|---|
 | ![대전 결과](docs/screenshots/08-result.png) | ![랭킹](docs/screenshots/09-ranking.png) |
 
+| 대전 중 플로팅 현황 — 스크롤해도 타이머·진행 확인 | 제출 후 채점 현황 — 제출자끼리 문항별 정오 공유 |
+|---|---|
+| ![플로팅 현황](docs/screenshots/12-float-panel.png) | ![채점 현황](docs/screenshots/13-marks-shared.png) |
+
 | 모바일 — 오답노트 채점 | 모바일 — AI 질문 복사(클립보드 폴백 모달) |
 |---|---|
 | <img src="docs/screenshots/10-mobile-wrong-note.png" width="300"> | <img src="docs/screenshots/11-mobile-ai-copy-modal.png" width="300"> |

@@ -173,6 +173,11 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   const w = st.window, d = w.document;
   const cards = await waitFor(() => { const c = d.querySelectorAll('.q'); return c.length === 20 ? c : null; }, '20 question cards');
   check(cards.length === 20, 'study: 문항 카드 20개');
+
+  // ---- 요구 4: 문항 카드 우상단 회차 표기 ----
+  const firstOrigin = cards[0].querySelector('.q-origin');
+  check(!!firstOrigin && /2026년\s*2회/.test(firstOrigin.textContent),
+    'study: 첫 문항 카드에 회차 뱃지 "2026년 2회" 표시', firstOrigin ? firstOrigin.textContent : '.q-origin 없음');
   check(/총\s*20\s*문항/.test(d.body.textContent) && /100\s*점/.test(d.body.textContent), 'study: 헤더 "총 20문항 · 100점 만점" 동적 표기');
   const inputs = d.querySelectorAll('input.ans');
   check(inputs.length === 26, 'study: 입력 필드 26개 (단일 17 + Q9 4 + Q10 3 + Q12 2)', inputs.length);
@@ -347,10 +352,25 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   check(/오답노트/.test(wr.window.document.getElementById('roundTitle').textContent),
     'wrong: 제목이 "오답노트"', wr.window.document.getElementById('roundTitle').textContent);
 
+  // ---- 요구 4: 오답노트 카드에도 회차 뱃지 ----
+  const wrBadgeCount = wrCards ? [...wrCards].filter(c => !!c.querySelector('.q-origin') && c.querySelector('.q-origin').textContent.trim() !== '').length : 0;
+  check(!!wrCards && wrCards.length > 0 && wrBadgeCount === wrCards.length,
+    'wrong: 모든 오답 카드에 회차 뱃지 표시', wrBadgeCount + ' / ' + (wrCards ? wrCards.length : 0));
+
   // ---------- 7. 랜덤 모의고사 (B1) ----------
   const pr = await load('/study.html?set=practice&rounds=all&count=10');
   const prCards = await waitFor(() => { const c = pr.window.document.querySelectorAll('.q'); return c.length === 10 ? c : null; }, '모의고사 10문항', 6000).catch(() => null);
   check(!!prCards && prCards.length === 10, 'practice: rounds=all&count=10 → 문항 10개', prCards ? prCards.length : (pr.window.document.getElementById('questions') || {}).textContent);
+
+  // ---- 요구 4: 모의고사 카드 전부 회차 뱃지 + 서로 다른 회차 2개 이상 ----
+  if (prCards) {
+    const prOrigins = [...prCards].map(c => { const o = c.querySelector('.q-origin'); return o ? o.textContent.trim() : ''; });
+    const prBadgeCount = prOrigins.filter(t => t !== '').length;
+    check(prBadgeCount === prCards.length, 'practice: 모든 카드에 회차 뱃지 표시', prBadgeCount + ' / ' + prCards.length);
+    const distinctOrigins = new Set(prOrigins.filter(t => t !== ''));
+    check(distinctOrigins.size >= 2, 'practice: 뱃지가 서로 다른 회차 2개 이상 (rounds=all)', [...distinctOrigins].join(', '));
+  }
+
   const prSubmit = [...pr.window.document.querySelectorAll('button')].find(b => /제출하고 채점/.test(b.textContent));
   check(!!prSubmit, 'practice: 제출 버튼 존재');
   if (prSubmit) {
@@ -360,6 +380,16 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
       'practice: POST /api/practice/grade 로 채점되고 점수판이 뜬다', prBoard ? prBoard.textContent.replace(/\s+/g, ' ').slice(0, 50) : '점수판 없음');
   }
   check(pr.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0, 'practice: JS 오류 없음', pr.errors.slice(0, 2).join(' | '));
+
+  // ---- 요구 3 후속: index 최근 목록이 setKey 'practice' 를 "랜덤 모의고사" 로 표기 (원문 그대로 노출 금지) ----
+  if (prSubmit) {
+    const idxAfterPractice = await load('/');
+    await waitFor(() => idxAfterPractice.window.document.querySelector('#studyBox .history-list'), '모의고사 채점 후 최근 목록', 6000).catch(() => null);
+    const histList = idxAfterPractice.window.document.querySelector('#studyBox .history-list');
+    check(!!histList && /랜덤 모의고사/.test(histList.textContent) && !/(^|[^가-힣])practice([^가-힣]|$)/.test(histList.textContent),
+      'index: 최근 목록의 practice 결과가 "랜덤 모의고사" 로 표기된다 (raw practice 노출 금지)',
+      histList ? histList.textContent.replace(/\s+/g, ' ').slice(0, 120) : '.history-list 없음');
+  }
 
   // ---------- 8. 로그아웃 → 랭킹 페이지 리다이렉트 ----------
   if (logoutBtn) {

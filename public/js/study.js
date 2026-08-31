@@ -154,6 +154,21 @@
     return (n < 10 ? '0' : '') + n;
   }
 
+  /**
+   * 문항 id("2026-2#3")에서 출처 회차·번호를 사람이 읽는 표기로 뽑는다.
+   * "YYYY-N#num" 형태만 "YYYY년 N회 · num번" 으로 바꾸고, 그 외 형태는 '#' 앞부분을 그대로 보여준다.
+   */
+  function questionOrigin(qid) {
+    var s = String(qid == null ? '' : qid);
+    var hashIdx = s.indexOf('#');
+    var prefix = hashIdx >= 0 ? s.slice(0, hashIdx) : s;
+    var num = hashIdx >= 0 ? s.slice(hashIdx + 1) : '';
+    var m = /^(\d{4})-(\d+)$/.exec(prefix);
+    if (!m) return prefix;
+    var label = m[1] + '년 ' + m[2] + '회';
+    return num ? label + ' · ' + num + '번' : label;
+  }
+
   function formatTime(ms) {
     var d = new Date(ms);
     return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate())
@@ -526,6 +541,9 @@
     var card = el('div', 'q');
     if (graded) card.classList.add(detail.correct ? 'correct' : 'wrong');
     card.setAttribute('data-q', question.id);
+
+    // 출처 회차 뱃지 — 우상단, 모든 모드(회차/모의고사/오답노트)에서 항상 표시
+    card.appendChild(el('span', 'q-origin', questionOrigin(question.id)));
 
     // 제목: 번호 + prompt(HTML 자산이므로 HTML 로 삽입)
     var title = el('div', 'qtitle');

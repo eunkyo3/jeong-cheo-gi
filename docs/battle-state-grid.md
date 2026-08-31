@@ -63,12 +63,12 @@
 | 이벤트 | 결과 상태 | 효과 |
 |---|---|---|
 | `join` | `playing` | **무시(ROOM_NOT_JOINABLE 에러)** — 진행 중 난입 금지 |
-| `leave` | 전원 제출 → `finished`<br>그 외 → `playing` | **명부에서 지우지 않는다 — 즉시 제출 간주(비가역).** 미제출이었으면 `submittedAt=at` + `broadcast(battle:progress,{submitted:true, answeredCount})`(디바운스 없음). 이어서 `left=true`·`connected=false` + `broadcast(room:state)`. **명부 전원**이 제출을 마쳤으면 즉시 종료 처리(`reason:"allSubmitted"`). 종료되지 않았고 접속자 0이면 `schedule(abandon, at+60s)`. 이미 제출한 유저의 `leave` 는 `submittedAt` 을 바꾸지 않고 `battle:progress` 도 다시 내지 않는다. 재입장은 없다(어댑터가 `players[uid].left` 로 `join` 재부착을 막는다) |
+| `leave` | 전원 제출 → `finished`<br>그 외 → `playing` | **명부에서 지우지 않는다 — 즉시 제출 간주(비가역).** 미제출이었으면 `submittedAt=at` + **보관 답안 1회 채점 → `marks` 확정** + `broadcast(battle:progress,{submitted:true, answeredCount})`(디바운스 없음). 이어서 `left=true`·`connected=false` + `broadcast(room:state)`. **명부 전원**이 제출을 마쳤으면 즉시 종료 처리(`reason:"allSubmitted"`, 이때 `battle:marks` 는 내지 않는다 — 결과 화면이 대체). 종료되지 않았고 이번에 새로 제출된 것이면 **제출 완료자 전원에게 `broadcast(battle:marks, to=userId)`** 를 1건씩(미제출자에게는 절대 발송 금지). 그다음 접속자 0이면 `schedule(abandon, at+60s)`. 이미 제출한 유저의 `leave` 는 `submittedAt` 을 바꾸지 않고 `battle:progress`·`battle:marks` 도 다시 내지 않는다. 재입장은 없다(어댑터가 `players[uid].left` 로 `join` 재부착을 막는다) |
 | `start` | `playing` | **무시(ALREADY_STARTED 에러)** |
 | `answer` | `playing` | 제출자면 **무시(ALREADY_SUBMITTED 에러 — 비가역)**. 모르는 문항/필드면 **무시(UNKNOWN_QUESTION/BAD_FIELD 에러)**. 정상이면 답안 보관 + `lastAnswerAt=at` + `broadcast(battle:progress, debounce 400ms)` (**정오 비공개, `answeredCount` 만**) |
-| `submit` | 전원 제출 → `finished`<br>그 외 → `playing` | 이미 제출했으면 **무시(ALREADY_SUBMITTED 에러)**. 정상이면 `submittedAt=at` + `broadcast(room:state)` + `broadcast(battle:progress)`. **명부 전원**(이탈자 포함 — 이탈은 즉시 제출로 간주된다)이 제출을 마쳤으면 즉시 종료 처리 |
+| `submit` | 전원 제출 → `finished`<br>그 외 → `playing` | 이미 제출했으면 **무시(ALREADY_SUBMITTED 에러)**. 정상이면 `submittedAt=at` + **보관 답안 1회 채점 → `marks` 확정** + `broadcast(battle:progress)` + `broadcast(room:state)`. **명부 전원**(이탈자 포함 — 이탈은 즉시 제출로 간주된다)이 제출을 마쳤으면 즉시 종료 처리(이때 `battle:marks` 는 내지 않는다 — 결과 화면이 대체). 종료가 아니면 **제출 완료자 전원에게 `broadcast(battle:marks, to=userId)`** 를 1건씩 — 페이로드는 제출자 전원의 `{userId,nickname,marks}` 목록(`playerOrder` 순). **미제출자에게는 절대 발송하지 않는다(room 브로드캐스트 금지)** |
 | `disconnect` | `playing` | `connected=false` + `broadcast(room:state)`. 접속자 0이면 `schedule(abandon, at+60s)`. **미제출로 남아 deadline 까지 대기** |
-| `connect` | `playing` | `connected=true` + `cancel(abandon)` + `broadcast(room:state)` + `broadcast(battle:resync, to)` — 스냅샷 1회, 이벤트 재생 없음 |
+| `connect` | `playing` | `connected=true` + `cancel(abandon)` + `broadcast(room:state)` + `broadcast(battle:resync, to)` — 스냅샷 1회, 이벤트 재생 없음. 수신자가 **제출자면** resync 페이로드에 `marks` 배열을 함께 싣는다(미제출자에게는 필드 없음) |
 | `tick` | `at >= deadline` → `finished`<br>그 외 → `playing` | 마감 전이면 `broadcast(battle:tick,{remainingMs})`. **`at >= deadline` 이면 즉시 종료 처리**(절전 복귀 방어 — 서버 재검증) |
 | `timeout(countdown)` | `playing` | **무시(stale)** |
 | `timeout(deadline)` | `at >= deadline` → `finished`<br>그 외 → `playing` | 정상이면 종료 처리. 타이머가 이르게 깨어났으면 **무시하고 `schedule(deadline)` 재예약** |
@@ -127,7 +127,10 @@
 1. `cancel(deadline)`, `cancel(abandon)`, `cancel(roomGc)`, `cancel(countdown)`
 2. `broadcast(room:state)` — 방 전체
 3. `broadcast(battle:finished, to=각 참가자)` — **참가자 수만큼**. `details` 는 수신자 본인 것만 담는다
-4. `persist{op:"saveMatch"}` — 1건
+4. `persist{op:"saveMatch"}` — 1건. `players[]` 각 행은 `{userId, correctCount, score, submittedAt, answers, questionIds, wrongIds}` 이며
+   `db.saveMatch` 가 같은 트랜잭션에서 참가자별 `study_results(round='battle')` 1행씩도 함께 쓴다(대전 → 오답노트 합류).
+
+**`battle:marks` 는 이 이펙트 목록에 없다** — 종료로 이어지는 이벤트에서는 정오표를 내지 않는다(3번의 결과 화면이 대체한다).
 
 승자 판정 체인(`pickWinner`):
 ① `correctCount` 내림차순 → ② 제출 시각 오름차순(**이탈자는 이탈 시각, 끊긴 채 미제출로 남은 유저만 `deadline`**) →

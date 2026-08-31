@@ -253,6 +253,7 @@
   function setKeyLabel(setKey) {
     if (setKey === 'practice') return '랜덤 모의고사';
     if (setKey === 'wrong') return '오답노트';
+    if (setKey === 'battle') return '대전';
     var list = roundsData || [];
     for (var i = 0; i < list.length; i++) {
       if (list[i].round === setKey) return list[i].title || list[i].round;

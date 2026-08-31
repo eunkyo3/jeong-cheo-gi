@@ -141,6 +141,7 @@ h2.section {
 /* ----------------------------------------------------------------- 문항 */
 
 .q {
+  position: relative;
   background: #fff;
   border-radius: var(--radius);
   padding: 20px 22px;
@@ -151,7 +152,17 @@ h2.section {
 .q.correct { border-color: var(--ok); background: #f3fbf6; }
 .q.wrong { border-color: var(--bad); background: #fdf5f5; }
 
-.qtitle { font-weight: bold; margin-bottom: 10px; font-size: 1.02rem; }
+/* 문항 카드 우상단 — 출처 회차·번호 (요구 4). 제목 줄 오른쪽 자리를 미리 비워 둔다. */
+.q-origin {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.qtitle { font-weight: bold; margin-bottom: 10px; font-size: 1.02rem; padding-right: 130px; }
 .qtitle .num {
   display: inline-block;
   background: var(--deep);
@@ -414,6 +425,8 @@ table.list tr:nth-child(even) td { background: #fafbfc; }
   header.page { padding: 20px 16px; margin: 14px 0 18px; border-radius: 10px; }
   header.page h1 { font-size: 1.2rem; }
   .q { padding: 16px 14px; border-radius: 8px; }
+  .q-origin { position: static; display: block; text-align: right; margin-bottom: 6px; }
+  .qtitle { padding-right: 0; }
   .card { padding: 14px 14px; }
   .ansrow { gap: 6px; }
   .ansrow label { min-width: 100%; }

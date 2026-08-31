@@ -109,7 +109,12 @@ study_results(id PK, user_id FK, round, score, taken_at,
               question_ids TEXT NULL, wrong_ids TEXT NULL)
 ```
 
-`study_results.round` 는 회차 id 이거나 학습 집합 키(`practice` = 랜덤 모의고사, `wrong` = 오답노트)다.
+`study_results.round` 는 다음 넷 중 하나다 — **회차 id**(`2026-2` 등), `practice`(랜덤 모의고사),
+`wrong`(오답노트), `battle`(대전). 집계 경로(`/api/me/history`, `/api/me/wrong`)는 이 값을 해석하지 않고
+그대로 집합 키로 쓰므로 네 종류가 같은 규칙으로 합류한다.
+`battle` 행은 `db.saveMatch` 가 매치·참가자와 **같은 트랜잭션(json 어댑터는 같은 flush)** 에서
+참가자 1명당 1행씩 쓰며, `taken_at` 은 기록 시각이 아니라 **매치 종료 시각(`matches.finished_at`)** 이다
+(소급 스크립트 `scripts/backfill-battle-notes.mjs` 가 같은 값으로 중복을 판별해 멱등성을 얻는다).
 `question_ids`(출제 문항 전체) / `wrong_ids`(그중 틀린 문항)는 **JSON 배열 문자열이며 NULL 을 허용**한다 —
 컬럼 도입 이전 기록은 NULL 로 남고, 그런 행은 문항 단위 판정(오답노트)에서 제외된다.
 sqlite 어댑터는 기동 시 `PRAGMA table_info` 로 두 컬럼이 없으면 `ALTER TABLE ADD COLUMN` 한다(기존 DB 무중단 마이그레이션).

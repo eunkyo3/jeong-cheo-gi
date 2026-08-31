@@ -65,6 +65,15 @@ function cloneAnswers(answers) {
   return out;
 }
 
+/** marks 는 { [questionId]: boolean } — 정오 불리언만. 답 내용·display 는 절대 담지 않는다. */
+function cloneMarks(m) {
+  if (m == null) return null;
+  const out = {};
+  const keys = Object.keys(m);
+  for (let i = 0; i < keys.length; i++) out[keys[i]] = !!m[keys[i]];
+  return out;
+}
+
 function clonePlayer(p) {
   return {
     userId: p.userId,
@@ -75,6 +84,7 @@ function clonePlayer(p) {
     answers: cloneAnswers(p.answers),
     lastAnswerAt: p.lastAnswerAt,
     submittedAt: p.submittedAt,
+    marks: cloneMarks(p.marks),
   };
 }
 
@@ -169,6 +179,29 @@ function playersPayload(s) {
   });
 }
 
+/**
+ * 제출 확정 시 그 참가자의 보관 답안을 한 번 채점해 문항별 정오만 남긴다.
+ * `gradeSet` 은 순수 함수라 리듀서 안에서 불러도 계약(순수성)을 깨지 않는다.
+ */
+function marksOf(s, p) {
+  const details = gradeSet(s.questions, p.answers).details;
+  const out = {};
+  for (let i = 0; i < details.length; i++) out[details[i].questionId] = !!details[i].correct;
+  return out;
+}
+
+/** 지금까지 제출을 마친 참가자들의 정오표(playerOrder 순). 미제출자는 목록에 없다. */
+function marksList(s) {
+  const out = [];
+  const list = playerList(s);
+  for (let i = 0; i < list.length; i++) {
+    const p = list[i];
+    if (p.submittedAt == null) continue;
+    out.push({ userId: p.userId, nickname: p.nickname, marks: cloneMarks(p.marks) });
+  }
+  return out;
+}
+
 function settingsPayload(s) {
   return {
     roomId: s.roomId,
@@ -201,7 +234,7 @@ function deadlineInfo(s, at) {
 
 function resyncPayload(s, p, at) {
   const showQuestions = s.state === 'playing' || s.state === 'finished';
-  return {
+  const payload = {
     state: s.state,
     questions: showQuestions ? s.questions.map(publicQuestion) : [],
     myAnswers: cloneAnswers(p.answers),
@@ -211,6 +244,9 @@ function resyncPayload(s, p, at) {
     submitted: p.submittedAt != null,
     deadlineInfo: s.deadline == null ? null : deadlineInfo(s, at),
   };
+  // 제출자에게만 정오표를 되돌려 준다 — 미제출자에게는 필드 자체가 없다(누출 방지).
+  if (s.state === 'playing' && p.submittedAt != null) payload.marks = marksList(s);
+  return payload;
 }
 
 // ------------------------------------------------------------ 방 생성
@@ -268,6 +304,19 @@ function pushResync(ctx, s, p) {
   ctx.effects.push(fxBroadcast(s, 'battle:resync', resyncPayload(s, p, ctx.at), p.userId));
 }
 
+/**
+ * 새 제출이 나올 때마다 **제출 완료자 전원에게만** 최신 정오표 전체 목록을 개별 발송한다.
+ * 절대 room 브로드캐스트를 쓰지 않는다 — 미제출자에게 새어 나가면 치팅이 된다.
+ * (종료 이벤트에서는 부르지 않는다: 결과 화면이 정오표를 대체한다.)
+ */
+function pushMarks(ctx, s) {
+  const list = playerList(s);
+  for (let i = 0; i < list.length; i++) {
+    if (list[i].submittedAt == null) continue;
+    ctx.effects.push(fxBroadcast(s, 'battle:marks', { players: marksList(s) }, list[i].userId));
+  }
+}
+
 function addPlayer(s, userId, nickname, at) {
   s.players[userId] = {
     userId: userId,
@@ -278,6 +327,7 @@ function addPlayer(s, userId, nickname, at) {
     answers: {},
     lastAnswerAt: null,
     submittedAt: null,
+    marks: null, // 제출 확정 시 한 번 채점해 채운다
   };
   s.playerOrder.push(userId);
 }
@@ -344,12 +394,17 @@ function finish(s, ctx, reason) {
     const p = list[i];
     const g = gradeSet(s.questions, p.answers);
     detailsByUser[p.userId] = g.details;
+    const wrongIds = [];
+    for (let k = 0; k < g.details.length; k++) {
+      if (g.details[k].correct === false) wrongIds.push(g.details[k].questionId);
+    }
     rows.push({
       userId: p.userId,
       nickname: p.nickname,
       correctCount: g.correctCount,
       totalCount: g.totalCount,
       score: g.score,
+      wrongIds: wrongIds,
       submittedAt: p.submittedAt,                                              // 실제 제출 시각(미제출 null, 이탈자는 이탈 시각)
       effectiveSubmittedAt: p.submittedAt == null ? deadline : p.submittedAt,   // 판정용 — 미제출자(끊김 후 미복귀)만 deadline
       effectiveLastAnswerAt: p.lastAnswerAt == null ? deadline : p.lastAnswerAt,
@@ -401,12 +456,17 @@ function finish(s, ctx, reason) {
       finishedAt: isoOrNull(at),
       winnerUserId: winnerUserId,
     },
+    // score/questionIds/wrongIds 는 db.saveMatch 가 같은 트랜잭션에서 study_results(round='battle')
+    // 1행을 쓰기 위해 필요하다 — 대전 기록도 학습 이력·오답노트에 그대로 합류한다.
     players: rows.map(function (r) {
       return {
         userId: r.userId,
         correctCount: r.correctCount,
+        score: r.score,
         submittedAt: isoOrNull(r.submittedAt), // 미제출은 NULL 로 남긴다(사실 기록). 이탈자는 이탈 시각이 들어간다
         answers: r.answers,
+        questionIds: s.questionIds.slice(),
+        wrongIds: r.wrongIds.slice(),
       };
     }),
   });
@@ -570,8 +630,11 @@ function handlePlaying(s, ev, ctx) {
       if (!p) return;
       // playing 중 이탈 = **즉시 제출 간주**(비가역). 보관 답안 그대로 채점되고, 판정용 제출 시각은
       // 이탈 시각이 된다. 명부에는 남지만 `left=true` 라 재입장은 어댑터가 막는다.
+      let justSubmitted = false;
       if (p.submittedAt == null) {
         p.submittedAt = at;
+        p.marks = marksOf(s, p); // 보관 답안 그대로 1회 채점 — 이후 답안이 바뀌지 않으므로 재채점 없음
+        justSubmitted = true;
         ctx.effects.push(fxBroadcast(s, 'battle:progress', {
           userId: p.userId,
           answeredCount: answeredCount(s, p),
@@ -583,6 +646,8 @@ function handlePlaying(s, ev, ctx) {
       pushRoomState(ctx, s);
       // 이탈로 명부 전원이 제출을 마칠 수 있다 → leave 도 종료 트리거다.
       if (allSubmitted(s)) { finish(s, ctx, 'allSubmitted'); return; }
+      // 이탈=제출도 새 제출이다 → 제출 완료자 전원에게 정오표를 다시 뿌린다.
+      if (justSubmitted) pushMarks(ctx, s);
       if (connectedCount(s) === 0) ctx.effects.push(fxSchedule(s, 'abandon', at + ABANDON_GRACE_MS));
       return;
     }
@@ -629,13 +694,15 @@ function handlePlaying(s, ev, ctx) {
         return;
       }
       p.submittedAt = at;
+      p.marks = marksOf(s, p); // 제출은 비가역 — 이 시점 답안이 최종이라 여기서 한 번만 채점한다
       ctx.effects.push(fxBroadcast(s, 'battle:progress', {
         userId: p.userId,
         answeredCount: answeredCount(s, p),
         submitted: true,
       }));
       pushRoomState(ctx, s);
-      if (allSubmitted(s)) finish(s, ctx, 'allSubmitted');
+      if (allSubmitted(s)) { finish(s, ctx, 'allSubmitted'); return; }
+      pushMarks(ctx, s);
       return;
     }
     case 'disconnect': {

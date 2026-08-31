@@ -541,3 +541,153 @@ describe('buildQuestionSet', () => {
     assert.match(r.error, /회차/);
   });
 });
+
+// ------------------------------------------------- 제출자 간 정오 공유 (battle:marks)
+
+describe('battle:marks — 제출자끼리만 정오 공유', () => {
+  /** 3인 playing 방. playerOrder = [1,2,3]. */
+  function playing3() {
+    const created = newRoom();
+    const r = drive(created.state, [
+      ev.join(1, '가나', T0 + 10),
+      ev.join(2, '다라', T0 + 20),
+      ev.join(3, '마바', T0 + 30),
+      ev.start(1, T0 + 40),
+      ev.timeout('countdown', T0 + 40 + COUNTDOWN_MS),
+    ]);
+    assert.equal(r.state.state, 'playing');
+    assert.equal(r.state.playerOrder.length, 3);
+    return r.state;
+  }
+
+  test('첫 제출자에게만 자기 정오표가 간다 (미제출자는 한 건도 못 받는다)', () => {
+    const base = playingRoom();
+    const answered = drive(base.state, [
+      ev.answer(1, '2026-2#1', '동치분할', T0 + 5000),   // 정답
+      ev.answer(1, '2026-2#2', '엉뚱한답', T0 + 5100),   // 오답
+    ]).state;
+
+    const r = applyEvent(answered, ev.submit(1, T0 + 6000));
+    assert.equal(r.state.state, 'playing');             // 2번이 아직 미제출
+
+    const marks = broadcasts(r.effects, 'battle:marks');
+    assert.equal(marks.length, 1);
+    assert.equal(marks[0].to, 1);                        // 반드시 개별 발송 — room 브로드캐스트 금지
+    assert.equal(marks[0].room, 'ROOM1');
+    assert.equal(marks.filter((f) => f.to === 2).length, 0);
+
+    const rows = marks[0].payload.players;
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].userId, 1);
+    assert.equal(rows[0].nickname, '가나');
+    // 정오 불리언만 — 답 내용·display 계열 필드가 섞이면 치팅이 된다
+    assert.deepEqual(Object.keys(rows[0]).sort(), ['marks', 'nickname', 'userId']);
+    assert.deepEqual(Object.keys(rows[0].marks), QUESTIONS.map((q) => q.id));
+    assert.deepEqual(rows[0].marks, { '2026-2#1': true, '2026-2#2': false });
+
+    // 제출 시점에 state 에도 정오표가 확정 보관된다
+    assert.deepEqual(r.state.players[1].marks, { '2026-2#1': true, '2026-2#2': false });
+    assert.equal(r.state.players[2].marks, null);
+  });
+
+  test('마지막 제출로 종료되는 이벤트에서는 marks 를 내지 않고 persist 가 학습 기록 재료를 싣는다', () => {
+    const base = playingRoom();
+    const answered = drive(base.state, [
+      ev.answer(1, '2026-2#1', '동치분할', T0 + 5000),
+      ev.answer(1, '2026-2#2', '엉뚱한답', T0 + 5100),
+    ]).state;
+    const afterA = applyEvent(answered, ev.submit(1, T0 + 6000));
+
+    const fin = applyEvent(afterA.state, ev.submit(2, T0 + 7000)); // 2번은 무응답
+    assert.equal(fin.state.state, 'finished');
+    assert.equal(fin.state.result.reason, 'allSubmitted');
+    // 결과 화면이 정오표를 대체한다 — 종료 이벤트에는 marks 가 없다
+    assert.equal(broadcasts(fin.effects, 'battle:marks').length, 0);
+
+    const ps = persists(fin.effects);
+    assert.equal(ps.length, 1);
+    const pa = ps[0].players.find((p) => p.userId === 1);
+    const pb = ps[0].players.find((p) => p.userId === 2);
+    assert.equal(pa.score, 50);
+    assert.equal(pa.correctCount, 1);
+    assert.deepEqual(pa.questionIds, ['2026-2#1', '2026-2#2']);
+    assert.deepEqual(pa.wrongIds, ['2026-2#2']);         // 맞힌 1번은 빠진다
+    assert.equal(pb.score, 0);
+    assert.deepEqual(pb.questionIds, ['2026-2#1', '2026-2#2']);
+    assert.deepEqual(pb.wrongIds, ['2026-2#1', '2026-2#2']);
+  });
+
+  test('3인: 제출자가 늘 때마다 제출 완료자 전원에게 최신 전체 목록이 재발송된다', () => {
+    const base = playing3();
+
+    const s1 = applyEvent(base, ev.submit(1, T0 + 5000));
+    const m1 = broadcasts(s1.effects, 'battle:marks');
+    assert.equal(m1.length, 1);
+    assert.equal(m1[0].to, 1);
+    assert.equal(m1[0].payload.players.length, 1);
+
+    const s2 = applyEvent(s1.state, ev.submit(2, T0 + 6000));
+    assert.equal(s2.state.state, 'playing');             // 3번이 남았다
+    const m2 = broadcasts(s2.effects, 'battle:marks');
+    assert.equal(m2.length, 2);
+    assert.deepEqual(m2.map((f) => f.to).sort(), [1, 2]);
+    assert.equal(m2.filter((f) => f.to === 3).length, 0); // 미제출자 3번은 수신 금지
+    for (const f of m2) {
+      assert.deepEqual(f.payload.players.map((p) => p.userId), [1, 2]); // playerOrder 순
+      assert.deepEqual(f.payload.players.map((p) => p.nickname), ['가나', '다라']);
+    }
+  });
+
+  test('이탈(=즉시 제출)도 제출로 세어져 정오표를 다시 뿌린다', () => {
+    const base = playing3();
+    const s1 = applyEvent(base, ev.submit(1, T0 + 5000));
+
+    const s2 = applyEvent(s1.state, ev.leave(3, T0 + 6000)); // 이탈 = 즉시 제출
+    assert.equal(s2.state.state, 'playing');                 // 2번이 미제출이라 아직 진행 중
+    assert.deepEqual(s2.state.players[3].marks, { '2026-2#1': false, '2026-2#2': false });
+    const m = broadcasts(s2.effects, 'battle:marks');
+    assert.equal(m.length, 2);
+    assert.deepEqual(m.map((f) => f.to).sort(), [1, 3]);
+    for (const f of m) assert.deepEqual(f.payload.players.map((p) => p.userId), [1, 3]);
+
+    // 이미 제출한 유저의 이탈은 새 제출이 아니다 → 재발송 없음
+    const s3 = applyEvent(s2.state, ev.leave(1, T0 + 7000));
+    assert.equal(s3.state.state, 'playing');
+    assert.equal(broadcasts(s3.effects, 'battle:marks').length, 0);
+  });
+
+  test('resync: 제출자에게만 marks 배열이 실리고 미제출자에게는 필드가 없다', () => {
+    const base = playingRoom();
+    const submitted = drive(base.state, [
+      ev.answer(1, '2026-2#1', '동치분할', T0 + 4000),
+      ev.submit(1, T0 + 5000),
+      ev.disconnect(1, T0 + 6000),
+    ]).state;
+
+    const back = applyEvent(submitted, ev.connect(1, T0 + 7000));
+    const rs = broadcasts(back.effects, 'battle:resync');
+    assert.equal(rs.length, 1);
+    assert.equal(rs[0].to, 1);
+    assert.equal(rs[0].payload.submitted, true);
+    assert.ok(Array.isArray(rs[0].payload.marks));
+    assert.equal(rs[0].payload.marks.length, 1);
+    assert.equal(rs[0].payload.marks[0].userId, 1);
+    assert.deepEqual(rs[0].payload.marks[0].marks, { '2026-2#1': true, '2026-2#2': false });
+
+    const gone = applyEvent(submitted, ev.disconnect(2, T0 + 6500));
+    const back2 = applyEvent(gone.state, ev.connect(2, T0 + 7000));
+    const rs2 = broadcasts(back2.effects, 'battle:resync');
+    assert.equal(rs2.length, 1);
+    assert.equal(rs2[0].payload.submitted, false);
+    assert.equal(Object.prototype.hasOwnProperty.call(rs2[0].payload, 'marks'), false);
+  });
+
+  test('waiting 방의 resync 에는 marks 필드가 없다', () => {
+    const created = newRoom();
+    const joined = drive(created.state, [ev.join(1, '가나', T0 + 10)]).state;
+    const back = applyEvent(joined, ev.connect(1, T0 + 20));
+    const rs = broadcasts(back.effects, 'battle:resync');
+    assert.equal(rs.length, 1);
+    assert.equal(Object.prototype.hasOwnProperty.call(rs[0].payload, 'marks'), false);
+  });
+});

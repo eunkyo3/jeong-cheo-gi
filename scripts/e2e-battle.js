@@ -85,6 +85,26 @@ function check(cond, msg) {
   if (!cond) throw new Error('check failed: ' + msg);
 }
 
+/**
+ * 격리 DATA_DIR 의 DB 를 직접 읽어 study_results 전 행을 돌려준다(읽기 전용).
+ * 서버가 어느 어댑터로 떴는지 모르므로 파일 존재로 판별한다 — sqlite(app.db) / json(app.json).
+ */
+function readStudyResults() {
+  const sqliteFile = path.join(TMP, 'app.db');
+  if (fs.existsSync(sqliteFile)) {
+    const Database = require('better-sqlite3');
+    const conn = new Database(sqliteFile, { readonly: true });
+    try {
+      return conn.prepare('SELECT * FROM study_results ORDER BY id').all();
+    } finally {
+      conn.close();
+    }
+  }
+  const jsonFile = path.join(TMP, 'app.json');
+  if (!fs.existsSync(jsonFile)) return [];
+  return JSON.parse(fs.readFileSync(jsonFile, 'utf8')).study_results || [];
+}
+
 (async () => {
   await ready; log("server up on", PORT, "DATA_DIR", TMP);
   const uA = 'e2eA' + (T0 % 10000), uB = 'e2eB' + (T0 % 10000);
@@ -129,14 +149,33 @@ function check(cond, msg) {
   const sB2 = await sock(b.cookie, 'B2');
   const rs = await waitFor(sB2, 'battle:resync', () => true, 5000);
   const restored = rs.myAnswers && rs.myAnswers[q0.id] && rs.myAnswers[q0.id][0]; log('B2 resync:', rs.state, 'questions', rs.questions.length, 'remainingMs', rs.remainingMs, '| restored answer:', JSON.stringify(restored), restored === 'B-typed-this' ? 'OK' : 'FAIL — not restored');
+
+  // ------------------------------- 제출자 간 정오 공유 (battle:marks, 제출자 전용 개별 발송)
+  // A 만 제출한 시점: A 는 자기 정오표를 받고, 미제출자 B 는 한 건도 받지 못해야 한다.
+  const pMarksA = waitFor(sA, 'battle:marks', () => true, 5000);
   sA.emit('battle:submit', {});
-  await new Promise(r => setTimeout(r, 300));
+  const marksA = await pMarksA;
+  check(marksA.players.length === 1 && marksA.players[0].userId === a.json.user.id,
+    'A 제출 → A 에게 battle:marks (제출자 1명): ' + JSON.stringify(marksA.players.map(p => [p.userId, p.nickname])));
+  check(JSON.stringify(Object.keys(marksA.players[0]).sort()) === JSON.stringify(['marks', 'nickname', 'userId']),
+    'battle:marks 행은 {userId,nickname,marks} 뿐 — 답 내용·display 누출 없음: ' + JSON.stringify(Object.keys(marksA.players[0])));
+  const mkA = marksA.players[0].marks;
+  check(Object.keys(mkA).length === qs.questions.length && Object.keys(mkA).every(k => typeof mkA[k] === 'boolean'),
+    'marks 는 전 문항의 정오 불리언: ' + JSON.stringify(mkA));
+  await sleep(500); // 미제출자에게 늦게라도 새어 나가지 않는지 확인할 여유
+  check(!sB2.__seen.includes('battle:marks'),
+    '미제출자 B 는 battle:marks 를 한 건도 받지 않는다 (수신: ' + JSON.stringify(sB2.__seen.filter(e => e.startsWith('battle:'))) + ')');
+
   sA.emit('battle:answer', { questionId: q0.id, fieldIndex: 0, value: 'late' });
   const e2 = await waitFor(sA, 'error', () => true, 3000).catch(() => null);
   log('post-submit answer ->', e2 ? 'rejected: ' + e2.code : 'NO ERROR (bug)');
   sB2.emit('battle:submit', {});
   const fin = await waitFor(sA, 'battle:finished');
   log('FINISHED winner', fin.winnerUserId, 'results', JSON.stringify(fin.results.map(r => [r.userId, r.correctCount, r.score])), 'details', fin.details ? fin.details.length : 'none');
+  await sleep(300);
+  const marksCount = s => s.__seen.filter(e => e === 'battle:marks').length;
+  check(marksCount(sA) === 1, '종료 이벤트에는 marks 를 내지 않는다 — A 의 battle:marks 누계 1건 (실제 ' + marksCount(sA) + ')');
+  check(marksCount(sB2) === 0, 'B 는 마지막 제출자였으므로 marks 를 한 건도 받지 않는다 (실제 ' + marksCount(sB2) + ')');
   const rank = await req('GET', '/api/ranking', null, a.cookie);
   log('ranking:', JSON.stringify(rank.json.filter(r => [a.json.user.id, b.json.user.id].includes(r.userId)).map(r => [r.nickname, r.wins, r.draws, r.losses, r.points])));
 
@@ -160,9 +199,14 @@ function check(cond, msg) {
   // A 쪽 리스너를 먼저 걸고 B 가 이탈한다 (두 방송이 연달아 오므로 순차 await 하면 놓친다)
   const pLeaveProg = waitFor(sA, 'battle:progress', p => p.userId === bid && p.submitted === true, 5000);
   const pLeaveState = waitFor(sA, 'room:state', p => (p.players.find(x => x.userId === bid) || {}).left === true, 5000);
+  const pLeaveMarks = waitFor(sB2, 'battle:marks', () => true, 5000); // 이탈=제출 → 이탈자도 제출자다
   sB2.emit('room:leave');
   const lprog = await pLeaveProg;
   const lstate = await pLeaveState;
+  const lmarks = await pLeaveMarks;
+  check(lmarks.players.length === 1 && lmarks.players[0].userId === bid,
+    'B 이탈(=제출) → B 에게 battle:marks 1건: ' + JSON.stringify(lmarks.players.map(p => [p.userId, p.nickname])));
+  check(marksCount(sA) === 1, '미제출자 A 는 이 시점에도 marks 를 받지 않는다 (누계 ' + marksCount(sA) + '건)');
   check(lprog.submitted === true, 'B 이탈 → A 가 battle:progress{submitted:true} 수신 ' + JSON.stringify(lprog));
   check((lstate.players.find(x => x.userId === bid) || {}).left === true, 'B 이탈 → room:state 에서 left=true');
   check(lstate.state === 'playing', '남은 A 가 미제출이라 아직 playing');
@@ -176,6 +220,31 @@ function check(cond, msg) {
   const bRow = fin2.results.find(r => r.userId === bid);
   check(!!bRow && bRow.submittedAt != null, '이탈자 B 의 submittedAt 이 이탈 시각으로 기록됨: ' + (bRow && bRow.submittedAt));
   check(!!bRow && bRow.left === true, '이탈자 B 의 left=true');
+  check(marksCount(sA) === 1 && marksCount(sB2) === 1,
+    '종료 이벤트에는 marks 없음 — 누계 A ' + marksCount(sA) + '건 / B2 ' + marksCount(sB2) + '건');
+
+  // ------------------------------- 대전 → 오답노트: 종료된 매치가 study_results(round=battle) 로 남는가
+  await sleep(300); // persist 는 종료 방송과 같은 틱이지만 파일/WAL 반영 여유를 준다
+  const study = readStudyResults();
+  const battleRows = study.filter(r => r.round === 'battle');
+  log('study_results(battle):', JSON.stringify(battleRows.map(r => [r.user_id, r.score, JSON.parse(r.question_ids).length, JSON.parse(r.wrong_ids).length])));
+  check(battleRows.length === 4, '종료된 매치 2건 × 참가자 2명 = study_results 4행 (실제 ' + battleRows.length + '행)');
+  check(new Set(battleRows.map(r => r.user_id)).size === 2, 'A·B 두 사용자 모두 기록된다');
+  check(battleRows.every(r => Array.isArray(JSON.parse(r.question_ids)) && JSON.parse(r.question_ids).length > 0),
+    '모든 행이 출제 문항 id 배열을 갖는다');
+  check(battleRows.every(r => Array.isArray(JSON.parse(r.wrong_ids))), '모든 행이 오답 문항 id 배열을 갖는다');
+  check(study.length === battleRows.length, '대전 외 학습 기록은 만들지 않는다 (총 ' + study.length + '행)');
+  const hist = await req('GET', '/api/me/history', null, a.cookie);
+  log('GET /api/me/history ->', JSON.stringify({ battle: hist.json.rounds.battle, wrongCount: hist.json.wrongCount }));
+  check(!!hist.json.rounds.battle && hist.json.rounds.battle.count === 2,
+    '/api/me/history 가 대전 2건을 집계한다: ' + JSON.stringify(hist.json.rounds.battle));
+  check(hist.json.recent.some(r => r.round === 'battle' && r.total > 0),
+    '/api/me/history recent 에 round=battle 이 total 과 함께 실린다');
+  const wrongNote = await req('GET', '/api/me/wrong', null, a.cookie);
+  check(wrongNote.json.questions.length === hist.json.wrongCount && wrongNote.json.questions.length > 0,
+    '/api/me/wrong 이 대전 오답을 문항으로 돌려준다 (' + wrongNote.json.questions.length + '문항)');
+  check(wrongNote.json.questions.every(q => !q.accept && !q.display && q.fields.every(f => !f.accept && !f.validator)),
+    '오답노트 문항에도 정답 계열 필드는 없다');
 
   // B 가 새 소켓으로 돌아와도 재입장은 없다 — 멤버십이 없으니 resync 도 없고, 방은 이미 파기됐다
   const sB3 = await sock(b.cookie, 'B3');

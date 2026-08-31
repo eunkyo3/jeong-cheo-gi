@@ -46,6 +46,29 @@ function idsColumn(v) {
   return Array.isArray(v) ? JSON.stringify(v.map(String)) : null;
 }
 
+/**
+ * `study_results.round` 에 들어가는 대전 기록 키.
+ * 회차 id / 'practice' / 'wrong' 과 나란히 놓이는 네 번째 값이며,
+ * 집계(/api/me/history, /api/me/wrong)는 round 값을 해석하지 않으므로 그대로 합류한다.
+ */
+const BATTLE_ROUND = 'battle';
+
+/**
+ * saveMatch 의 참가자 행이 학습 기록까지 남길 정보를 갖췄는가.
+ * 예전 호출자(questionIds/wrongIds 를 모르는 코드·테스트)는 매치만 기록하고 조용히 건너뛴다.
+ */
+function hasStudyPayload(p) {
+  return Array.isArray(p.questionIds) && Array.isArray(p.wrongIds);
+}
+
+/**
+ * 대전 학습 기록의 taken_at 은 **매치 종료 시각**이다(기록 시각이 아니라).
+ * scripts/backfill-battle-notes.mjs 가 같은 값으로 중복을 판별하므로 소급분과 신규분이 겹치지 않는다.
+ */
+function matchTakenAt(match) {
+  return typeof match.finishedAt === 'string' && match.finishedAt !== '' ? match.finishedAt : nowIso();
+}
+
 // ------------------------------------------------------------- sqlite 어댑터
 
 function createSqliteAdapter(dbFile) {
@@ -129,9 +152,14 @@ function createSqliteAdapter(dbFile) {
       match.winnerUserId == null ? null : match.winnerUserId
     );
     const matchId = Number(info.lastInsertRowid);
+    const takenAt = matchTakenAt(match);
     for (const p of players) {
       stmt.insertPlayer.run(matchId, p.userId, p.correctCount,
         p.submittedAt == null ? null : p.submittedAt, JSON.stringify(p.answers || {}));
+      // 같은 트랜잭션에서 학습 기록도 남긴다 — 매치만 남고 오답노트가 비는 일이 없도록.
+      if (!hasStudyPayload(p)) continue;
+      stmt.insertStudy.run(p.userId, BATTLE_ROUND, p.score == null ? 0 : p.score, takenAt,
+        idsColumn(p.questionIds), idsColumn(p.wrongIds));
     }
     return matchId;
   });
@@ -150,9 +178,13 @@ function createSqliteAdapter(dbFile) {
     listMatchPlayers(matchId) {
       return matchId == null ? stmt.allPlayers.all() : stmt.playersByMatch.all(matchId);
     },
-    /** questionIds/wrongIds 는 선택 — 없으면 NULL(예전 기록과 같은 모양)로 남는다. */
-    saveStudyResult(userId, round, score, questionIds, wrongIds) {
-      stmt.insertStudy.run(userId, round, score, nowIso(), idsColumn(questionIds), idsColumn(wrongIds));
+    /**
+     * questionIds/wrongIds 는 선택 — 없으면 NULL(예전 기록과 같은 모양)로 남는다.
+     * takenAt 도 선택 — 소급 적재(backfill)만 과거 시각을 명시하고, 평소에는 지금 시각이다.
+     */
+    saveStudyResult(userId, round, score, questionIds, wrongIds, takenAt) {
+      stmt.insertStudy.run(userId, round, score, takenAt == null ? nowIso() : String(takenAt),
+        idsColumn(questionIds), idsColumn(wrongIds));
     },
     listStudyResults(userId, limit) { return stmt.studyByUser.all(userId, limit || 50); },
     close() { db.close(); },
@@ -211,6 +243,7 @@ function createJsonAdapter(dbFile) {
         finished_at: match.finishedAt,
         winner_user_id: match.winnerUserId == null ? null : match.winnerUserId,
       });
+      const takenAt = matchTakenAt(match);
       for (const p of players) {
         data.match_players.push({
           match_id: matchId,
@@ -219,8 +252,19 @@ function createJsonAdapter(dbFile) {
           submitted_at: p.submittedAt == null ? null : p.submittedAt,
           answers: JSON.stringify(p.answers || {}),
         });
+        // sqlite 트랜잭션과 같은 규약 — 학습 기록도 같은 flush 안에서 함께 쓴다.
+        if (!hasStudyPayload(p)) continue;
+        data.study_results.push({
+          id: ++data.seq.study_results,
+          user_id: p.userId,
+          round: BATTLE_ROUND,
+          score: p.score == null ? 0 : p.score,
+          taken_at: takenAt,
+          question_ids: idsColumn(p.questionIds),
+          wrong_ids: idsColumn(p.wrongIds),
+        });
       }
-      flush(); // 매치+참가자를 한 번에 교체 → 원자성 확보
+      flush(); // 매치+참가자+학습 기록을 한 번에 교체 → 원자성 확보
       return matchId;
     },
     listMatches() { return clone(data.matches); },
@@ -228,14 +272,17 @@ function createJsonAdapter(dbFile) {
       const rows = matchId == null ? data.match_players : data.match_players.filter(p => p.match_id === matchId);
       return clone(rows);
     },
-    /** questionIds/wrongIds 는 선택 — 없으면 null(sqlite 의 NULL 과 같은 모양)로 저장한다. */
-    saveStudyResult(userId, round, score, questionIds, wrongIds) {
+    /**
+     * questionIds/wrongIds 는 선택 — 없으면 null(sqlite 의 NULL 과 같은 모양)로 저장한다.
+     * takenAt 도 선택 — 소급 적재(backfill)만 과거 시각을 명시한다.
+     */
+    saveStudyResult(userId, round, score, questionIds, wrongIds, takenAt) {
       data.study_results.push({
         id: ++data.seq.study_results,
         user_id: userId,
         round,
         score,
-        taken_at: nowIso(),
+        taken_at: takenAt == null ? nowIso() : String(takenAt),
         question_ids: idsColumn(questionIds),
         wrong_ids: idsColumn(wrongIds),
       });
@@ -272,4 +319,4 @@ function open(options) {
   }
 }
 
-module.exports = { open, createSqliteAdapter, createJsonAdapter };
+module.exports = { open, createSqliteAdapter, createJsonAdapter, BATTLE_ROUND };

@@ -48,9 +48,22 @@
 | `battle:answer` | C→S | `{questionId, fieldIndex, value}` — 서버가 실시간 보관(제출 아님) |
 | `battle:progress` | S→C | `{userId, answeredCount}` — 400ms 디바운스 브로드캐스트, **정오 비공개** |
 | `battle:submit` | C→S | `{}` — **명시적·비가역**. 서버가 submitted_at 기록, 이후 `battle:answer` 거부 |
+| `battle:marks` | S→C | `{players:[{userId, nickname, marks:{"<qid>": true\|false}}]}` — **제출자에게만 개별 발송(`to=userId`)**. 새 제출이 생길 때마다 제출 완료자 전원에게 최신 전체 목록 재발송. **정오 불리언만** |
 | `battle:tick` | S→C | `{remainingMs}` — 10초 주기 재동기 |
-| `battle:resync` | S→C | `{state, questions, myAnswers, remainingMs, players[]}` — 재접속 시 **스냅샷 1회** (이벤트 재생 금지) |
+| `battle:resync` | S→C | `{state, questions, myAnswers, remainingMs, players[], marks?}` — 재접속 시 **스냅샷 1회** (이벤트 재생 금지). `marks` 는 수신자가 제출자이고 `state==="playing"` 일 때만 실린다 |
 | `battle:finished` | S→C | `{results:[{userId,correctCount,score,submittedAt}], winnerUserId(무승부 null), details[](문항별 정오·display)}` |
+
+**제출자 간 정오 공유 (`battle:marks`)**: 먼저 제출한 사람이 결과를 기다리는 동안 서로의 정오만 확인할 수 있게 한다.
+
+- **제출을 마친 참가자에게만** `to=userId` 로 개별 발송한다. **room 브로드캐스트 금지** — 미제출자에게 새면 치팅이다.
+- 담기는 것은 **문항별 정오 불리언뿐**이다. 입력한 답 내용도 `display`(정답 표기)도 절대 포함하지 않는다.
+- 트리거는 **새 제출**이다(`submit`, 그리고 즉시 제출로 간주되는 `playing` 중 `leave`).
+  그때마다 제출 완료자 **전원**에게 그 시점의 전체 목록(`playerOrder` 순)을 다시 보낸다.
+  이미 제출한 사람의 `leave` 는 새 제출이 아니므로 재발송하지 않는다.
+- 채점은 **제출 확정 순간 1회**만 한다(답안이 비가역으로 고정되므로 재채점이 없다).
+- **종료(`finished`)로 이어지는 이벤트에서는 보내지 않는다** — `battle:finished` 의 결과 화면이 대체한다.
+  종료 이후에도 보내지 않는다.
+- 재접속: `battle:resync` 의 최상위 `marks` 필드로 같은 배열을 재전송한다. 수신자가 미제출이면 **필드 자체가 없다**.
 
 ## 상태 머신
 
@@ -94,6 +107,12 @@ applyEvent(state, event) → { state, effects: [] }
 - **내부 이벤트 어휘** (소켓 이벤트와 별도):
   `tick(at)` / `timeout(kind: countdown|deadline|abandon|roomGc)` / `disconnect(userId)` / `connect(userId)`
   그리고 소켓 유래: `join` / `leave` / `start` / `answer` / `submit`
+- `persist{op:'saveMatch'}` 의 `players[]` 각 행은 `{userId, correctCount, score, submittedAt, answers, questionIds, wrongIds}` 다.
+  **`db.saveMatch` 는 매치·참가자와 같은 트랜잭션(json 어댑터는 같은 flush)에서
+  참가자별 `study_results(round='battle', score, question_ids, wrong_ids)` 1행씩도 함께 쓴다** —
+  대전 기록이 학습 이력·오답노트에 그대로 합류한다(`taken_at` = 매치 종료 시각).
+  `questionIds`/`wrongIds` 가 없는 예전 호출자는 매치만 남기고 학습 기록은 건너뛴다.
+  이 변경 이전에 끝난 매치는 `scripts/backfill-battle-notes.mjs` 로 소급 적재한다(멱등).
 
 `server/battle-io.js` 는 **effects 4종을 각각 emit / db / setTimeout / clearTimeout 에 1:1 위임하는
 무논리 어댑터**다. 자체 분기 로직 금지.

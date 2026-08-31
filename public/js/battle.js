@@ -35,6 +35,7 @@
   var ROOMS_POLL_MS = 5000;
   var BATTLE_TICK_MS = 250;
   var TOAST_MS = 5000;
+  var FLOAT_SCROLL_THRESHOLD = 260; // 대전 화면 상단 'live' 패널을 대략 지나치는 스크롤량(요구 1)
 
   var MODE_LABEL = { round: '회차 전체', random: '랜덤' };
   var TIME_CHOICES = [
@@ -80,6 +81,8 @@
     submitPending: false, // battle:submit 을 쏘고 서버 확인을 기다리는 동안
     timer: { remainingMs: null, receivedAt: null }, // performance.now() 감산용
     pending: {},          // {"qid#fieldIndex": {t, qid, fi, value}} — 400ms 디바운스
+    marks: [],             // battle:marks 최신 스냅샷 — [{userId, nickname, marks:{qid:bool}}], 제출자에게만 옴(요구 2)
+    floatVisible: false,   // 스크롤이 상단 'live' 패널을 지나쳤는가 — 플로팅 현황 패널 노출 여부(요구 1)
 
     // 결과
     result: null,         // {results[], winnerUserId, details[], reason}
@@ -248,6 +251,28 @@
       if (state.questions[i].id === id) return state.questions[i];
     }
     return null;
+  }
+
+  // ------------------------------------------------------- 플로팅 패널 스크롤(요구 1)
+
+  /**
+   * 대전 화면에서 스크롤이 상단 'live' 패널을 대략 지나치면 state.floatVisible 을 세운다.
+   * boolean 이 실제로 뒤집힐 때만 render() 한다 — 스크롤마다 재렌더하면 낭비다.
+   * rAF 로 스로틀링해 스크롤 이벤트 폭주를 흡수한다.
+   */
+  var floatScrollTicking = false;
+  function onFloatScroll() {
+    if (floatScrollTicking) return;
+    floatScrollTicking = true;
+    (window.requestAnimationFrame || function (fn) { setTimeout(fn, 16); })(function () {
+      floatScrollTicking = false;
+      if (currentView() !== 'battle') return;
+      var visible = (window.scrollY || window.pageYOffset || 0) > FLOAT_SCROLL_THRESHOLD;
+      if (visible !== state.floatVisible) {
+        state.floatVisible = visible;
+        render();
+      }
+    });
   }
 
   // ------------------------------------------------------------ 알림(토스트)
@@ -745,6 +770,7 @@
 
   function planBattle() {
     var ro = iAmSubmitted() || state.room.state !== 'playing';
+    var showMarks = iAmSubmitted() && state.room.state === 'playing';
     return [
       {
         // 조작 요소가 없는 패널 — 남은 시간(초)·진행 현황이 바뀔 때마다 통째로 다시 만든다.
@@ -759,6 +785,15 @@
         build: buildLive,
       },
       {
+        // 제출자끼리만 보이는 상호 정오 현황(요구 2) — question list 배너보다 위에 둔다.
+        name: 'marks',
+        key: [
+          showMarks ? 1 : 0,
+          JSON.stringify(state.marks),
+        ].join('|'),
+        build: buildMarksCard,
+      },
+      {
         // 입력을 품은 패널 — key 에 입력값을 넣지 않는다. 타이핑 중 재빌드가 없어야 한글 조합이 산다.
         name: 'questions',
         key: [
@@ -766,6 +801,19 @@
           ro ? 1 : 0,
         ].join('|'),
         build: buildQuestions,
+      },
+      {
+        // 스크롤 시 나타나는 플로팅 현황 패널(요구 1) — 조작 요소 없음(맨 위로 버튼 제외).
+        name: 'float',
+        key: [
+          state.floatVisible ? 1 : 0,
+          fmtClock(remainingMs()),
+          JSON.stringify(state.progress),
+          JSON.stringify(players()),
+          JSON.stringify(state.marks),
+          state.online,
+        ].join('|'),
+        build: buildFloat,
       },
     ];
   }
@@ -793,6 +841,36 @@
       h('div', { class: 'timer' + (urgent ? ' urgent' : ''), text: rm == null ? '--:--' : fmtClock(rm) }),
       h('div', { class: 'tlabel', text: '남은 시간 · 진행 현황(정답 여부는 공개되지 않습니다)' }),
       h('div', { class: 'progresslist' }, rows.length ? rows : h('div', { class: 'muted', text: '참가자 정보를 기다리는 중입니다.' })),
+    ]));
+  }
+
+  /**
+   * 제출한 사람끼리만 보이는 상호 정오 현황(요구 2). state.marks 는 battle:marks 로만 채워지며,
+   * 미제출자에게는 서버가 애초에 보내지 않는다 — 그래도 iAmSubmitted() 를 다시 확인해 방어한다.
+   */
+  function buildMarksCard() {
+    if (!iAmSubmitted() || !state.room || state.room.state !== 'playing') return frag();
+    if (!state.marks || !state.marks.length) return frag();
+
+    var qs = state.questions;
+    var rows = state.marks.map(function (m) {
+      var marksById = m.marks || {};
+      var chips = qs.map(function (q, idx) {
+        var v = marksById[q.id];
+        var cls = 'mark-chip' + (v === true ? ' ok' : (v === false ? ' bad' : ''));
+        var sym = v === true ? '○' : (v === false ? '✕' : '·');
+        return h('span', { class: cls, title: (q.num == null ? idx + 1 : q.num) + '번', text: sym });
+      });
+      return h('div', { class: 'marks-row' }, [
+        h('span', { class: 'marks-name' + (m.userId === myId() ? ' self' : ''), text: m.nickname }),
+        h('div', { class: 'marks-chips' }, chips),
+      ]);
+    });
+
+    return frag(h('section', { class: 'card marks-card' }, [
+      h('h2', { text: '채점 현황' }),
+      h('div', { class: 'marks-list' }, rows),
+      h('p', { class: 'muted', text: '제출한 사람끼리만 서로 보입니다. 답 내용은 공개되지 않습니다.' }),
     ]));
   }
 
@@ -871,6 +949,56 @@
     scheduleAnswer(q.id, idx, value);
     // 의도적으로 render() 하지 않는다. 이 입력의 DOM 값은 이미 render(state) 결과와 같고,
     // 재빌드하면 한글 조합이 끊긴다. 내 answeredCount 는 서버의 battle:progress 로 되돌아온다.
+  }
+
+  /**
+   * 스크롤 시 나타나는 플로팅 현황 패널(요구 1). state.floatVisible 이 아니면 빈 프래그먼트를
+   * 반환해 아무것도 그리지 않는다 — 조작 요소는 "맨 위로" 버튼뿐이라 재빌드해도 안전하다.
+   */
+  function buildFloat() {
+    if (!state.floatVisible) return frag();
+
+    var rm = remainingMs();
+    var total = totalQuestions();
+    var urgent = rm != null && rm < 60000;
+
+    var rows = players().map(function (p) {
+      var n = answeredCountOf(p);
+      var badges = [];
+      if (p.submitted) badges.push(h('span', { class: 'badge me', text: '제출' }));
+      if (!p.connected) badges.push(h('span', { class: 'pdc', text: p.left ? '이탈' : '끊김' }));
+      return h('div', { class: 'fprow' }, [
+        h('span', { class: 'fpn' + (p.userId === myId() ? ' self' : ''), text: p.nickname }),
+        h('span', { class: 'fpnum', text: n + '/' + total }),
+        badges,
+      ]);
+    });
+
+    var kids = [
+      h('div', { class: 'ftime' + (urgent ? ' urgent' : ''), text: rm == null ? '--:--' : fmtClock(rm) }),
+      h('div', { class: 'fprows' }, rows),
+    ];
+
+    // 제출자 요약 한 줄(요구 2, 선택) — state.marks 에서 문항별 정오 개수를 가볍게 센다.
+    if (iAmSubmitted() && state.marks && state.marks.length) {
+      var summary = state.marks.map(function (m) {
+        var marksById = m.marks || {};
+        var keys = Object.keys(marksById);
+        var correct = 0;
+        for (var i = 0; i < keys.length; i++) if (marksById[keys[i]] === true) correct += 1;
+        var label = m.userId === myId() ? '나' : m.nickname;
+        return label + ' ' + correct + '/' + (keys.length || total);
+      }).join(' · ');
+      kids.push(h('div', { class: 'fsummary', text: summary }));
+    }
+
+    kids.push(h('button', {
+      class: 'btn ghost sm ftop',
+      text: '맨 위로',
+      onclick: function () { if (window.scrollTo) window.scrollTo(0, 0); },
+    }));
+
+    return frag(h('div', { class: 'floatpanel' }, kids));
   }
 
   // ============================================================== 결과 화면
@@ -1189,6 +1317,8 @@
     state.reportStatus = {};
     state.copied = {};
     state.rematching = false;
+    state.marks = [];
+    state.floatVisible = false;
     setTimer(null);
     render();
     loadRooms();
@@ -1355,7 +1485,10 @@
       // COUNTDOWN_MS(3초) 를 더해 근사한다 — 표시 전용이며 실제 시작은 서버 timeout 이 결정한다.
       if (p.state === 'countdown' && prev !== 'countdown') state.countdownEndsAt = Date.now() + COUNTDOWN_MS;
       if (p.state !== 'countdown') state.countdownEndsAt = null;
-      if (p.state === 'waiting') { state.questions = []; state.result = null; setTimer(null); }
+      if (p.state === 'waiting') {
+        state.questions = []; state.result = null; setTimer(null);
+        state.marks = []; state.floatVisible = false; // 요구 1·2 — 새 대기실로 돌아오면 이전 대전 흔적을 지운다
+      }
       var me = myPlayer();
       if (me && me.submitted) state.submitted = true;
       render();
@@ -1369,6 +1502,8 @@
       state.submitPending = false;
       state.result = null;
       state.countdownEndsAt = null;
+      state.marks = []; // 새 대전 시작 — 이전 판 채점 현황을 지운다(요구 2)
+      state.floatVisible = false; // 새 화면이니 스크롤 전 상태로(요구 1)
       setTimer(p && p.deadlineInfo ? p.deadlineInfo.remainingMs : null);
       render();
     });
@@ -1377,6 +1512,13 @@
       if (!p || p.userId == null) return;
       state.progress[p.userId] = p.answeredCount || 0;
       if (p.submitted && p.userId === myId()) state.submitted = true;
+      render();
+    });
+
+    // 제출 완료자에게만 개별 발송되는 상호 정오 현황(요구 2, PROTOCOL 계약).
+    // 답 내용·display 는 절대 담기지 않는다 — 문항별 true/false 만.
+    socket.on('battle:marks', function (p) {
+      state.marks = (p && p.players) || [];
       render();
     });
 
@@ -1396,6 +1538,8 @@
       state.progress = {};
       state.submitted = !!p.submitted;
       state.submitPending = false;
+      // 계약: 제출 상태 + playing 일 때만 최상위 marks 를 싣는다. 그 외엔 없거나 null.
+      state.marks = p.marks || [];
       if (p.state !== 'finished') state.result = null;
       state.countdownEndsAt = p.state === 'countdown' ? Date.now() + COUNTDOWN_MS : null;
       var rm = p.remainingMs;
@@ -1424,6 +1568,8 @@
         reason: p.reason || '',
       };
       state.submitPending = false;
+      state.marks = []; // 결과 화면이 대체한다 — 채점 현황 카드·플로팅 요약은 더 이상 안 보인다(요구 2)
+      state.floatVisible = false;
       setTimer(null);
       if (state.room) state.room = Object.assign({}, state.room, { state: 'finished' });
       render();
@@ -1485,6 +1631,9 @@
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'hidden') flushAllAnswers();
     });
+
+    // 플로팅 현황 패널(요구 1) — 부팅 시 한 번만 등록. 대전 화면이 아닐 때는 onFloatScroll 내부에서 무시한다.
+    window.addEventListener('scroll', onFloatScroll, { passive: true });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

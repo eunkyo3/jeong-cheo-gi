@@ -254,6 +254,90 @@
 
 .q.readonly input.ans { background: #f2f4f3; color: #55645c; }
 
+/* 제출자끼리만 보이는 상호 정오 현황 카드(요구 2). .card 톤을 그대로 쓴다. */
+.marks-card .muted { margin-top: 8px; }
+.marks-list { display: flex; flex-direction: column; gap: 8px; }
+.marks-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.marks-row .marks-name {
+  flex: 0 0 auto;
+  min-width: 72px;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: bold;
+  font-size: 0.86rem;
+}
+.marks-row .marks-name.self { color: #1e3a2f; }
+.marks-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.mark-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #eceff0;
+  color: #77857e;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+.mark-chip.ok { background: #dff3e7; color: #14532d; }
+.mark-chip.bad { background: #fbdcdc; color: #7f1d1d; }
+
+/* 스크롤 시 나타나는 플로팅 현황 패널(요구 1). 모달(z-index 1000)보다 아래에 둔다. */
+.floatpanel {
+  position: fixed;
+  right: 12px;
+  top: 80px;
+  width: 230px;
+  z-index: 300;
+  background: #fff;
+  border: 2px solid #1e3a2f;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+.floatpanel .ftime {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #1e3a2f;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+.floatpanel .ftime.urgent { color: #d64545; }
+.floatpanel .fprows { display: flex; flex-direction: column; gap: 5px; }
+.floatpanel .fprow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+.floatpanel .fpn {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.floatpanel .fpn.self { font-weight: bold; color: #1e3a2f; }
+.floatpanel .fpnum { flex: 0 0 auto; color: #55645c; font-variant-numeric: tabular-nums; }
+.floatpanel .fsummary {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8e4;
+  font-size: 0.78rem;
+  color: #45564d;
+}
+.floatpanel .ftop { display: block; width: 100%; margin-top: 10px; text-align: center; }
+
 /* -------------------------------------------------------------------- 결과 */
 
 .result-head { text-align: center; }
@@ -358,4 +442,27 @@ h2.section { color: #1e3a2f; }
 
 @media (max-width: 480px) {
   .timerbar { top: 42px; }
+}
+
+/* 플로팅 현황 패널(요구 1) — 모바일에서는 하단 바로 눕힌다. */
+@media (max-width: 620px) {
+  .floatpanel {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: auto;
+    border-radius: 12px 12px 0 0;
+    border-width: 2px 0 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    padding: 10px 14px;
+  }
+  .floatpanel .ftime { margin-bottom: 0; font-size: 1.1rem; flex: 0 0 auto; }
+  .floatpanel .fprows { flex: 1 1 160px; min-width: 0; flex-direction: row; flex-wrap: wrap; gap: 4px 10px; }
+  .floatpanel .fprow { flex: 0 0 auto; }
+  .floatpanel .fsummary { flex-basis: 100%; margin-top: 4px; padding-top: 4px; border-top: none; }
+  .floatpanel .ftop { width: auto; margin-top: 0; flex: 0 0 auto; }
 }

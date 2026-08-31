@@ -100,6 +100,79 @@ for (const adapter of ADAPTERS) {
       }
     });
 
+    test('saveMatch 는 참가자별 study_results(round=battle) 도 같은 쓰기에서 남긴다', () => {
+      const dir = tmpDir();
+      const d = db.open({ dir, adapter });
+      try {
+        const a = d.createUser('대전A', 'h');
+        const b = d.createUser('대전B', 'h');
+        const qids = ['2026-2#1', '2026-2#2'];
+        const id = d.saveMatch({
+          roomName: '대전방', mode: 'round', roundIds: ['2026-2'], questionIds: qids,
+          timeLimitS: 600,
+          startedAt: '2026-08-31T00:00:00.000Z',
+          finishedAt: '2026-08-31T00:10:00.000Z',
+          winnerUserId: a.id,
+        }, [
+          { userId: a.id, correctCount: 1, score: 50, submittedAt: '2026-08-31T00:05:00.000Z', answers: {}, questionIds: qids, wrongIds: ['2026-2#2'] },
+          { userId: b.id, correctCount: 0, score: 0, submittedAt: null, answers: {}, questionIds: qids, wrongIds: qids },
+        ]);
+        assert.ok(id > 0);
+        assert.equal(d.listMatchPlayers(id).length, 2); // 매치 기록은 그대로
+
+        const ra = d.listStudyResults(a.id, 10);
+        assert.equal(ra.length, 1);
+        assert.equal(ra[0].round, 'battle');
+        assert.equal(ra[0].score, 50);
+        assert.deepEqual(JSON.parse(ra[0].question_ids), qids);
+        assert.deepEqual(JSON.parse(ra[0].wrong_ids), ['2026-2#2']);
+        // taken_at 은 매치 종료 시각 — 소급 스크립트가 이 값으로 중복을 판별한다
+        assert.equal(ra[0].taken_at, '2026-08-31T00:10:00.000Z');
+
+        const rb = d.listStudyResults(b.id, 10);
+        assert.equal(rb.length, 1);
+        assert.equal(rb[0].round, 'battle');
+        assert.equal(rb[0].score, 0);
+        assert.deepEqual(JSON.parse(rb[0].wrong_ids), qids); // 전 문항 오답
+      } finally {
+        d.close();
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    test('questionIds/wrongIds 없는 예전 호출자는 매치만 남기고 학습 기록은 건너뛴다', () => {
+      const dir = tmpDir();
+      const d = db.open({ dir, adapter });
+      try {
+        const a = d.createUser('구식', 'h');
+        const id = d.saveMatch({
+          roomName: '구식방', mode: 'round', roundIds: ['2026-2'], questionIds: ['2026-2#1'],
+          timeLimitS: 600, startedAt: 't0', finishedAt: 't1', winnerUserId: a.id,
+        }, [{ userId: a.id, correctCount: 1, submittedAt: 't1', answers: {} }]);
+        assert.equal(d.listMatchPlayers(id).length, 1);
+        assert.equal(d.listStudyResults(a.id, 10).length, 0); // study 행 없음
+      } finally {
+        d.close();
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    test('saveStudyResult 는 takenAt 을 명시하면 그 시각으로 적재한다 (소급용)', () => {
+      const dir = tmpDir();
+      const d = db.open({ dir, adapter });
+      try {
+        const u = d.createUser('소급', 'h');
+        d.saveStudyResult(u.id, 'battle', 40, ['2026-2#1'], ['2026-2#1'], '2020-01-01T00:00:00.000Z');
+        const rows = d.listStudyResults(u.id, 10);
+        assert.equal(rows.length, 1);
+        assert.equal(rows[0].taken_at, '2020-01-01T00:00:00.000Z');
+        assert.equal(rows[0].round, 'battle');
+      } finally {
+        d.close();
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
     test('무승부는 winner_user_id NULL 로 기록된다', () => {
       const dir = tmpDir();
       const d = db.open({ dir, adapter });
