@@ -964,6 +964,167 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
       'types: SQL 모의고사 JS 오류 없음', prT.errors.slice(0, 2).join(' | '));
   }
 
+  // ---------- 11. 불합격 CTA · 포커스 링 · 텍스트 대비 · 상대 날짜 (P3) ----------
+  // 여기서 다시 채점해도 앞의 학습 이력·회차 뱃지 검사는 이미 끝났다 — 같은 회차를 다시 써도 안전하다.
+
+  // ---- ⓐ 불합격이면 "틀린 N문항 해설 보기 →" 가 붙고, 누르면 첫 오답 카드 해설이 열린다 ----
+  {
+    const ct = await load('/study.html?round=2026-2');
+    const cw = ct.window, cd = ct.window.document;
+    await waitFor(() => cd.querySelectorAll('.q').length === 20 ? true : null, 'CTA: 문항 카드');
+    // 한 칸도 채우지 않고 제출한다 → 0점 · 20문항 전부 오답 (confirm 은 load() 가 true 로 심어 둔다).
+    const cSubmit = [...cd.querySelectorAll('button')].find(b => /제출하고 채점/.test(b.textContent));
+    cSubmit.click();
+    await waitFor(() => cd.querySelector('.q.wrong'), 'CTA: 채점 결과');
+    await sleep(200);
+    const cBoard = cd.getElementById('scoreBoard');
+    const cWrong = cd.querySelectorAll('.q.wrong').length;
+    const cta = cBoard ? cBoard.querySelector('.pass-cta') : null;
+    check(!!cta, 'passcta: 불합격 점수판에 .pass-cta 버튼이 붙는다',
+      cBoard ? cBoard.textContent.replace(/\s+/g, ' ').slice(0, 80) : '#scoreBoard 없음');
+    check(!!cta && cta.textContent === '틀린 ' + cWrong + '문항 해설 보기 →',
+      'passcta: CTA 문구가 "틀린 N문항 해설 보기 →" (N = 오답 수 ' + cWrong + ')',
+      cta ? JSON.stringify(cta.textContent) : '-');
+    // CTA 는 덧붙이기만 한 것이다 — 기존 점수판 문구는 그대로 남아 있어야 한다.
+    check(!!cBoard && /\d+점\s*\/\s*100점/.test(cBoard.textContent)
+      && /\(\d+\/\d+ 문제 정답\)/.test(cBoard.textContent) && /아쉽습니다/.test(cBoard.textContent),
+      'passcta: CTA 를 붙여도 기존 점수판 문구(N점 / 100점 · (n/N 문제 정답) · 아쉽습니다) 유지',
+      cBoard ? cBoard.textContent.replace(/\s+/g, ' ').slice(0, 90) : '-');
+
+    if (cta) {
+      // jsdom 에는 레이아웃이 없어 scrollIntoView 자체가 없다 — 심어 두고 "누구를 향해 불렸는지" 만 본다.
+      const scrolled = [];
+      cw.Element.prototype.scrollIntoView = function () { scrolled.push(this); };
+      const firstWrongId = cd.querySelector('.q.wrong').getAttribute('data-q');
+      cta.click();
+      await sleep(200);
+      const wrongCard = cd.querySelector('.q[data-q="' + firstWrongId + '"]');
+      check(!!wrongCard && !!wrongCard.querySelector('.explain-box'),
+        'passcta: CTA 를 누르면 첫 오답 카드(' + firstWrongId + ')의 해설이 열린다',
+        wrongCard ? [...wrongCard.children].map(n => n.className).join(',') : '카드 없음');
+      check(scrolled.indexOf(wrongCard) >= 0, 'passcta: 그 카드로 scrollIntoView 가 불린다',
+        scrolled.length + '회 호출');
+      const btnText = [...wrongCard.querySelectorAll('button')]
+        .map(b => b.textContent).find(t => /해설 (보기|닫기)/.test(t));
+      check(btnText === '해설 닫기', 'passcta: 기존 해설 토글과 같은 상태로 열린다 (버튼이 "해설 닫기")',
+        JSON.stringify(btnText));
+      // CTA 는 재렌더로 사라진다 — 포커스가 <body> 로 떨어지면 키보드 사용자는 맨 위부터 다시 탭해야 한다.
+      check(cd.activeElement === wrongCard && wrongCard.getAttribute('tabindex') === '-1',
+        'passcta: 포커스가 도착한 오답 카드로 넘어간다 (body 로 떨어지지 않는다)',
+        (cd.activeElement ? cd.activeElement.className || cd.activeElement.tagName : '없음')
+          + ' tabindex=' + wrongCard.getAttribute('tabindex'));
+    }
+    check(ct.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+      'passcta: CTA 화면 JS 오류 없음', ct.errors.slice(0, 2).join(' | '));
+  }
+
+  // ---- ⓐ 합격이면 CTA 가 없다 (정답 표본 sampleAnswer 로 합격권을 만들어 확인) ----
+  {
+    const key262 = {};
+    (round262.questions || []).forEach(q => {
+      key262[q.id] = (q.fields || []).map(f => f.sampleAnswer || (f.accept || [])[0] || '');
+    });
+    const pt = await load('/study.html?round=2026-2');
+    const pw = pt.window, pd = pt.window.document;
+    await waitFor(() => pd.querySelectorAll('.q').length === 20 ? true : null, 'PASS: 문항 카드');
+    [...pd.querySelectorAll('.q')].forEach(card => {
+      const vals = key262[card.getAttribute('data-q')] || [];
+      [...card.querySelectorAll('input.ans')].forEach((inp, i) => {
+        inp.value = vals[i] == null ? '' : String(vals[i]);
+        inp.dispatchEvent(new pw.Event('input', { bubbles: true }));
+      });
+    });
+    const pSubmit = [...pd.querySelectorAll('button')].find(b => /제출하고 채점/.test(b.textContent));
+    pSubmit.click();
+    const pBoard = await waitFor(() => {
+      const b = pd.getElementById('scoreBoard');
+      return b && b.classList.contains('shown') ? b : null;
+    }, 'PASS: 점수판', 8000).catch(() => null);
+    await sleep(150);
+    const pScoreM = ((pBoard || {}).textContent || '').match(/(\d+)점\s*\/\s*100점/);
+    const pScore = pScoreM ? Number(pScoreM[1]) : -1;
+    check(pScore >= 60, 'passcta: 정답 표본으로 제출하면 합격권 점수가 나온다 (CTA 없음 검사의 전제)', pScore + '점');
+    check(!!pBoard && !pBoard.querySelector('.pass-cta'),
+      'passcta: 합격 점수판에는 CTA 가 없다',
+      pBoard ? pBoard.textContent.replace(/\s+/g, ' ').slice(0, 70) : '#scoreBoard 없음');
+  }
+
+  // ---- ⓑⓔ 서버가 실제로 내려주는 CSS 를 읽어서 검사한다 ----
+  {
+    // `outline: none` 이 남아도 되는 자리는 `:focus:not(:focus-visible)` 뿐이다
+    // (마우스 클릭에만 링을 끄는 규칙). 그 밖의 자리는 키보드 포커스 표시를 지워 버린다.
+    const strayOutlineNone = (css) => {
+      const out = [];
+      const re = /outline\s*:\s*none/g;
+      let m;
+      while ((m = re.exec(css))) {
+        const head = css.slice(0, m.index);
+        const rule = head.slice(head.lastIndexOf('}') + 1);
+        if (rule.indexOf(':focus:not(:focus-visible)') === -1) out.push(rule.trim().slice(-60));
+      }
+      return out;
+    };
+    const appCss = await (await makeFetch()('/css/app.css')).text();
+    const battleCss = await (await makeFetch()('/css/battle.css')).text();
+    check(/--muted:\s*#666\b/.test(appCss), 'contrast: app.css 의 --muted 가 #666 (흰 5.7:1 · paper 5.3:1)',
+      (appCss.match(/--muted:[^;]*/) || ['없음'])[0]);
+    const strayApp = strayOutlineNone(appCss), strayBattle = strayOutlineNone(battleCss);
+    check(strayApp.length === 0, 'focusring: app.css 에 :focus:not(:focus-visible) 밖의 outline:none 이 없다',
+      strayApp.join(' | ') || '없음');
+    check(strayBattle.length === 0, 'focusring: battle.css 에 :focus:not(:focus-visible) 밖의 outline:none 이 없다',
+      strayBattle.join(' | ') || '없음');
+    check(/:focus-visible\s*\{[^}]*outline:\s*2px solid/.test(appCss),
+      'focusring: app.css 에 전역 :focus-visible 링이 있다');
+    check(/\.topnav\s+:focus-visible[\s\S]{0,140}outline-color:\s*#fff/.test(appCss),
+      'focusring: 어두운 헤더(.topnav / header.page) 안에서는 링이 흰색');
+    // 하단 미니바(.studybar)도 var(--deep) 위다 — 초록 링은 여기서 ≈1.3:1 로 안 보인다.
+    check(/\.studybar\s+:focus-visible[^{]*\{[^}]*outline-color:\s*#fff/.test(appCss),
+      'focusring: 하단 미니바(.studybar) 안에서도 링이 흰색',
+      (appCss.match(/[^}]*:focus-visible \{ outline-color:[^;]*/) || ['규칙 없음'])[0].trim().slice(-70));
+    // 링을 더한 것뿐이다 — 입력칸의 테두리 강조는 그대로 남아 있어야 한다.
+    check(/input\.ans:focus\s*\{\s*border-color:\s*var\(--deep\)/.test(appCss),
+      'focusring: input.ans:focus 의 테두리 강조 유지');
+  }
+
+  // ---- ⓒ 상대 날짜 포맷터 단위 검사 (public/js/fmt.js — 순수 함수라 DOM 없이 돈다) ----
+  {
+    const FMT_FILE = path.join(ROOT, 'public', 'js', 'fmt.js');
+    if (fs.existsSync(FMT_FILE)) {
+      const fmtCtx = vm.createContext({});
+      fmtCtx.window = fmtCtx;
+      vm.runInContext(fs.readFileSync(FMT_FILE, 'utf8'), fmtCtx, { filename: 'fmt.js' });
+      const Fmt = fmtCtx.Fmt || (fmtCtx.window && fmtCtx.window.Fmt);
+      check(!!Fmt && typeof Fmt.relativeDate === 'function' && typeof Fmt.dateTime === 'function',
+        'fmt: window.Fmt = { relativeDate, dateTime } 계약', Fmt ? Object.keys(Fmt).join(',') : '전역 없음');
+      if (Fmt && typeof Fmt.relativeDate === 'function') {
+        // now 를 주입해서 "오늘/어제" 판정이 벽시계에 흔들리지 않게 못 박는다.
+        const NOW = new Date(2026, 8, 2, 15, 30, 0);
+        const at = (...a) => new Date(...a).toISOString();
+        const cases = [
+          [at(2026, 8, 2, 14, 0), '오늘 14:00', '같은 날 → "오늘 HH:MM"'],
+          [at(2026, 8, 1, 9, 5), '어제 09:05', '하루 전 → "어제 HH:MM"'],
+          [at(2026, 7, 30, 10, 0), '3일 전', '7일 이내 → "N일 전"'],
+          [at(2026, 7, 26, 10, 0), '7일 전', '경계 안쪽 — 7일 차이는 아직 "N일 전"'],
+          [at(2026, 7, 25, 10, 0), '2026-08-25', '경계 바깥 — 8일 차이부터 절대 날짜'],
+          [at(2026, 8, 5, 10, 0), '2026-09-05', '미래 시각은 절대 날짜'],
+        ];
+        cases.forEach(c => {
+          const got = Fmt.relativeDate(c[0], NOW);
+          check(got === c[1], 'fmt: relativeDate — ' + c[2],
+            JSON.stringify(got) + ' (기대 ' + JSON.stringify(c[1]) + ')');
+        });
+        // 읽을 수 없는 값은 던지지 않고 빈 문자열이다 (화면에 'Invalid Date' 가 새지 않게).
+        check(Fmt.relativeDate('') === '' && Fmt.relativeDate('nonsense') === '',
+          'fmt: relativeDate — 빈 값·못 읽는 값은 ""',
+          JSON.stringify([Fmt.relativeDate(''), Fmt.relativeDate('nonsense')]));
+        const abs = Fmt.dateTime(at(2026, 8, 1, 14, 0));
+        check(abs === '2026-09-01 14:00', 'fmt: dateTime — title 에 남길 절대 시각', JSON.stringify(abs));
+      }
+    } else {
+      log('SKIP  fmt: public/js/fmt.js 미작성 — 상대 날짜 단위 검사 건너뜀');
+    }
+  }
+
   console.log('\n' + (failures === 0 ? 'HEADLESS OK' : 'HEADLESS FAIL — ' + failures + ' check(s) failed'));
   shutdown(failures === 0 ? 0 : 1);
 })().catch(e => { console.error('HEADLESS ERROR', e.stack || e.message); shutdown(1); });

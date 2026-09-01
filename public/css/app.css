@@ -13,7 +13,7 @@
   --paper: #f0f2f5;
   --card: #fff;
   --line: #d7dce1;
-  --muted: #777;
+  --muted: #666;
   --ok: #2e9e5b;
   --bad: #d64545;
   --warn: #b8860b;
@@ -21,6 +21,18 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* 키보드 포커스 표시 — 탭으로 옮겨 온 요소에만 링을 그린다.
+   마우스 클릭은 각 입력칸 규칙의 `:focus:not(:focus-visible)` 에서 링을 끈다(테두리 강조는 남는다).
+   `:focus-visible` 을 모르는 구형 브라우저는 브라우저 기본 외곽선이 늘 보인다 — 그대로 둔다. */
+:focus-visible {
+  outline: 2px solid var(--deep-2);
+  outline-offset: 2px;
+}
+/* 어두운 배경(상단 내비·페이지 헤더·하단 미니바) 위에서는 초록 링이 보이지 않는다 — 흰 링으로 바꾼다. */
+.topnav :focus-visible,
+header.page :focus-visible,
+.studybar :focus-visible { outline-color: #fff; }
 
 html { -webkit-text-size-adjust: 100%; }
 
@@ -353,7 +365,8 @@ input.ans {
   background: #fff;
   color: var(--ink);
 }
-input.ans:focus { outline: none; border-color: var(--deep); }
+input.ans:focus { border-color: var(--deep); }
+input.ans:focus:not(:focus-visible) { outline: none; }
 input.ans.ok { border-color: var(--ok); background: #eafaf0; }
 input.ans.bad { border-color: var(--bad); background: #fdecec; }
 input.ans:disabled { background: #f4f5f6; color: #555; }
@@ -483,6 +496,23 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .pass.ok { color: var(--ok); }
 .pass.no { color: var(--bad); }
 
+/* 불합격일 때만 붙는 다음 행동 (study.js) — 첫 오답 카드로 데려가고 해설을 열어 준다. */
+.pass-cta {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 5px 12px;
+  font-size: 0.88rem;
+  font-weight: bold;
+  color: #fff;
+  background: var(--deep);
+  border: 1px solid var(--deep);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  vertical-align: middle;
+}
+.pass-cta:hover { background: var(--deep-2); }
+
 /* 스크롤해서 점수판이 sticky 로 붙기 시작하면 한 줄로 줄인다 (study.js 가 .compact 를 토글).
    문구를 지우지 않고 시각적으로만 줄인다 — DOM 의 텍스트는 펼친 상태와 똑같다.
    긴 앞말은 감추고, 대신 data-short 의 짧은 말을 생성 콘텐츠로 세운다. */
@@ -508,6 +538,8 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 }
 #scoreBoard.shown.compact .pass::before { content: attr(data-short); }
 #scoreBoard.shown.compact .pass-lead { display: none; }
+/* 한 줄로 줄어든 점수판에는 CTA 를 넣을 자리가 없다 — 펼친 상태에서만 보인다. */
+#scoreBoard.shown.compact .pass-cta { display: none; }
 
 .hint { font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
 .muted { color: var(--muted); }
@@ -528,7 +560,8 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   background: #fff;
   color: var(--ink);
 }
-.form-row input:focus { outline: none; border-color: var(--deep); }
+.form-row input:focus { border-color: var(--deep); }
+.form-row input:focus:not(:focus-visible) { outline: none; }
 .form-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .form-actions button {
   font-size: 0.95rem;
@@ -580,7 +613,8 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   background: #fff;
   color: var(--ink);
 }
-.modal textarea:focus { outline: none; border-color: var(--deep); }
+.modal textarea:focus { border-color: var(--deep); }
+.modal textarea:focus:not(:focus-visible) { outline: none; }
 .modal .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap; }
 .modal .modal-actions button {
   font-size: 0.95rem;
@@ -835,7 +869,8 @@ body.with-studybar { padding-bottom: 64px; }
   background: #fff;
   color: var(--ink);
 }
-#practiceBox select:focus { outline: none; border-color: var(--deep); }
+#practiceBox select:focus { border-color: var(--deep); }
+#practiceBox select:focus:not(:focus-visible) { outline: none; }
 
 /* ------------------------------------------------ 학습 타이머 / 복원 안내 */
 
@@ -929,7 +964,8 @@ button.linkish {
   background: #fff;
   color: var(--ink);
 }
-.report-box textarea:focus { outline: none; border-color: var(--deep); }
+.report-box textarea:focus { border-color: var(--deep); }
+.report-box textarea:focus:not(:focus-visible) { outline: none; }
 .q-actions .report-status { font-size: 0.84rem; align-self: center; }
 
 /* 빈 상태 (오답노트가 비었을 때) */
@@ -1018,7 +1054,8 @@ button.linkish {
   background: #fff;
   color: var(--ink);
 }
-.type-select:focus { outline: none; border-color: var(--deep); }
+.type-select:focus { border-color: var(--deep); }
+.type-select:focus:not(:focus-visible) { outline: none; }
 
 /* --------------------------------------------------------- 오답노트 허브 */
 

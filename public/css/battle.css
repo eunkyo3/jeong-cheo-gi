@@ -107,7 +107,9 @@
   max-width: 420px;
 }
 .field input[type="text"]:focus,
-.field select:focus { outline: none; border-color: #1e3a2f; }
+.field select:focus { border-color: #1e3a2f; }
+.field input[type="text"]:focus:not(:focus-visible),
+.field select:focus:not(:focus-visible) { outline: none; }
 
 /* 방 코드로 참여 (A3) — 로비 "대전방 목록" 카드 하단 행. */
 .codejoin {
@@ -131,7 +133,8 @@
   text-align: center;
   background: #fff;
 }
-.codejoin .codeinput:focus { outline: none; border-color: #1e3a2f; }
+.codejoin .codeinput:focus { border-color: #1e3a2f; }
+.codejoin .codeinput:focus:not(:focus-visible) { outline: none; }
 
 /* 랜덤 회차 프리셋 (A4·⑧) — 최근 3회차 / 전체 선택 / 전체 해제 + 선택 요약. */
 .yearrow { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
@@ -462,7 +465,8 @@ table.res tr.self td { box-shadow: inset 3px 0 0 #2e9e5b; }
   font-size: 0.92rem;
   resize: vertical;
 }
-.reportbox textarea:focus { outline: none; border-color: #1e3a2f; }
+.reportbox textarea:focus { border-color: #1e3a2f; }
+.reportbox textarea:focus:not(:focus-visible) { outline: none; }
 
 /* ---------------------------------------------------------------- 모바일 */
 

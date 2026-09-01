@@ -1217,6 +1217,45 @@
     elBarSubmit.addEventListener('click', function () { submit(); });
   }
 
+  /** 채점 결과에서 틀린 문항 id — 화면에 보이는 순서 그대로. */
+  function wrongQuestionIds() {
+    if (!state.result || !state.round) return [];
+    var ids = [];
+    (state.round.questions || []).forEach(function (q) {
+      var detail = detailFor(q.id);
+      if (detail && !detail.correct) ids.push(q.id);
+    });
+    return ids;
+  }
+
+  /**
+   * 불합격 CTA 가 하는 일 — 첫 오답 카드로 데려간다.
+   * 해설이 있으면 기존 "해설 보기" 토글과 같은 상태(state.showExplain)를 켜서 열어 주고,
+   * 해설이 없는 문항이면 스크롤만 한다.
+   */
+  function goToFirstWrong() {
+    var ids = wrongQuestionIds();
+    if (!ids.length) return;
+    var qid = ids[0];
+    if (explanationOf(qid) && !state.showExplain[qid]) {
+      state.showExplain[qid] = true;
+      render();   // 카드를 다시 만든다 — 스크롤 대상은 재렌더 뒤에 찾아야 한다
+    }
+    var card = elQuestions.querySelector('.q[data-q="' + qid + '"]');
+    scrollToEl(card);
+    // 재렌더로 방금 누른 CTA 가 사라져 포커스가 <body> 로 떨어진다 — 키보드 사용자가
+    // 문서 맨 위부터 다시 탭하지 않도록 도착한 카드로 포커스를 넘긴다.
+    if (card) {
+      card.setAttribute('tabindex', '-1');
+      // preventScroll 미지원 브라우저는 인자 없는 호출로 떨어뜨린다.
+      try {
+        card.focus({ preventScroll: true });
+      } catch (e) {
+        try { card.focus(); } catch (e2) { /* 무시 */ }
+      }
+    }
+  }
+
   function renderBoard() {
     if (!state.result) {
       elBoard.classList.remove('shown');
@@ -1237,6 +1276,17 @@
     passEl.appendChild(el('span', 'pass-lead',
       passed ? '🎉 합격권입니다!' : '아쉽습니다. ' + PASS_SCORE + '점 이상이 합격입니다.'));
     passEl.appendChild(el('span', 'pass-tail', tail));
+    // 불합격이면 다음 행동을 붙인다 — 첫 오답 카드로 데려가고 해설을 열어 준다.
+    // 합격이거나 오답이 없으면 아예 만들지 않는다(축소 상태에서는 CSS 가 감춘다).
+    if (!passed) {
+      var wrongIds = wrongQuestionIds();
+      if (wrongIds.length) {
+        var cta = el('button', 'pass-cta', '틀린 ' + wrongIds.length + '문항 해설 보기 →');
+        cta.type = 'button';
+        cta.addEventListener('click', goToFirstWrong);
+        passEl.appendChild(cta);
+      }
+    }
     elBoard.classList.add('shown');
     syncBoardCompact();
   }

@@ -25,6 +25,9 @@
   cursor: pointer;
 }
 .hero-btn:hover:enabled { background: #dff0e7; }
+/* 키보드 포커스 링은 app.css 가 단독으로 소유한다 — 전역 `:focus-visible` 에
+   `header.page :focus-visible { outline-color: #fff }` 가 얹혀 히어로 버튼까지 덮는다.
+   여기에 다시 쓰지 말 것(두 벌이 되면 갈라진다). 링을 지우는 선언도 넣지 않는다. */
 .hero-btn:disabled {
   background: transparent;
   border-color: #7fa392;
@@ -144,6 +147,7 @@
 </div>
 
 <script src="/js/api.js"></script>
+<script src="/js/fmt.js"></script>
 <script>
 /* index 전용 로직 — 세션 박스와 회차 목록. */
 (function () {
@@ -504,6 +508,27 @@
     return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
   }
 
+  function formatDateTime(value) {
+    if (!value) return '';
+    var d = new Date(value);
+    if (isNaN(d.getTime())) return '';
+    return formatDate(value) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  /**
+   * 최근 기록의 날짜 — "오늘 14:00 / 어제 14:00 / 3일 전 / 2026-08-25".
+   * fmt.js 가 없는 옛 캐시에서도 화면이 비지 않게 절대 날짜로 되돌아간다.
+   */
+  function historyDate(li, value) {
+    var span = el('span', 'h-date', '');
+    var rel = window.Fmt ? window.Fmt.relativeDate(value) : '';
+    span.textContent = rel || formatDate(value);
+    // 상대 표기는 대략적이다 — 정확한 시각은 title 로 남긴다.
+    var abs = window.Fmt ? window.Fmt.dateTime(value) : formatDateTime(value);
+    if (abs) span.title = abs;
+    li.appendChild(span);
+  }
+
   function renderStudyBox() {
     studyBox.textContent = '';
 
@@ -541,7 +566,7 @@
         if (typeof r.correct === 'number' && typeof r.total === 'number' && r.total > 0) {
           li.appendChild(el('span', 'h-detail', r.correct + '/' + r.total));
         }
-        li.appendChild(el('span', 'h-date', formatDate(r.takenAt)));
+        historyDate(li, r.takenAt);
         list.appendChild(li);
       });
       card.appendChild(list);

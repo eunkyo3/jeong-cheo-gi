@@ -93,6 +93,11 @@
       + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   }
 
+  /** "오늘 14:00 / 어제 14:00 / 3일 전 / 2026-08-25". fmt.js 가 없으면 ''. */
+  function relativeDate(value) {
+    return window.Fmt ? window.Fmt.relativeDate(value) : '';
+  }
+
   /** "2024-1" → "2024년 1회". 형식이 다르면 그대로 보여 준다. */
   function roundLabel(id) {
     var m = /^(\d{4})-(\d+)$/.exec(String(id == null ? '' : id));
@@ -275,9 +280,10 @@
     clear(elTabs);
     elTabs.hidden = false;
 
+    var byRound = state.data.byRound || [];
     var byBattle = state.data.byBattle || [];
     [
-      { key: 'round', label: '회차별' },
+      { key: 'round', label: '회차별 (' + byRound.length + ')' },
       { key: 'battle', label: '대전별 (' + byBattle.length + ')' },
     ].forEach(function (t) {
       var on = state.tab === t.key;
@@ -344,8 +350,14 @@
 
     var head = el('div', 'wn-bhead');
     head.appendChild(el('h3', 'wn-bname', b.roomName || '이름 없는 방'));
-    var when = formatDateTime(b.finishedAt);
-    if (when) head.appendChild(el('span', 'wn-bdate', when));
+    // 카드를 훑을 때는 "언제쯤" 이면 충분하다 — 정확한 시각은 title 로 남긴다.
+    var abs = formatDateTime(b.finishedAt);
+    var when = relativeDate(b.finishedAt) || abs;
+    if (when) {
+      var dateEl = el('span', 'wn-bdate', when);
+      if (abs) dateEl.title = abs;
+      head.appendChild(dateEl);
+    }
     card.appendChild(head);
 
     // vs 상대 · 내 정답 x/총 · 승/패/무
