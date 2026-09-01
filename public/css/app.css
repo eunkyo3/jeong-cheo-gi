@@ -402,6 +402,16 @@ input.ans:disabled { background: #f4f5f6; color: #555; }
 .btnbar button:hover, button.primary:hover { background: var(--deep-2); }
 .btnbar button.secondary { background: #888; margin-left: 10px; }
 .btnbar button.secondary:hover { background: #6f6f6f; }
+
+/* 제출 버튼 옆 진행 표시 — "답한 문항 17/20". 입력마다 이 한 줄만 갱신된다. */
+.btnbar .answered-count {
+  display: inline-block;
+  margin-left: 14px;
+  vertical-align: middle;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.btnbar .answered-count[hidden] { display: none; }
 button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 /* ------------------------------------------------------------- 점수판 */
@@ -424,6 +434,32 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 #scoreBoard .pass { font-size: 1.05rem; margin-top: 4px; }
 .pass.ok { color: var(--ok); }
 .pass.no { color: var(--bad); }
+
+/* 스크롤해서 점수판이 sticky 로 붙기 시작하면 한 줄로 줄인다 (study.js 가 .compact 를 토글).
+   문구를 지우지 않고 시각적으로만 줄인다 — DOM 의 텍스트는 펼친 상태와 똑같다.
+   긴 앞말은 감추고, 대신 data-short 의 짧은 말을 생성 콘텐츠로 세운다. */
+#scoreBoard.shown.compact {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 14px;
+  border-width: 2px;
+  max-height: 48px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+#scoreBoard.shown.compact .score { font-size: 1.15rem; flex: 0 0 auto; }
+#scoreBoard.shown.compact .score::after { content: ' ·'; color: var(--muted); font-weight: normal; }
+#scoreBoard.shown.compact .pass {
+  font-size: 0.92rem;
+  margin-top: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#scoreBoard.shown.compact .pass::before { content: attr(data-short); }
+#scoreBoard.shown.compact .pass-lead { display: none; }
 
 .hint { font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
 .muted { color: var(--muted); }
@@ -550,6 +586,12 @@ table.list tr:nth-child(even) td { background: #fafbfc; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
   #scoreBoard { top: 46px; padding: 12px 14px; }
   #scoreBoard .score { font-size: 1.6rem; }
+  /* 좁은 화면에서도 축소 상태는 한 줄이어야 한다 — 넘치면 잘라 낸다(가로 스크롤 금지). */
+  #scoreBoard.shown.compact { padding: 6px 10px; gap: 3px; max-height: 44px; }
+  #scoreBoard.shown.compact .score { font-size: 1rem; }
+  #scoreBoard.shown.compact .pass { font-size: 0.82rem; }
+  .btnbar .answered-count { display: block; margin: 12px 0 0; }
+  .btnbar .answered-count[hidden] { display: none; }
   .form-row label { min-width: 100%; }
   .q-actions button { flex: 1 1 auto; }
   table.tbl th, table.tbl td { padding: 5px 10px; }

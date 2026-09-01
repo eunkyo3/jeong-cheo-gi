@@ -7,7 +7,10 @@
  *   모든 소켓 이벤트와 모든 사용자 조작은 `state` 를 바꾼 뒤 `render()` 하나만 호출한다.
  *   `render()` 는 노드를 **절대 제자리에서 고치지 않는다**. 화면은 몇 개의 *패널* 로 나뉘고,
  *   패널은 순수 빌더 `build(state) → DocumentFragment` 로 **통째로 다시 만들어** 교체된다.
- *   부분 DOM 패치(특정 노드의 textContent/class 만 갈아끼우기)는 이 파일 어디에도 없다.
+ *   부분 DOM 패치(특정 노드의 textContent/class 만 갈아끼우기)는 딱 한 곳뿐이다 —
+ *   제출 버튼 옆 '답한 문항 n/N' 표시(`syncAnsweredCount`). 이 값은 입력할 때마다 바뀌어야 하는데
+ *   그것을 패널 key 에 넣으면 타이핑마다 문항 패널이 통째로 다시 만들어져 한글 조합이 깨진다.
+ *   그래서 이 텍스트 노드 하나만 예외적으로 제자리에서 갈아끼운다(조작 요소가 아닌 순수 표시값).
  *
  *   패널을 나눈 이유는 성능이 아니라 **한글 입력(IME)** 이다. 답안 입력 도중 다른 참가자의
  *   `battle:progress` 나 10초 주기 `battle:tick` 이 도착하는데, 그때마다 문항 목록 전체를
@@ -301,6 +304,65 @@
     return null;
   }
 
+  /** state.questions 안에서의 위치. 없으면 -1. */
+  function questionIndexById(id) {
+    for (var i = 0; i < state.questions.length; i++) {
+      if (state.questions[i].id === id) return i;
+    }
+    return -1;
+  }
+
+  /**
+   * 화면에 찍는 문항 번호(①). 한 회차를 그대로 푸는 방(mode 'round')만 **원본 번호**를 쓰고,
+   * 섞인 세트(mode 'random')는 state.questions 순서대로 **1부터 순번**을 매긴다.
+   * 원본 번호는 이미 회차 뱃지("2025년 3회 · 16번")에 있으므로 중복 표기하지 않는다.
+   * 이의 제기·AI 질문에 실리는 식별자는 여전히 문항 id 기준이라 이 표기와 무관하다.
+   */
+  function displayNum(q, idx) {
+    var s = settings();
+    if (s && s.mode === 'random') return idx + 1;
+    return q && q.num != null ? q.num : idx + 1;
+  }
+
+  /**
+   * 답한 문항 = **모든 칸이 비어 있지 않은** 문항(③). 서버 answeredCount 와 같은 규칙이라야
+   * (server/battle.js `answeredCount`, PROTOCOL.md "battle.html 문항 UI 모델")
+   * 제출 버튼 옆 표시와 진행 현황·플로팅 패널의 n/N 이 어긋나지 않는다.
+   * 칸이 아예 없는 문항은 서버가 세지 않으므로 여기서도 세지 않는다.
+   */
+  function isAnswered(q) {
+    var fields = (q && q.fields) || [];
+    if (!fields.length) return false;
+    var arr = state.myAnswers[q.id] || [];
+    for (var i = 0; i < fields.length; i++) {
+      if (String(arr[i] == null ? '' : arr[i]).trim() === '') return false;
+    }
+    return true;
+  }
+
+  function myAnsweredCount() {
+    var n = 0;
+    for (var i = 0; i < state.questions.length; i++) if (isAnswered(state.questions[i])) n += 1;
+    return n;
+  }
+
+  /** 처음으로 빈 칸이 남은 문항의 그 빈 칸 — {qid, fi}. 빈 칸이 없으면 null. */
+  function firstBlankField() {
+    for (var i = 0; i < state.questions.length; i++) {
+      var q = state.questions[i];
+      var fields = q.fields || [];
+      var arr = state.myAnswers[q.id] || [];
+      for (var f = 0; f < fields.length; f++) {
+        if (String(arr[f] == null ? '' : arr[f]).trim() === '') return { qid: q.id, fi: f };
+      }
+    }
+    return null;
+  }
+
+  function answeredCountText() {
+    return '답한 문항 ' + myAnsweredCount() + '/' + state.questions.length;
+  }
+
   // ------------------------------------------------------- 플로팅 패널 스크롤(요구 1)
 
   /**
@@ -440,7 +502,19 @@
       }
     }
 
+    syncAnsweredCount();
     syncIntervals(view);
+  }
+
+  /**
+   * 제출 버튼 옆 '답한 문항 n/N'(③). 이 파일의 유일한 부분 DOM 패치다 — 파일 머리말 참조.
+   * 노드가 없으면(제출 후·다른 화면) 아무 일도 하지 않는다.
+   */
+  function syncAnsweredCount() {
+    var el = document.getElementById('answeredCount');
+    if (!el) return;
+    var text = answeredCountText();
+    if (el.textContent !== text) el.textContent = text;
   }
 
   /** 상단 알림 영역. 조작 요소가 없어 매 렌더마다 통째로 다시 만든다. */
@@ -928,7 +1002,7 @@
         var v = marksById[q.id];
         var cls = 'mark-chip' + (v === true ? ' ok' : (v === false ? ' bad' : ''));
         var sym = v === true ? '○' : (v === false ? '✕' : '·');
-        return h('span', { class: cls, title: (q.num == null ? idx + 1 : q.num) + '번', text: sym });
+        return h('span', { class: cls, title: displayNum(q, idx) + '번', text: sym });
       });
       return h('div', { class: 'marks-row' }, [
         h('span', { class: 'marks-name' + (m.userId === myId() ? ' self' : ''), text: m.nickname }),
@@ -960,12 +1034,14 @@
     }
 
     for (var i = 0; i < state.questions.length; i++) {
-      kids.push(buildQuestionCard(state.questions[i], ro));
+      kids.push(buildQuestionCard(state.questions[i], i, ro));
     }
 
     if (!ro) {
       kids.push(h('div', { class: 'btnbar' }, [
         h('button', { class: 'btn', text: '제출하기', disabled: !state.online, onclick: submitBattle }),
+        // 값은 입력마다 syncAnsweredCount() 가 이 노드의 textContent 만 갈아끼운다(패널은 재빌드하지 않는다).
+        h('span', { class: 'answered-count', id: 'answeredCount', text: answeredCountText() }),
         h('p', { class: 'muted', text: '제출은 되돌릴 수 없습니다. 제출 후에는 답안을 고칠 수 없습니다.' }),
       ]));
       kids.push(h('div', { class: 'qactions' }, [
@@ -976,25 +1052,26 @@
     return frag(kids);
   }
 
-  function buildQuestionCard(q, readOnly) {
+  function buildQuestionCard(q, idx, readOnly) {
     var fields = q.fields || [];
     var answers = state.myAnswers[q.id] || [];
 
-    var rows = fields.map(function (f, idx) {
+    // fi = 필드 인덱스. 바깥 idx(문항 순번)를 가리지 않도록 다른 이름을 쓴다.
+    var rows = fields.map(function (f, fi) {
       return h('div', { class: 'ansrow' }, [
         h('label', { text: (f.label || '답') + ':' }),
         h('input', {
           class: 'ans',
           type: 'text',
-          'data-fkey': 'ans:' + q.id + ':' + idx,
-          value: answers[idx] == null ? '' : answers[idx],
+          'data-fkey': 'ans:' + q.id + ':' + fi,
+          value: answers[fi] == null ? '' : answers[fi],
           readOnly: readOnly,
           maxlength: '500',
           autocomplete: 'off',
           autocapitalize: 'off',
           spellcheck: 'false',
           placeholder: readOnly ? '' : '답을 입력하세요',
-          oninput: function (e) { onAnswerInput(q, idx, e.target.value); },
+          oninput: function (e) { onAnswerInput(q, fi, e.target.value); },
         }),
       ]);
     });
@@ -1002,7 +1079,7 @@
     return h('div', { class: 'q' + (readOnly ? ' readonly' : '') }, [
       badgeRow(q.type, q.id),
       h('div', { class: 'qtitle' }, [
-        h('span', { class: 'num', text: String(q.num == null ? '' : q.num) }),
+        h('span', { class: 'num', text: String(displayNum(q, idx)) }),
         h('span', { html: q.prompt || '' }), // 서버 자산의 신뢰 마크업
       ]),
       q.bodyHtml ? h('div', { html: q.bodyHtml }) : null,
@@ -1017,6 +1094,7 @@
     while (arr.length < fields.length) arr.push('');
     arr[idx] = value;
     scheduleAnswer(q.id, idx, value);
+    syncAnsweredCount(); // 텍스트 노드 하나만 갈아끼운다 — 재렌더가 아니다(③)
     // 의도적으로 render() 하지 않는다. 이 입력의 DOM 값은 이미 render(state) 결과와 같고,
     // 재빌드하면 한글 조합이 끊긴다. 내 answeredCount 는 서버의 battle:progress 로 되돌아온다.
   }
@@ -1220,6 +1298,7 @@
   function buildDetailCard(detail) {
     var q = questionById(detail.questionId);
     var qid = detail.questionId;
+    var qIdx = questionIndexById(qid); // 순번 표기(①)는 state.questions 순서를 따른다
     var fieldResults = detail.fieldResults || [];
 
     var rows = fieldResults.map(function (fr) {
@@ -1237,7 +1316,7 @@
     var kids = [
       badgeRow(q && q.type, qid),
       h('div', { class: 'qtitle' }, [
-        h('span', { class: 'num', text: q ? String(q.num) : '?' }),
+        h('span', { class: 'num', text: q && qIdx >= 0 ? String(displayNum(q, qIdx)) : '?' }),
         h('span', { html: q ? (q.prompt || '') : qid }),
       ]),
       q && q.bodyHtml ? h('div', { html: q.bodyHtml }) : null,
@@ -1533,8 +1612,49 @@
     emit('room:start', {});
   }
 
+  /** 처음으로 빈 칸이 남은 곳으로 스크롤 + 포커스(③ — confirm 을 취소했을 때). */
+  function focusFirstBlank() {
+    var b = firstBlankField();
+    if (!b) return;
+    var el = document.querySelector('input.ans[data-fkey="ans:' + b.qid + ':' + b.fi + '"]');
+    if (!el) return;
+    try { el.focus(); } catch (e) { /* 무시 */ }
+    if (!el.scrollIntoView) return;
+    // block 옵션 미지원 브라우저는 인자 없는 호출로 떨어뜨린다.
+    try { el.scrollIntoView({ block: 'center' }); } catch (e) { el.scrollIntoView(); }
+  }
+
+  /**
+   * 빈 칸이 남은 문항이 있으면 한 번 되묻는다(③). 계속 제출해도 되면 true.
+   * confirm 이 없는 환경(구형 웹뷰·하네스)에서는 막지 않는다 — 제출을 못 하게 되는 쪽이 더 나쁘다.
+   * study.js 의 confirmBlanks() 와 같은 모양이다.
+   */
+  function confirmBlanks() {
+    var blanks = state.questions.length - myAnsweredCount();
+    if (blanks <= 0) return true;
+    if (ask('아직 답하지 않았거나 빈칸이 남은 문항이 ' + blanks + '개 있습니다.\n그대로 제출할까요?')) return true;
+    focusFirstBlank();
+    return false;
+  }
+
+  /**
+   * window.confirm 한 번. 명시적으로 "취소" 를 누른 경우(=== false)만 막고,
+   * confirm 이 없거나 이상한 값을 돌려주는 환경(구형 웹뷰·하네스)에서는 진행시킨다 —
+   * 제출을 영영 못 하게 되는 쪽이 더 나쁘다. study.js 의 confirmBlanks() 와 같은 규칙이다.
+   */
+  function ask(message) {
+    var ok = true;
+    try {
+      if (typeof window.confirm === 'function') ok = window.confirm(message);
+    } catch (e) {
+      ok = true;
+    }
+    return ok !== false;
+  }
+
   function submitBattle() {
-    if (!window.confirm('제출하면 되돌릴 수 없습니다.\n남은 시간이 있어도 답안을 고칠 수 없습니다.\n제출할까요?')) return;
+    if (!confirmBlanks()) return;
+    if (!ask('제출하면 되돌릴 수 없습니다.\n남은 시간이 있어도 답안을 고칠 수 없습니다.\n제출할까요?')) return;
     flushAllAnswers();
     if (!emit('battle:submit', {})) return;
     state.submitPending = true;

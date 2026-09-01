@@ -217,6 +217,8 @@ applyEvent(state, event) → { state, effects: [] }
 "다른 문항으로 이동" 개념은 사용하지 않는다.
 
 프런트는 **이벤트 → state → `render(state)` 전체 재렌더** 단방향만 허용한다. **부분 DOM 패치 금지.**
+유일한 예외: 제출 버튼 옆 **"답한 문항 n/N"** 텍스트(`syncAnsweredCount`)는 입력마다 바뀌어야 하는데 입력값이 패널 key 에
+들어갈 수 없으므로(한글 IME 보호) 텍스트 노드 하나만 직접 갱신한다. 셈 규칙은 서버 `answeredCount` 와 같다(모든 칸이 차야 답함).
 
 ## 클립보드 방침
 

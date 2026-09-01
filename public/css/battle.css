@@ -524,3 +524,25 @@ h2.section { color: #1e3a2f; }
   .floatpanel .fsummary { flex-basis: 100%; margin-top: 4px; padding-top: 4px; border-top: none; }
   .floatpanel .ftop { width: auto; margin-top: 0; flex: 0 0 auto; }
 }
+
+/* -------------------------------------------- 제출 버튼 옆 진행 표시(③)
+   .btnbar 자체는 app.css 소유다 — 대전 화면에만 있는 이 칩만 여기서 정의한다.
+   조작 요소가 아니라 순수 표시값이라 battle.js 가 textContent 만 갈아끼운다. */
+
+.btnbar .answered-count {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 12px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #e8efeb;
+  color: var(--deep-3, #2f4f3e);
+  font-size: 0.95rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  /* 좁은 폭에서는 버튼 아래로 내린다 — 버튼이 줄바꿈되어 눌리기 어려워지지 않게. */
+  .btnbar .answered-count { display: block; width: fit-content; margin: 10px auto 0; }
+}

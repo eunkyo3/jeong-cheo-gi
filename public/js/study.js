@@ -71,6 +71,7 @@
   var elBtnbar = document.getElementById('btnbar');
   var elSubmit = document.getElementById('submitBtn');
   var elReset = document.getElementById('resetBtn');
+  var elAnswered = document.getElementById('answeredCount');
   var elToastWrap = document.getElementById('toastWrap');
   var elNavWho = document.getElementById('navWho');
   var elNavLogout = document.getElementById('navLogout');
@@ -194,6 +195,17 @@
     if (!m) return prefix;
     var label = m[1] + '년 ' + m[2] + '회';
     return num ? label + ' · ' + num + '번' : label;
+  }
+
+  /**
+   * 카드에 찍을 문항 번호.
+   * 한 회차를 그대로 푸는 경우(mode 'round' — 유형 필터가 걸려도 마찬가지)만 **원본 번호**를 쓴다.
+   * 그 밖(랜덤 모의고사·오답노트)은 여러 회차가 섞여 원본 번호가 뒤죽박죽이므로 **1부터 순번**을 매긴다
+   * — 원본 번호는 우상단 회차 뱃지("2025년 3회 · 16번")에 이미 있으니 중복해서 적지 않는다.
+   */
+  function displayNum(question, index) {
+    if (state.mode === 'round') return question.num == null ? '' : String(question.num);
+    return String(index + 1);
   }
 
   function formatTime(ms) {
@@ -411,7 +423,7 @@
     stopTimer();
     if (state.result || state.submitting) return;
     toast('시간이 끝나 자동 제출합니다.', 'bad');
-    submit();
+    submit(true);   // 시간이 다 된 자동 제출 — 미입력 확인으로 붙잡지 않는다
   }
 
   function startTimer(minutes) {
@@ -756,7 +768,7 @@
     else if (elSubmit && !elSubmit.hidden) elSubmit.focus();
   }
 
-  function renderQuestion(question) {
+  function renderQuestion(question, index) {
     var detail = detailFor(question.id);
     var graded = !!detail;
 
@@ -775,7 +787,7 @@
 
     // 제목: 번호 + prompt(HTML 자산이므로 HTML 로 삽입)
     var title = el('div', 'qtitle');
-    title.appendChild(el('span', 'num', String(question.num == null ? '' : question.num)));
+    title.appendChild(el('span', 'num', displayNum(question, index)));
     var promptSpan = document.createElement('span');
     promptSpan.innerHTML = question.prompt || '';
     title.appendChild(promptSpan);
@@ -791,32 +803,35 @@
 
     // 답안 입력
     var stored = state.answers[question.id] || [];
-    (question.fields || []).forEach(function (field, index) {
+    // 바깥의 `index`(문항 순번)를 가리지 않도록 칸 번호는 fieldIndex 로 받는다.
+    (question.fields || []).forEach(function (field, fieldIndex) {
       var row = el('div', 'ansrow');
       var input = document.createElement('input');
       input.type = 'text';
       input.className = 'ans';
-      input.id = 'ans-' + question.id + '-' + index;
+      input.id = 'ans-' + question.id + '-' + fieldIndex;
       input.autocomplete = 'off';
       input.autocapitalize = 'off';
       input.spellcheck = false;
-      input.value = stored[index] == null ? '' : stored[index];
+      input.value = stored[fieldIndex] == null ? '' : stored[fieldIndex];
 
-      var label = el('label', null, fieldLabel(field.label, index));
+      var label = el('label', null, fieldLabel(field.label, fieldIndex));
       label.htmlFor = input.id;
       row.appendChild(label);
 
       if (graded) {
         input.readOnly = true;
-        var fr = (detail.fieldResults || [])[index];
+        var fr = (detail.fieldResults || [])[fieldIndex];
         input.classList.add(fr && fr.correct ? 'ok' : 'bad');
       } else {
         input.addEventListener('input', function () {
           if (!state.answers[question.id]) {
             state.answers[question.id] = (question.fields || []).map(function () { return ''; });
           }
-          state.answers[question.id][index] = input.value;
+          state.answers[question.id][fieldIndex] = input.value;
           scheduleSave();
+          // 텍스트 한 줄만 고쳐 쓴다 — 입력 이벤트에서 카드를 다시 그리면 한글 조합이 깨진다.
+          renderAnsweredCount();
         });
         input.addEventListener('keydown', onAnswerKeydown);
       }
@@ -855,23 +870,178 @@
     return card;
   }
 
+  // ------------------------------------------------- 답한 문항 수 · 미입력 안내
+
+  /**
+   * 이 문항의 답이 다 찼는가. **모든 칸이 차야** 답한 것으로 센다 —
+   * 대전 진행 현황·서버 집계와 같은 규칙이다 (한 칸이라도 비면 아직 덜 푼 문항).
+   */
+  function blankFieldIndex(question) {
+    var vals = state.answers[question.id] || [];
+    var fields = question.fields || [];
+    for (var i = 0; i < fields.length; i++) {
+      if (vals[i] == null || String(vals[i]).trim() === '') return i;
+    }
+    return -1;   // 빈 칸 없음 = 답한 문항
+  }
+
+  function isAnswered(question) {
+    return blankFieldIndex(question) < 0;
+  }
+
+  /** 아직 빈 칸이 남은 문항들 — 화면에 보이는 순서 그대로. */
+  function unansweredQuestions() {
+    return ((state.round && state.round.questions) || []).filter(function (q) {
+      return !isAnswered(q);
+    });
+  }
+
+  /** 제출 버튼 옆 "답한 문항 17/20". 채점 뒤에는 의미가 없으므로 감춘다. */
+  function renderAnsweredCount() {
+    if (!elAnswered) return;
+    var questions = (state.round && state.round.questions) || [];
+    if (!questions.length || state.result) {
+      elAnswered.textContent = '';
+      elAnswered.hidden = true;
+      return;
+    }
+    var done = questions.length - unansweredQuestions().length;
+    elAnswered.textContent = '답한 문항 ' + done + '/' + questions.length;
+    elAnswered.hidden = false;
+  }
+
+  /**
+   * 미입력 안내에서 "취소" 를 눌렀을 때 — 그 문항의 **첫 빈 칸**으로 스크롤 + 포커스.
+   * 순서가 중요하다: focus 가 스스로 스크롤해 버리면 뒤이은 smooth 스크롤이 취소되므로
+   * preventScroll 로 포커스만 먼저 옮기고, 스크롤은 그 다음에 한 번만 한다.
+   * block 은 'center' — 'start' 로 붙이면 카드 위쪽이 상단 내비에 가려 번호·뱃지가 안 보인다.
+   */
+  function focusFirstBlank(question) {
+    var card = elQuestions.querySelector('.q[data-q="' + question.id + '"]');
+    if (!card) return;
+    var inputs = card.querySelectorAll('input.ans');
+    var blank = blankFieldIndex(question);
+    var input = inputs[blank < 0 ? 0 : blank] || inputs[0];
+    if (input) {
+      // preventScroll 미지원 브라우저는 인자 없는 호출로 떨어뜨린다.
+      try {
+        input.focus({ preventScroll: true });
+      } catch (e) {
+        try { input.focus(); } catch (e2) { /* 무시 */ }
+      }
+    }
+    if (!card.scrollIntoView) return;
+    try {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (e) {
+      card.scrollIntoView();
+    }
+  }
+
+  /**
+   * 빈 칸이 남은 문항이 있으면 한 번 되묻는다. 계속 제출해도 되면 true.
+   * confirm 이 없는 환경(구형 웹뷰·하네스)에서는 막지 않는다 — 제출을 못 하게 되는 쪽이 더 나쁘다.
+   */
+  function confirmBlanks() {
+    var blanks = unansweredQuestions();
+    if (!blanks.length) return true;
+    var ok = true;
+    try {
+      if (typeof window.confirm === 'function') {
+        ok = window.confirm('아직 답하지 않았거나 빈칸이 남은 문항이 ' + blanks.length + '개 있습니다.\n'
+          + '그대로 제출할까요?');
+      }
+    } catch (e) {
+      ok = true;
+    }
+    if (ok === false) {
+      focusFirstBlank(blanks[0]);
+      return false;
+    }
+    return true;
+  }
+
+  // ------------------------------------------------- 점수판 축소(sticky compact)
+
+  var boardCompact = false;
+  var boardScrollTicking = false;
+
+  /**
+   * 점수판이 sticky 로 "붙기 시작했는가" — 붙은 순간 박스의 화면 좌표 top 은 정확히 sticky top 에 고정된다.
+   * 문서 맨 위(scrollY 0)는 붙었을 리 없다: 레이아웃을 계산하지 않는 환경(jsdom)에서
+   * 좌표가 전부 0 으로 나와도 오탐하지 않게 막아 준다.
+   * 순수 함수라 스크롤 없이도 판정을 그대로 검사할 수 있다.
+   */
+  function isBoardStuck(scrollY, boardRectTop, stickyTop) {
+    return scrollY > 0 && boardRectTop <= stickyTop + 0.5;
+  }
+
+  /** CSS 의 sticky top 값 (반응형에서 52px → 46px 로 줄어든다). 못 읽으면 0. */
+  function boardStickyTop() {
+    var top = NaN;
+    try {
+      top = parseFloat(window.getComputedStyle(elBoard).top);
+    } catch (e) { /* 계산 스타일 없음 */ }
+    return isNaN(top) ? 0 : top;
+  }
+
+  function setBoardCompact(on) {
+    if (on === boardCompact) return;   // 불리언이 바뀔 때만 DOM 을 건드린다
+    boardCompact = on;
+    if (on) elBoard.classList.add('compact');
+    else elBoard.classList.remove('compact');
+  }
+
+  function syncBoardCompact() {
+    if (!elBoard || !elBoard.classList.contains('shown')) {
+      setBoardCompact(false);
+      return;
+    }
+    var y = window.scrollY || window.pageYOffset || 0;
+    var top = 0;
+    try {
+      top = elBoard.getBoundingClientRect().top;
+    } catch (e) { /* 무시 */ }
+    setBoardCompact(isBoardStuck(y, top, boardStickyTop()));
+  }
+
+  /** battle.js 의 onFloatScroll 과 같은 모양 — rAF 로 한 프레임에 한 번만 계산한다. */
+  function onBoardScroll() {
+    if (boardScrollTicking) return;
+    boardScrollTicking = true;
+    (window.requestAnimationFrame || function (fn) { setTimeout(fn, 16); })(function () {
+      boardScrollTicking = false;
+      syncBoardCompact();
+    });
+  }
+
+  if (elBoard) {
+    window.addEventListener('scroll', onBoardScroll, { passive: true });
+    window.addEventListener('resize', onBoardScroll, { passive: true });
+  }
+
   function renderBoard() {
     if (!state.result) {
       elBoard.classList.remove('shown');
+      setBoardCompact(false);
       return;
     }
     var r = state.result;
     elBoard.querySelector('.score').textContent = r.score + '점 / 100점';
     var passEl = elBoard.querySelector('.pass');
     var tail = ' (' + r.correctCount + '/' + r.totalCount + ' 문제 정답)';
-    if (r.score >= PASS_SCORE) {
-      passEl.textContent = '🎉 합격권입니다!' + tail;
-      passEl.className = 'pass ok';
-    } else {
-      passEl.textContent = '아쉽습니다. ' + PASS_SCORE + '점 이상이 합격입니다.' + tail;
-      passEl.className = 'pass no';
-    }
+    var passed = r.score >= PASS_SCORE;
+    // 펼친 상태의 문구는 예전 그대로다 — 두 조각으로 나누기만 한다.
+    // 축소(.compact) 상태에서 긴 앞말 대신 보여 줄 짧은 말은 data-short 로 넘긴다
+    // (CSS 생성 콘텐츠라 textContent 에는 섞이지 않는다).
+    passEl.textContent = '';
+    passEl.className = 'pass ' + (passed ? 'ok' : 'no');
+    passEl.setAttribute('data-short', passed ? '🎉 합격권' : '합격까지 ' + (PASS_SCORE - r.score) + '점');
+    passEl.appendChild(el('span', 'pass-lead',
+      passed ? '🎉 합격권입니다!' : '아쉽습니다. ' + PASS_SCORE + '점 이상이 합격입니다.'));
+    passEl.appendChild(el('span', 'pass-tail', tail));
     elBoard.classList.add('shown');
+    syncBoardCompact();
   }
 
   /** 헤더 아래 한 줄. 채점 전에는 안내, 채점 후에는 다음에 할 일을 말한다. */
@@ -942,8 +1112,8 @@
       elBtnbar.hidden = true;
       return;
     }
-    round.questions.forEach(function (q) {
-      elQuestions.appendChild(renderQuestion(q));
+    round.questions.forEach(function (q, i) {
+      elQuestions.appendChild(renderQuestion(q, i));
     });
 
     elBtnbar.hidden = false;
@@ -954,6 +1124,7 @@
     elSubmit.textContent = state.submitting ? '채점하는 중...' : '제출하고 채점하기';
     if (elTools) elTools.hidden = graded;
 
+    renderAnsweredCount();
     renderBoard();
     renderTimer();
 
@@ -989,8 +1160,12 @@
     return api.post('/api/practice/grade', { setKey: state.setKey, answers: answers });
   }
 
-  function submit() {
+  /**
+   * @param {boolean} [skipConfirm] 타이머 자동 제출처럼 사람이 누르지 않은 제출 — 되묻지 않는다.
+   */
+  function submit(skipConfirm) {
     if (state.submitting || state.result || !state.round) return;
+    if (!skipConfirm && !confirmBlanks()) return;
     state.submitting = true;
     elSubmit.disabled = true;
     elSubmit.textContent = '채점하는 중...';
@@ -1027,7 +1202,8 @@
     scrollTop();
   }
 
-  elSubmit.addEventListener('click', submit);
+  // 이벤트 객체가 skipConfirm 자리에 들어가지 않도록 감싼다.
+  elSubmit.addEventListener('click', function () { submit(); });
   elReset.addEventListener('click', reset);
 
   // ------------------------------------------------------------------ 시작

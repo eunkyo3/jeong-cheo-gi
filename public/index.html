@@ -6,6 +6,87 @@
 <title>정처기 배틀 — 정보처리기사 실기 기출</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="/css/app.css">
+<style>
+/* index 전용 — 히어로 CTA / 안내 배너 / 한 줄 로그인 폼.
+   app.css 는 다른 화면과 공유하므로, 메인에서만 쓰는 것은 여기에 둔다. */
+
+/* 상단 내비의 "로그인" (비로그인일 때만 보인다) */
+.topnav .nav-login {
+  border: 1px solid #6b8b7c;
+  border-radius: 6px;
+  padding: 4px 12px;
+}
+.topnav .nav-login:hover { background: var(--deep-2); color: #fff; text-decoration: none; }
+
+/* 히어로 CTA — 첫 화면에서 바로 풀러 갈 수 있게. 회차 목록이 오기 전에는 비활성. */
+.hero-cta { margin-top: 16px; }
+.hero-btn {
+  font-size: 1.02rem;
+  font-weight: bold;
+  padding: 12px 26px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  background: #fff;
+  color: var(--deep);
+  cursor: pointer;
+}
+.hero-btn:hover:enabled { background: #dff0e7; }
+.hero-btn:disabled {
+  background: transparent;
+  border-color: #7fa392;
+  color: #b7ccc2;
+  cursor: default;
+}
+
+/* 로그인이 필요해 되돌려 보내진 경우의 안내 (?msg=) */
+.msg-banner {
+  background: #fff6e5;
+  border: 1px solid #e6c98a;
+  border-left: 4px solid var(--warn);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 0 0 18px;
+  color: #6b4e08;
+  font-size: 0.92rem;
+}
+
+/* 비로그인 "내 학습" — 카드 대신 한 줄 */
+.study-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.study-line a { color: var(--deep); font-weight: bold; }
+
+/* 로그인 폼 — 데스크톱은 한 줄(닉네임·비밀번호·로그인·가입), 모바일은 세로 */
+#authForm .auth-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+#authForm .auth-line .form-row {
+  flex: 1 1 220px;
+  margin-bottom: 0;
+}
+#authForm .auth-line .form-row label { min-width: auto; }
+#authForm .auth-line .form-actions { flex: 0 0 auto; }
+
+@media (max-width: 620px) {
+  .hero-btn { width: 100%; border-radius: 10px; }
+  #authForm .auth-line { display: block; }
+  #authForm .auth-line .form-row { margin-bottom: 10px; }
+  #authForm .auth-line .form-actions button { flex: 1 1 auto; }
+}
+</style>
 </head>
 <body>
 
@@ -16,22 +97,26 @@
     <a href="/battle.html">대전</a>
     <a href="/ranking.html">랭킹</a>
     <span class="spacer"></span>
+    <!-- 비로그인일 때만 보인다 — 계정 섹션이 맨 아래라 여기서 바로 내려갈 수 있게. -->
+    <a class="nav-login" id="navLogin" href="#account" hidden>로그인</a>
     <span class="who" id="navWho"></span>
   </div>
 </nav>
 
 <div class="wrap">
 
+  <!-- ----------------------------------------------------------- 히어로 -->
   <header class="page">
     <h1>정보처리기사 실기 복원 기출</h1>
     <p>회차를 골라 혼자 풀거나, 친구와 대전하세요 &middot; 채점은 100점 만점 (60점 이상 합격)</p>
+    <!-- 최신 회차로 바로 보낸다. /api/rounds 가 오기 전에는 갈 곳을 모르니 비활성. -->
+    <div class="hero-cta">
+      <button class="hero-btn" id="heroStart" type="button" disabled>바로 풀어보기 &rarr;</button>
+    </div>
   </header>
 
-  <!-- ------------------------------------------------------------- 세션 -->
-  <h2 class="section">계정</h2>
-  <div class="card" id="sessionBox">
-    <p class="muted">세션을 확인하는 중&hellip;</p>
-  </div>
+  <!-- ---------------------------------------------------- ?msg= 안내 -->
+  <div class="msg-banner" id="msgBanner" hidden></div>
 
   <!-- --------------------------------------------------------- 내 학습 -->
   <!-- 로그인 상태와 /api/me/history 응답에 따라 index 스크립트가 채운다.
@@ -39,18 +124,25 @@
   <h2 class="section" id="studySection" hidden>내 학습</h2>
   <div id="studyBox" hidden></div>
 
-  <!-- --------------------------------------------------- 랜덤 모의고사 -->
-  <h2 class="section">랜덤 모의고사</h2>
-  <div class="card" id="practiceBox">
-    <p class="muted">회차를 불러오는 중&hellip;</p>
-  </div>
-
   <!-- ------------------------------------------------------------- 회차 -->
   <h2 class="section">회차 선택</h2>
   <!-- 유형 칩 (전체/코드/SQL/이론). /api/rounds 가 counts 를 주지 않는 구버전 서버면 계속 숨긴다. -->
   <div class="type-filter" id="roundTypeFilter" hidden></div>
   <div id="roundList">
     <p class="muted">회차를 불러오는 중&hellip;</p>
+  </div>
+
+  <!-- --------------------------------------------------- 랜덤 모의고사 -->
+  <h2 class="section">랜덤 모의고사</h2>
+  <div class="card" id="practiceBox">
+    <p class="muted">회차를 불러오는 중&hellip;</p>
+  </div>
+
+  <!-- ------------------------------------------------------------- 세션 -->
+  <!-- 맨 아래 — 풀기가 먼저다. ?msg= 로 되돌아온 경우에만 여기로 스크롤한다. -->
+  <h2 class="section" id="account">계정</h2>
+  <div class="card" id="sessionBox">
+    <p class="muted">세션을 확인하는 중&hellip;</p>
   </div>
 
 </div>
@@ -65,6 +157,9 @@
   var roundList = document.getElementById('roundList');
   var roundTypeFilter = document.getElementById('roundTypeFilter');
   var navWho = document.getElementById('navWho');
+  var navLogin = document.getElementById('navLogin');
+  var heroStart = document.getElementById('heroStart');
+  var msgBanner = document.getElementById('msgBanner');
   var studySection = document.getElementById('studySection');
   var studyBox = document.getElementById('studyBox');
   var practiceBox = document.getElementById('practiceBox');
@@ -160,30 +255,62 @@
 
   // ------------------------------------------------------------ ?msg= 안내
   // battle.js/ranking.js 는 로그인이 필요한 화면에서 /?msg=<encoded> 로 돌려보낸다.
-  // 여기서 한 번 읽어 두었다가 세션 박스가 (로그인/비로그인 상태로) 그려질 때마다 맨 위에
-  // 다시 붙인다 — renderLoggedIn/renderLoggedOut 이 sessionBox 를 통째로 비우기 때문에
-  // 한 번만 넣으면 그 직후의 비동기 렌더에서 사라져 버린다. 새로고침해도 다시 뜨지 않도록
-  // 쿼리는 즉시 지운다.
+  // 히어로 바로 아래 배너로 한 번만 그린다 — 세션 박스와 달리 다시 그려지지 않는다.
+  // 새로고침해도 다시 뜨지 않도록 쿼리는 즉시 지운다.
   var redirectMsg = null;
   (function readRedirectMessage() {
     var params = new URLSearchParams(window.location.search);
     var msg = params.get('msg');
     if (!msg) return;
     redirectMsg = msg;
+    msgBanner.textContent = msg;
+    msgBanner.hidden = false;
     var url = new URL(window.location.href);
     url.searchParams.delete('msg');
     window.history.replaceState(null, '', url.pathname + url.search + url.hash);
   })();
 
+  // 계정 섹션이 맨 아래라, 로그인이 필요해 되돌아온 사람은 거기까지 데려다 준다.
+  // 세션 박스와 회차 목록은 따로 도착한다. 회차 목록이 오기 전의 페이지는 화면 한 장보다
+  // 짧아서 그 시점에 스크롤해 봐야 0 근처로 잘린다 — 둘 다 그려진 뒤에 한 번만 움직인다.
+  var pendingAccountScroll = !!redirectMsg;
+  var sessionRendered = false;
+  var roundsRendered = false;
+  function maybeScrollToAccount() {
+    if (!pendingAccountScroll || !sessionRendered || !roundsRendered) return;
+    pendingAccountScroll = false;
+    var raf = window.requestAnimationFrame || function (fn) { return window.setTimeout(fn, 16); };
+    raf(function () {
+      // 폼까지 데려다 준 김에 바로 칠 수 있게 — 스크롤 위치는 그 다음 줄이 정한다.
+      var nick = document.getElementById('nickname');
+      if (nick) nick.focus();
+      var target = document.getElementById('account');
+      // jsdom·구형 브라우저에는 없다 — 없으면 그냥 안 움직인다.
+      if (!target || typeof target.scrollIntoView !== 'function') return;
+      try { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { /* 무시 */ }
+    });
+  }
+
+  /** 계정 섹션으로 내려가는 링크. 눌리면 닉네임 칸에 포커스까지 준다. */
+  function accountLink(text) {
+    var a = el('a', null, text);
+    a.href = '#account';
+    a.addEventListener('click', function () {
+      var nick = document.getElementById('nickname');
+      if (nick) nick.focus();
+    });
+    return a;
+  }
+
   function clearSessionBox() {
     sessionBox.textContent = '';
-    if (redirectMsg) sessionBox.appendChild(el('div', 'error-text', redirectMsg));
   }
 
   // ---------------------------------------------------------------- 세션
 
   function renderNav(user) {
     navWho.textContent = '';
+    navLogin.hidden = !!user;
     if (!user) return;
     var b = el('b', null, user.nickname);
     navWho.appendChild(b);
@@ -223,7 +350,9 @@
   function renderLoggedOut() {
     clearSessionBox();
 
+    // 진짜 <form> 이다 — 어느 칸에서든 Enter 를 치면 로그인된다.
     var form = document.createElement('form');
+    form.id = 'authForm';
     form.autocomplete = 'on';
 
     var nickRow = el('div', 'form-row');
@@ -264,9 +393,13 @@
     // 비밀번호 재설정 수단이 없다 — 가입 화면에서 미리 알려 준다.
     hint.appendChild(el('div', null, '비밀번호는 복구할 수 없습니다 — 잊지 않을 값으로 정하세요.'));
 
-    form.appendChild(nickRow);
-    form.appendChild(pwRow);
-    form.appendChild(actions);
+    // 데스크톱에서는 한 줄(닉네임·비밀번호·로그인·가입), 모바일에서는 세로로 풀린다.
+    var line = el('div', 'auth-line');
+    line.appendChild(nickRow);
+    line.appendChild(pwRow);
+    line.appendChild(actions);
+
+    form.appendChild(line);
     form.appendChild(errBox);
     form.appendChild(hint);
     sessionBox.appendChild(form);
@@ -293,7 +426,8 @@
     signupBtn.addEventListener('click', function () {
       submit(api.signup);
     });
-    nick.focus();
+    // 계정 섹션이 맨 아래로 내려갔다 — 그냥 들어온 사람까지 포커스로 끌어내리면
+    // 첫 화면이 계정 폼이 된다. ?msg= 로 되돌아온 경우의 포커스는 maybeScrollToAccount 가 준다.
   }
 
   function renderSession(user) {
@@ -301,6 +435,8 @@
     renderNav(user);
     if (user) renderLoggedIn(user);
     else renderLoggedOut();
+    sessionRendered = true;
+    maybeScrollToAccount();
     loadHistory();
   }
 
@@ -363,10 +499,12 @@
     studyBox.textContent = '';
 
     if (!currentUser) {
+      // 비로그인은 보여 줄 이력이 없다 — 카드 대신 한 줄로 자리만 잡는다.
       studySection.hidden = false;
       studyBox.hidden = false;
-      var out = el('div', 'card');
-      out.appendChild(el('p', 'hint', '로그인하면 점수 이력과 오답노트가 저장됩니다.'));
+      var out = el('div', 'study-line');
+      out.appendChild(document.createTextNode('로그인하면 점수 이력과 오답노트가 저장됩니다.'));
+      out.appendChild(accountLink('로그인'));
       studyBox.appendChild(out);
       return;
     }
@@ -581,24 +719,71 @@
     syncHref();
   }
 
+  // ------------------------------------------------------------- 히어로 CTA
+
+  /**
+   * 최신 회차. /api/rounds 는 오래된 회차부터 주므로 첫 원소가 아니라,
+   * 아래 회차 목록이 맨 위에 그리는 것과 같은 순서(연도 내림차순 → 그 해의 마지막 회차)로 고른다.
+   */
+  function latestRound() {
+    var list = roundsData || [];
+    if (list.length === 0) return null;
+    var byYear = groupByYear(list);
+    var group = byYear.groups[byYear.order[0]] || [];
+    return group[group.length - 1] || null;
+  }
+
+  /**
+   * "바로 풀어보기" 는 최신 회차로 보낸다. 회차 목록이 오기 전에는 갈 곳을 모르니 비활성.
+   * <a> 가 아니라 <button> 인 것은 의도다 — 회차 목록을 세는 쪽(검사·사람 눈 양쪽)에
+   * 이 버튼이 22번째 회차 버튼으로 잡히면 안 된다.
+   */
+  function renderHeroStart() {
+    if (!heroStart) return;
+    var r = latestRound();
+    if (!r) return;
+    heroStart.disabled = false;
+    heroStart.title = (r.title || r.round) + ' 풀기';
+  }
+
+  if (heroStart) {
+    heroStart.addEventListener('click', function () {
+      var r = latestRound();
+      if (!r) return;
+      window.location.href = '/study.html?round=' + encodeURIComponent(r.round);
+    });
+  }
+
   // ------------------------------------------------------------------ 시작
 
   api.me().then(renderSession).catch(function (e) {
     clearSessionBox();
     sessionBox.appendChild(el('p', 'error-text', e.message));
+    // 세션을 못 읽었으면 비로그인으로 친다 — 내비의 "로그인" 링크까지 사라지면
+    // 일시적 네트워크 오류 하나로 로그인 진입점이 통째로 없어진다.
+    renderNav(null);
+    // 세션을 못 읽었어도 안내는 계정 섹션에 떴다 — 거기까지는 데려다 준다.
+    sessionRendered = true;
+    maybeScrollToAccount();
   });
 
   api.get('/api/rounds').then(function (list) {
     roundsData = list || [];
+    renderHeroStart();
     renderRoundTypeFilter();
     renderRounds();
     renderPractice();
     renderStudyBox();
+    roundsRendered = true;
+    maybeScrollToAccount();
   }).catch(function (e) {
     roundList.textContent = '';
     roundList.appendChild(el('p', 'error-text', e.message));
     practiceBox.textContent = '';
     practiceBox.appendChild(el('p', 'error-text', e.message));
+    // 실패해도 페이지 높이는 더 자라지 않는다 — 기다릴 이유가 없다.
+    roundsRendered = true;
+    maybeScrollToAccount();
   });
 })();
 </script>

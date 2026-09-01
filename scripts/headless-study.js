@@ -75,7 +75,12 @@ async function load(p, beforeParse) {
   vc.on('jsdomError', e => errors.push(String(e.message || e)));
   vc.on('error', m => errors.push(String(m)));
   const opts = { runScripts: 'dangerously', resources: 'usable', pretendToBeVisual: true, virtualConsole: vc };
-  if (beforeParse) opts.beforeParse = beforeParse;
+  // jsdom 에는 window.confirm 이 없다(부르면 "not implemented" 를 던지고 undefined 를 돌려준다).
+  // 학습·대전의 "미입력 문항 확인" 이 검사 흐름을 막지 않도록 언제나 "그대로 제출" 로 답하게 심는다.
+  opts.beforeParse = function (win) {
+    win.confirm = function () { return true; };
+    if (beforeParse) beforeParse(win);
+  };
   const dom = await JSDOM.fromURL(BASE + p, opts);
   dom.window.fetch = makeFetch();
   dom.errors = errors;
@@ -197,6 +202,23 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   check(!!firstOrigin && /2026년\s*2회/.test(firstOrigin.textContent),
     'study: 첫 문항 카드에 회차 뱃지 "2026년 2회" 표시', firstOrigin ? firstOrigin.textContent : '.q-origin 없음');
   check(/총\s*20\s*문항/.test(d.body.textContent) && /100\s*점/.test(d.body.textContent), 'study: 헤더 "총 20문항 · 100점 만점" 동적 표기');
+
+  // ---- ①: 한 회차를 그대로 푸는 화면은 원본 문항 번호를 유지한다 (.num == 회차 뱃지의 "N번") ----
+  const numMismatch = [...cards].filter(c => {
+    const n = ((c.querySelector('.num') || {}).textContent || '').trim();
+    const m = /·\s*(\d+)번/.exec((c.querySelector('.q-origin') || {}).textContent || '');
+    return !m || m[1] !== n;
+  });
+  check(numMismatch.length === 0, 'seqnum: ?round= 화면은 원본 문항 번호 유지 (.num == 뱃지 번호)',
+    numMismatch.length + '개 불일치');
+
+  // ---- ③: 제출 버튼 옆 "답한 문항 n/N" — 입력 전 ----
+  const answeredEl = d.getElementById('answeredCount');
+  check(!!answeredEl && answeredEl.hidden === false && /답한 문항\s*0\/20/.test(answeredEl.textContent),
+    'blankguard: 입력 전 제출 버튼 옆에 "답한 문항 0/20"',
+    answeredEl ? JSON.stringify(answeredEl.textContent) + ' hidden=' + answeredEl.hidden : '#answeredCount 없음');
+  check(!!answeredEl && !!answeredEl.closest('#btnbar'),
+    'blankguard: 진행 표시가 제출 버튼과 같은 btnbar 안에 있다');
   // ---- 해설: 채점 전에는 버튼도 데이터도 없어야 한다 (PROTOCOL "채점 전 비노출") ----
   check(![...d.querySelectorAll('button')].some(b => /해설/.test(b.textContent)),
     'study: 채점 전 DOM 에 "해설" 버튼 없음');
@@ -240,6 +262,23 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   const setAns = (qnum, fi, val) => { const card = [...cards].find(c => c.querySelector('.num') && c.querySelector('.num').textContent.trim() === String(qnum)); const inp = card.querySelectorAll('input.ans')[fi]; inp.value = val; inp.dispatchEvent(new w.Event('input', { bubbles: true })); };
   setAns(1, 0, 'ㄱ'); setAns(2, 0, '10a20b'); setAns(10, 0, '192.168.35.72'); setAns(10, 1, '129.200.8.249'); setAns(10, 2, '192.168.36.249'); setAns(15, 0, '509'); setAns(3, 0, 'ㄴ'); // Q3 오답
 
+  // ---- ③: 입력하면 진행 표시가 곧바로 갱신된다 ----
+  // 위에서 문항 1·2·3·15(한 칸)와 10(세 칸 전부)을 채웠다 → 5개.
+  check(!!answeredEl && /답한 문항\s*5\/20/.test(answeredEl.textContent),
+    'blankguard: 입력하면 "답한 문항 5/20" 으로 갱신',
+    answeredEl ? JSON.stringify(answeredEl.textContent) : '#answeredCount 없음');
+
+  // "답함" 은 **모든 칸이 차야** 성립한다 (대전·서버 집계와 같은 규칙).
+  // Q12 는 두 칸짜리다 — 한 칸만 채우면 여전히 덜 푼 문항이다.
+  setAns(12, 0, 'zzz1');
+  check(!!answeredEl && /답한 문항\s*5\/20/.test(answeredEl.textContent),
+    'blankguard: 두 칸짜리 문항의 한 칸만 채우면 아직 "답한 문항" 이 아니다 (5/20 유지)',
+    answeredEl ? JSON.stringify(answeredEl.textContent) : '#answeredCount 없음');
+  setAns(12, 1, 'zzz2');
+  check(!!answeredEl && /답한 문항\s*6\/20/.test(answeredEl.textContent),
+    'blankguard: 남은 칸까지 채우면 "답한 문항 6/20" 으로 늘어난다',
+    answeredEl ? JSON.stringify(answeredEl.textContent) : '#answeredCount 없음');
+
   // ---- A2: 자동 저장 (디바운스 300ms) ----
   await sleep(500);
   const rawSaved = readStore(w, SKEY);
@@ -282,6 +321,29 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   const metaText = (d.getElementById('roundMeta') || {}).textContent || '';
   check(/채점 완료/.test(metaText) && /오답\s*16\s*문항/.test(metaText),
     'study: 채점 후 상단 안내가 "채점 완료 — 오답 N문항" 으로 갱신 (A5)', metaText.slice(0, 80));
+
+  // ---- ⑤: 채점 후 점수판이 sticky 로 붙으면 한 줄(.compact)로 줄어든다 ----
+  // jsdom 은 레이아웃을 계산하지 않는다 — window.scrollTo 는 "not implemented" 라 scrollY 가 움직이지 않고
+  // getBoundingClientRect 는 전부 0 이다. 그래서 scrollY 값만 갈아 끼우고 scroll 이벤트를 직접 쏜다.
+  // 판정(붙었는지) · rAF 스로틀 · 클래스 토글은 study.js 의 실제 코드가 그대로 돈다.
+  const boardEl = d.getElementById('scoreBoard');
+  const setScrollY = y => {
+    Object.defineProperty(w, 'scrollY', { value: y, configurable: true });
+    w.dispatchEvent(new w.Event('scroll'));
+  };
+  check(!!boardEl && !boardEl.classList.contains('compact'),
+    'compact: 채점 직후(맨 위)에는 점수판이 펼쳐져 있다', boardEl ? boardEl.className : '#scoreBoard 없음');
+  setScrollY(1500);
+  const gotCompact = await waitFor(() => (boardEl.classList.contains('compact') ? true : null),
+    '점수판 .compact 진입', 2000).catch(() => null);
+  check(gotCompact === true, 'compact: 스크롤해서 붙기 시작하면 #scoreBoard 에 .compact', boardEl.className);
+  check(/\d+점\s*\/\s*100점/.test(boardEl.textContent) && /\(\d+\/\d+ 문제 정답\)/.test(boardEl.textContent),
+    'compact: 축소 상태에서도 DOM 문구는 펼친 상태 그대로 (시각 축소만)',
+    boardEl.textContent.replace(/\s+/g, ' ').slice(0, 60));
+  setScrollY(0);
+  const backExpanded = await waitFor(() => (boardEl.classList.contains('compact') ? null : true),
+    '점수판 .compact 해제', 2000).catch(() => null);
+  check(backExpanded === true, 'compact: 맨 위로 돌아오면 .compact 가 풀린다', boardEl.className);
 
   // ---- A2: 채점 성공 시 저장분 삭제 ----
   const afterSave = readStore(w, SKEY);
@@ -485,6 +547,18 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
     const distinctOrigins = new Set(prOrigins.filter(t => t !== ''));
     check(distinctOrigins.size >= 2, 'practice: 뱃지가 서로 다른 회차 2개 이상 (rounds=all)', [...distinctOrigins].join(', '));
   }
+
+  // ---- ①: 섞인 세트는 1부터 순번. 원본 번호는 회차 뱃지에만 남는다 ----
+  const seq = await load('/study.html?set=practice&rounds=all&count=5');
+  const seqCards = await waitFor(() => { const c = seq.window.document.querySelectorAll('.q'); return c.length === 5 ? c : null; }, '순번 검사용 모의고사 5문항', 6000).catch(() => null);
+  const seqNums = seqCards ? [...seqCards].map(c => ((c.querySelector('.num') || {}).textContent || '').trim()) : [];
+  check(seqNums.join(',') === '1,2,3,4,5',
+    'seqnum: 랜덤 모의고사 카드 번호가 1..5 순번', seqNums.join(',') || '카드 없음');
+  const seqOrigins = seqCards ? [...seqCards].map(c => ((c.querySelector('.q-origin') || {}).textContent || '').trim()) : [];
+  check(seqOrigins.length === 5 && seqOrigins.every(t => /^\d{4}년\s*\d+회\s*·\s*\d+번$/.test(t)),
+    'seqnum: 원본 회차·번호는 회차 뱃지(.q-origin)에 그대로 남는다', seqOrigins.join(' | ') || '뱃지 없음');
+  check(seq.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+    'seqnum: 순번 화면 JS 오류 없음', seq.errors.slice(0, 2).join(' | '));
 
   const prSubmit = [...pr.window.document.querySelectorAll('button')].find(b => /제출하고 채점/.test(b.textContent));
   check(!!prSubmit, 'practice: 제출 버튼 존재');
