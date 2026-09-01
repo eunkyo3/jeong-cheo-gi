@@ -197,9 +197,30 @@ function playersPayload(s) {
  * `gradeSet` 은 순수 함수라 리듀서 안에서 불러도 계약(순수성)을 깨지 않는다.
  */
 function marksOf(s, p) {
-  const details = gradeSet(s.questions, p.answers).details;
+  return marksFromDetails(gradeSet(s.questions, p.answers).details);
+}
+
+/** 채점 details → { [questionId]: boolean }. 정오 불리언만 남긴다(답 내용·display 제외). */
+function marksFromDetails(details) {
   const out = {};
   for (let i = 0; i < details.length; i++) out[details[i].questionId] = !!details[i].correct;
+  return out;
+}
+
+/**
+ * 한 참가자의 보관 답안을 전 문항 × 전 필드 모양으로 편다(미입력은 '').
+ * **battle:finished 전용** — questions / resync / marks / progress / room:state 에는 절대 싣지 않는다(치팅).
+ */
+function answersOfPlayer(s, p) {
+  const out = {};
+  for (let i = 0; i < s.questions.length; i++) {
+    const q = s.questions[i];
+    const given = p.answers[q.id] || [];
+    const fields = q.fields || [];
+    const row = [];
+    for (let f = 0; f < fields.length; f++) row.push(given[f] == null ? '' : String(given[f]));
+    out[q.id] = row;
+  }
   return out;
 }
 
@@ -405,11 +426,16 @@ function finish(s, ctx, reason) {
 
   const rows = [];
   const detailsByUser = {};
+  // 종료 시점에만 공개되는 전원 답안·정오 맵(상대 답안 표시용). 수신자와 무관하게 모두 같은 맵이다.
+  const answersByUser = {};
+  const marksByUser = {};
   const list = playerList(s);
   for (let i = 0; i < list.length; i++) {
     const p = list[i];
     const g = gradeSet(s.questions, p.answers);
     detailsByUser[p.userId] = g.details;
+    answersByUser[p.userId] = answersOfPlayer(s, p);
+    marksByUser[p.userId] = marksFromDetails(g.details);
     const wrongIds = [];
     for (let k = 0; k < g.details.length; k++) {
       if (g.details[k].correct === false) wrongIds.push(g.details[k].questionId);
@@ -465,6 +491,8 @@ function finish(s, ctx, reason) {
       details: detailsByUser[rows[i].userId],
       reason: reason,
       explanations: explanations,
+      answersByUser: answersByUser,
+      marksByUser: marksByUser,
     }, rows[i].userId));
   }
 

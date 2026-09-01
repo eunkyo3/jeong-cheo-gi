@@ -61,10 +61,15 @@ const sock = (cookie, name) => new Promise((res, rej) => {
   // 연결 직후(서버 connect 핸들러)에서 날아오는 battle:resync 를 놓치지 않으려면
   // 리스너를 소켓 생성 시점에 붙여 두고 이름만 기록해 둔다.
   s.__seen = [];
+  // battle:finished 이전(=종료 전) 페이로드에 상대 답안 맵이 섞이면 치팅이다. 받는 즉시 훑어 기록한다.
+  s.__answerLeaks = [];
   s.on('connect', () => { log(name, 'socket connected'); res(s); });
   s.on('connect_error', e => rej(new Error(name + ' connect_error: ' + e.message)));
   s.onAny((ev, p) => {
     s.__seen.push(ev);
+    if (ev !== 'battle:finished' && /answersByUser|marksByUser/.test(JSON.stringify(p === undefined ? null : p))) {
+      s.__answerLeaks.push(ev);
+    }
     if (ev === 'battle:tick' || ev === 'battle:progress') return;
     const extra = ev === 'battle:questions' ? `(${p.questions.length} q)`
       : ev === 'room:state' ? p.state + ' ' + p.players.map(x => x.nickname + (x.connected ? '' : '(x)')).join(',')
@@ -196,6 +201,28 @@ function readStudyResults() {
   } else {
     log('SKIP', 'data/explanations/2026-2.json 미작성 — 해설 실체 검사 건너뜀');
   }
+  // ---- 상대 답안: 종료 전에는 어디에도 없고, battle:finished 에만 전원 답안·정오 맵이 실린다
+  const noLeak = s => s.__answerLeaks.length === 0;
+  check(noLeak(sA) && noLeak(sB2),
+    '종료 전 어떤 페이로드에도 answersByUser/marksByUser 가 없다 (A ' +
+    JSON.stringify(sA.__answerLeaks) + ' / B2 ' + JSON.stringify(sB2.__answerLeaks) + ')');
+  check(!!fin.answersByUser && !!fin.marksByUser,
+    'battle:finished 에 answersByUser·marksByUser 가 있다: ' + JSON.stringify(Object.keys(fin)));
+  const ids = [a.json.user.id, b.json.user.id];
+  check(ids.every(id => fin.answersByUser[id] && fin.marksByUser[id]),
+    '두 맵이 참가자 전원(' + ids.join(',') + ')을 덮는다: ' + JSON.stringify(Object.keys(fin.answersByUser)));
+  check(ids.every(id => qs.questions.every(q => Array.isArray(fin.answersByUser[id][q.id]) &&
+      fin.answersByUser[id][q.id].length === q.fields.length)),
+    'answersByUser 는 전 문항 × 전 필드 배열이다 (미입력은 빈 문자열)');
+  check(ids.every(id => qs.questions.every(q => typeof fin.marksByUser[id][q.id] === 'boolean')),
+    'marksByUser 는 전 문항의 정오 불리언이다');
+  // A 가 받은 맵에서 상대(B)가 실제로 친 값이 그대로 보인다
+  check(fin.answersByUser[b.json.user.id][q0.id][0] === 'B-typed-this',
+    'A 의 결과 페이로드에 상대 B 가 입력한 값이 그대로 실린다: ' +
+    JSON.stringify(fin.answersByUser[b.json.user.id][q0.id]));
+  check(fin.answersByUser[a.json.user.id][q1.id][0] === 'y',
+    '내 답안도 같은 맵에 들어 있다: ' + JSON.stringify(fin.answersByUser[a.json.user.id][q1.id]));
+
   await sleep(300);
   const marksCount = s => s.__seen.filter(e => e === 'battle:marks').length;
   check(marksCount(sA) === 1, '종료 이벤트에는 marks 를 내지 않는다 — A 의 battle:marks 누계 1건 (실제 ' + marksCount(sA) + ')');
@@ -246,6 +273,14 @@ function readStudyResults() {
   check(!!bRow && bRow.left === true, '이탈자 B 의 left=true');
   check(marksCount(sA) === 1 && marksCount(sB2) === 1,
     '종료 이벤트에는 marks 없음 — 누계 A ' + marksCount(sA) + '건 / B2 ' + marksCount(sB2) + '건');
+  check(!!fin2.answersByUser && fin2.answersByUser[bid][qs2.questions[0].id][0] === 'b-typed',
+    '이탈로 끝난 대전의 battle:finished 에도 이탈자 B 의 답안이 실린다: ' +
+    JSON.stringify(fin2.answersByUser && fin2.answersByUser[bid][qs2.questions[0].id]));
+  check(!!fin2.marksByUser && typeof fin2.marksByUser[bid][qs2.questions[0].id] === 'boolean',
+    'marksByUser 도 함께 실린다');
+  check(noLeak(sA) && noLeak(sB2),
+    '이탈 시나리오 전 구간에서도 종료 전 답안 누출 0건 (A ' +
+    JSON.stringify(sA.__answerLeaks) + ' / B2 ' + JSON.stringify(sB2.__answerLeaks) + ')');
 
   // ------------------------------- 대전 → 오답노트: 종료된 매치가 study_results(round=battle) 로 남는가
   await sleep(300); // persist 는 종료 방송과 같은 틱이지만 파일/WAL 반영 여유를 준다

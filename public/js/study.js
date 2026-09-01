@@ -27,6 +27,7 @@
   var PASS_SCORE = 60;
   var STORE_PREFIX = 'jpk-study:';
   var TIMER_PREF_KEY = 'jpk-study:timer';
+  var TIMER_OPEN_KEY = 'jpk-study:timerOpen';
   var SAVE_DEBOUNCE_MS = 300;
   var REPORT_DONE = '접수되었습니다. 고맙습니다!';
 
@@ -75,11 +76,18 @@
   var elToastWrap = document.getElementById('toastWrap');
   var elNavWho = document.getElementById('navWho');
   var elNavLogout = document.getElementById('navLogout');
+  var elNavLogin = document.getElementById('navLogin');
   var elTools = document.getElementById('studyTools');
+  var elTimerToggle = document.getElementById('timerToggle');
+  var elTimerPanel = document.getElementById('timerPanel');
   var elTimerSelect = document.getElementById('timerSelect');
   var elTimerBtn = document.getElementById('timerBtn');
   var elTimerOut = document.getElementById('timerOut');
   var elRestore = document.getElementById('restoreNotice');
+  var elStudyBar = document.getElementById('studyBar');
+  var elBarCount = document.getElementById('studyBarCount');
+  var elBarNext = document.getElementById('studyBarNext');
+  var elBarSubmit = document.getElementById('studyBarSubmit');
 
   // ------------------------------------------------------------- 작은 도구
 
@@ -220,11 +228,13 @@
     elNavWho.textContent = '';
     if (!user) {
       elNavLogout.hidden = true;
+      if (elNavLogin) elNavLogin.hidden = false;
       return;
     }
     elNavWho.appendChild(el('b', null, user.nickname));
     elNavWho.appendChild(document.createTextNode(' 님'));
     elNavLogout.hidden = false;
+    if (elNavLogin) elNavLogin.hidden = true;
   }
 
   elNavLogout.addEventListener('click', function () {
@@ -386,7 +396,31 @@
     return Math.max(0, Math.ceil((state.timerEndsAt - Date.now()) / 1000));
   }
 
+  // 타이머 컨트롤 접기 — 헤더가 시험지보다 커 보이지 않게 기본은 접힘.
+  // 사람이 편 상태만 저장한다. 타이머가 도는 동안에는 저장값과 무관하게 항상 펼친다(남은 시간을 봐야 한다).
+  var timerOpen = storeGet(TIMER_OPEN_KEY) === '1';
+
+  function syncTimerFold() {
+    if (!elTimerPanel || !elTimerToggle) return;
+    var open = timerOpen || !!state.timerEndsAt;
+    elTimerPanel.hidden = !open;
+    elTimerToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) elTimerToggle.classList.add('on');
+    else elTimerToggle.classList.remove('on');
+  }
+
+  if (elTimerToggle) {
+    elTimerToggle.addEventListener('click', function () {
+      // 도는 중에 접으면 남은 시간이 사라진다 — 접기 대신 아무것도 하지 않는다.
+      if (state.timerEndsAt && timerOpen) return;
+      timerOpen = !timerOpen;
+      storeSet(TIMER_OPEN_KEY, timerOpen ? '1' : '0');
+      syncTimerFold();
+    });
+  }
+
   function renderTimer() {
+    syncTimerFold();
     if (!elTimerOut || !elTimerBtn || !elTimerSelect) return;
     var running = !!state.timerEndsAt;
     elTimerBtn.textContent = running ? '중지' : '시작';
@@ -757,6 +791,74 @@
 
   // ---------------------------------------------------------------- 렌더
 
+  // ------------------------------------------------------------- 보기 칩
+
+  /**
+   * 그 문항에서 **마지막으로 포커스했던 입력칸** 번호. qid -> fieldIndex.
+   * 칩을 눌렀을 때 어느 칸에 넣을지 정하는 데만 쓴다 (재렌더로 DOM 이 갈려도 살아남아야 한다).
+   */
+  var lastFocusField = {};
+
+  /** ES5/구형 웹뷰까지 안전한 input 이벤트 발사 — 자동 저장·진행 표시가 전부 이 이벤트로 돈다. */
+  function fireInput(node) {
+    var ev;
+    if (typeof window.Event === 'function') {
+      ev = new window.Event('input', { bubbles: true });
+    } else {
+      ev = document.createEvent('Event');
+      ev.initEvent('input', true, false);
+    }
+    node.dispatchEvent(ev);
+  }
+
+  /** 칩에 적을 말. 마커가 있으면 "ㄱ. 동치분할 …" 처럼 마커를 앞세운다. */
+  function chipLabel(item) {
+    if (item.marker && item.text && item.marker !== item.text) return item.marker + '. ' + item.text;
+    return item.text || item.marker;
+  }
+
+  /** 칩이 채울 칸: 마지막 포커스 → 첫 빈 칸 → (다 찼으면) 첫 칸. */
+  function chipTargetIndex(question, inputCount) {
+    var last = lastFocusField[question.id];
+    if (last != null && last >= 0 && last < inputCount) return last;
+    var blank = blankFieldIndex(question);
+    return blank >= 0 && blank < inputCount ? blank : 0;
+  }
+
+  /**
+   * 보기 칩 줄. `.boki` 지문이 선택지로 파싱될 때만 입력칸 바로 위에 만든다.
+   * 파싱 실패·채점 후에는 아무것도 만들지 않는다 (기존처럼 직접 타이핑).
+   */
+  function renderBokiChips(question, card, bodyNode) {
+    if (!bodyNode || !window.Boki) return;
+    var box = bodyNode.querySelector('.boki');
+    if (!box) return;
+    var items = window.Boki.parse(window.Boki.textFromNode(box));
+    if (!items.length) return;
+
+    var promptText = htmlToText(question.prompt);
+    var row = el('div', 'boki-chips');
+    row.setAttribute('data-q', question.id);
+    items.forEach(function (item) {
+      var btn = el('button', 'chip', chipLabel(item));
+      btn.type = 'button';
+      btn.title = '이 보기를 답안 칸에 넣기';
+      btn.addEventListener('click', function () {
+        var inputs = card.querySelectorAll('input.ans');
+        if (!inputs.length) return;
+        var idx = chipTargetIndex(question, inputs.length);
+        var input = inputs[idx];
+        input.value = window.Boki.fillValue(item, promptText);
+        // 값만 바꾸고 input 이벤트를 쏜다 — 타이핑으로 고칠 수 있어야 한다.
+        // 여기서 포커스를 옮기거나 lastFocusField 를 세우지 않는다(대전 쪽과 같은 동작) —
+        // 그러면 다음 칩이 같은 칸을 덮어쓴다. 사람이 직접 고른 칸이 없으면 칩은 차례로 빈 칸을 채운다.
+        fireInput(input);
+      });
+      row.appendChild(btn);
+    });
+    card.appendChild(row);
+  }
+
   /** Enter → 다음 답안 칸. 마지막 칸이면 제출 버튼으로. Shift+Enter 는 그냥 둔다. */
   function onAnswerKeydown(ev) {
     if (ev.key !== 'Enter' || ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey) return;
@@ -794,12 +896,16 @@
     card.appendChild(title);
 
     // 지문(HTML)
+    var body = null;
     if (question.bodyHtml) {
-      var body = el('div', 'qbody');
+      body = el('div', 'qbody');
       body.innerHTML = question.bodyHtml;
       wrapTables(body);
       card.appendChild(body);
     }
+
+    // 보기 칩 (채점 전에만) — 입력칸 바로 위에 온다
+    if (!graded) renderBokiChips(question, card, body);
 
     // 답안 입력
     var stored = state.answers[question.id] || [];
@@ -834,6 +940,8 @@
           renderAnsweredCount();
         });
         input.addEventListener('keydown', onAnswerKeydown);
+        // 보기 칩이 "마지막으로 보던 칸" 에 값을 넣을 수 있게 기억해 둔다.
+        input.addEventListener('focus', function () { lastFocusField[question.id] = fieldIndex; });
       }
       row.appendChild(input);
       card.appendChild(row);
@@ -903,11 +1011,13 @@
     if (!questions.length || state.result) {
       elAnswered.textContent = '';
       elAnswered.hidden = true;
+      syncStudyBar();   // 채점되면 미니바도 함께 내려간다
       return;
     }
     var done = questions.length - unansweredQuestions().length;
     elAnswered.textContent = '답한 문항 ' + done + '/' + questions.length;
     elAnswered.hidden = false;
+    syncStudyBar();   // 하단 미니바도 같은 셈을 쓴다
   }
 
   /**
@@ -1018,6 +1128,93 @@
   if (elBoard) {
     window.addEventListener('scroll', onBoardScroll, { passive: true });
     window.addEventListener('resize', onBoardScroll, { passive: true });
+  }
+
+  // ------------------------------------------------- 하단 미니바 (#studyBar)
+
+  var barShown = false;
+  var barScrollTicking = false;
+  var barCountText = '';
+
+  /**
+   * 미니바를 띄울 조건 — 풀이 중(채점 전)이고 **제출 버튼이 화면 밖**일 때.
+   * 순수 함수라 스크롤 없이도 판정을 그대로 검사할 수 있다.
+   * 좌표가 전부 0 이면 레이아웃을 계산하지 않는 환경(jsdom)이다 — 근거 없이 띄우지 않는다.
+   */
+  function shouldShowBar(active, submitTop, submitBottom, viewportH) {
+    if (!active) return false;
+    if (submitTop === 0 && submitBottom === 0) return false;
+    return submitTop >= viewportH || submitBottom <= 0;
+  }
+
+  /** 풀이 중인가 — 문항이 있고, 아직 채점 전이고, 제출 버튼 줄이 살아 있는 상태. */
+  function barActive() {
+    if (!elStudyBar || state.result || state.submitting) return false;
+    if (!state.round || !(state.round.questions || []).length) return false;
+    return !!elBtnbar && elBtnbar.hidden === false;
+  }
+
+  function renderBarText() {
+    var questions = (state.round && state.round.questions) || [];
+    var blanks = unansweredQuestions();
+    var text = '답한 ' + (questions.length - blanks.length) + '/' + questions.length;
+    if (elBarCount && text !== barCountText) {
+      barCountText = text;
+      elBarCount.textContent = text;
+    }
+    // 빈 칸이 하나도 없으면 갈 곳이 없다.
+    if (elBarNext) elBarNext.disabled = blanks.length === 0;
+  }
+
+  function syncStudyBar() {
+    if (!elStudyBar) return;
+    var active = barActive();
+    var top = 0;
+    var bottom = 0;
+    if (active && elSubmit) {
+      try {
+        var r = elSubmit.getBoundingClientRect();
+        top = r.top;
+        bottom = r.bottom;
+      } catch (e) { /* 좌표 없음 */ }
+    }
+    var vh = window.innerHeight
+      || (document.documentElement && document.documentElement.clientHeight) || 0;
+    var show = shouldShowBar(active, top, bottom, vh);
+    if (show) renderBarText();
+    if (show === barShown) return;   // 불리언이 바뀔 때만 DOM 을 건드린다
+    barShown = show;
+    elStudyBar.hidden = !show;
+    if (document.body) {
+      if (show) document.body.classList.add('with-studybar');
+      else document.body.classList.remove('with-studybar');
+    }
+  }
+
+  function onBarScroll() {
+    if (barScrollTicking) return;
+    barScrollTicking = true;
+    (window.requestAnimationFrame || function (fn) { setTimeout(fn, 16); })(function () {
+      barScrollTicking = false;
+      syncStudyBar();
+    });
+  }
+
+  if (elStudyBar) {
+    window.addEventListener('scroll', onBarScroll, { passive: true });
+    window.addEventListener('resize', onBarScroll, { passive: true });
+  }
+
+  if (elBarNext) {
+    elBarNext.addEventListener('click', function () {
+      var blanks = unansweredQuestions();
+      if (!blanks.length) return;
+      focusFirstBlank(blanks[0]);
+    });
+  }
+  if (elBarSubmit) {
+    // 기존 제출과 같은 경로다 — 미입력 확인도 그대로 걸린다.
+    elBarSubmit.addEventListener('click', function () { submit(); });
   }
 
   function renderBoard() {
@@ -1191,6 +1388,7 @@
   function reset() {
     state.result = null;
     state.answers = {};
+    lastFocusField = {};
     state.showExplain = {};
     state.reportOpen = {};
     state.reportText = {};

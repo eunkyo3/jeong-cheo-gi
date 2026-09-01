@@ -23,8 +23,6 @@
   font-size: 0.95rem;
 }
 
-.topnav .who { white-space: nowrap; }
-
 /* --------------------------------------------------------------- 랭킹 표 */
 
 /* 좁은 화면에서는 페이지가 아니라 이 상자만 가로로 밀린다. */
@@ -47,6 +45,14 @@ table.rank-table td.nick {
 }
 table.rank-table td.pts { font-weight: bold; color: var(--deep); }
 table.rank-table td.rank { width: 56px; }
+
+/* 접힌 상세 줄과 안내는 폰에서만 쓴다 — 데스크톱 표는 지금 모습 그대로다. */
+.rank-detail { display: none; }
+.rank-tap-hint { display: none; }
+
+/* 상세 줄이 사이사이 끼면서 app.css 의 줄무늬(tr:nth-child(even))가 어긋난다.
+   실제 데이터 행은 1·3·5… 번째이므로 그중 짝수번째(4n+3)에 다시 줄무늬를 준다. */
+table.rank-table tbody tr.rank-row:not(.me):nth-child(4n+3) td { background: #fafbfc; }
 
 /* 순위 배지. 1~3위만 색을 준다. */
 .rankno {
@@ -83,16 +89,56 @@ table.rank-table tr.me td:first-child { box-shadow: inset 4px 0 0 var(--ok); }
   vertical-align: 1px;
 }
 
+/* "대전으로" — 새로고침(primary) 과 나란히 서므로 유령 버튼으로 낮춘다. */
+.btnbar button.ghost {
+  background: transparent;
+  color: var(--deep);
+  border: 2px solid #c3ccc7;
+  padding: 12px 44px;
+  margin-left: 10px;
+}
+.btnbar button.ghost:hover { background: #e6ece9; border-color: var(--deep); }
+
 /* ---------------------------------------------------------------- 모바일 */
+
+/* 폰에서는 순위·닉네임·승점 3열만 두고, 나머지는 행을 탭해 펼치는 한 줄로 옮긴다.
+   가로 스크롤이 사라지므로 .rank-scroll 의 스크롤도 함께 푼다. */
+@media (max-width: 600px) {
+  .rank-scroll { overflow-x: visible; margin: 0; padding: 0; }
+  table.rank-table { min-width: 0; width: 100%; }
+  table.rank-table .wide-only { display: none; }
+  table.rank-table td.nick { min-width: 0; }
+  table.rank-table tr.rank-row { cursor: pointer; }
+  table.rank-table tr.rank-row td { position: relative; }
+  /* 펼침 표시 — 승점 뒤에 작은 삼각형. */
+  table.rank-table tr.rank-row td.pts::after {
+    content: '▾';
+    margin-left: 6px;
+    font-size: 0.72rem;
+    color: #8a968f;
+  }
+  table.rank-table tr.rank-row.open td.pts::after { content: '▴'; }
+  table.rank-table tr.rank-row.open + tr.rank-detail { display: table-row; }
+  table.rank-table tr.rank-detail td {
+    text-align: left;
+    padding: 6px 10px 10px;
+    font-size: 0.85rem;
+    color: #55645c;
+    white-space: nowrap;
+    background: #f6f8f7;
+  }
+  table.rank-table tr.rank-detail.me td { background: #eafaf0; }
+  .rank-tap-hint { display: block; }
+}
 
 @media (max-width: 620px) {
   table.rank-table { font-size: 0.88rem; }
   table.rank-table th, table.rank-table td { padding: 7px 8px; }
   .btnbar button { width: auto; padding: 12px 22px; }
-  .btnbar button.secondary { margin-left: 8px; margin-top: 0; }
+  .btnbar button.ghost { margin-left: 8px; margin-top: 0; padding: 12px 20px; }
 }
 
 @media (max-width: 380px) {
   .btnbar button { width: 100%; }
-  .btnbar button.secondary { margin-left: 0; margin-top: 10px; }
+  .btnbar button.ghost { margin-left: 0; margin-top: 10px; }
 }

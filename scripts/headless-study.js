@@ -9,6 +9,7 @@
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
+const vm = require('vm');
 const { spawn } = require('child_process');
 const { JSDOM, VirtualConsole } = require('jsdom');
 
@@ -96,6 +97,53 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   // ---------- 0. 정적 자산 ----------
   const fav = await makeFetch()('/favicon.svg');
   check(fav.status === 200, 'favicon: GET /favicon.svg → 200', fav.status);
+
+  // ---------- 0b. 보기 파서 단위 검사 (public/js/boki.js — 순수 함수라 DOM 없이 돈다) ----------
+  // study/battle 이 같은 파서를 쓴다. 여기서 계약(parse/fillValue)과 실데이터 적중률을 함께 못 박는다.
+  const bokiCtx = vm.createContext({});
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'public', 'js', 'boki.js'), 'utf8'), bokiCtx, { filename: 'boki.js' });
+  const Boki = bokiCtx.Boki;
+  check(!!Boki && typeof Boki.parse === 'function' && typeof Boki.fillValue === 'function',
+    'boki: window.Boki = { parse, fillValue } 계약', Boki ? Object.keys(Boki).join(',') : '전역 없음');
+
+  // 런타임(study.js/battle.js)은 `.boki` 엘리먼트의 innerHTML 을 파서에 넘긴다 —
+  // 검사도 같은 길로 뽑는다 (정규식은 중첩 div 의 첫 </div> 에서 끊긴다).
+  const bokiHost = new JSDOM('<!doctype html><body></body>').window.document.createElement('div');
+  const bokiOf = (bodyHtml) => {
+    bokiHost.innerHTML = bodyHtml || '';
+    const node = bokiHost.querySelector('.boki');
+    return node ? node.innerHTML : '';
+  };
+  const round262 = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'rounds', '2026-2.json'), 'utf8'));
+  const q262_1 = (round262.questions || []).find(q => q.id === '2026-2#1');
+  const items262 = Boki ? Boki.parse(bokiOf(q262_1 && q262_1.bodyHtml)) : [];
+  check(items262.length === 4, 'boki: 2026-2#1 의 [보기] 가 4개 항목으로 파싱된다',
+    items262.length + '개: ' + items262.map(i => i.marker).join('/'));
+  check(items262.length === 4 && items262[0].marker === 'ㄱ' && items262[0].text === '동치분할 (Equivalence Partitioning)',
+    'boki: 항목이 {marker, text} 로 갈린다 (괄호 영문까지 text)', JSON.stringify(items262[0] || null));
+  check(!!Boki && Boki.fillValue(items262[0], q262_1 ? q262_1.prompt : '') === '동치분할 (Equivalence Partitioning)',
+    'boki: prompt 에 "기호" 가 없으면 마커 뒤 본문을 채운다',
+    JSON.stringify(Boki ? Boki.fillValue(items262[0], q262_1 ? q262_1.prompt : '') : null));
+  check(!!Boki && Boki.fillValue(items262[0], '보기에서 골라 기호로 쓰시오.') === 'ㄱ',
+    'boki: prompt 에 "기호" 가 있으면 마커만 채운다',
+    JSON.stringify(Boki ? Boki.fillValue(items262[0], '보기에서 골라 기호로 쓰시오.') : null));
+  // 서술형 지문은 보기가 아니다 — 잘못 잘라 칩을 만들면 안 된다.
+  check(!!Boki && Boki.parse('한 객체의 상태가 바뀌면 다른 객체들이 자동으로 갱신되는 방법이다.').length === 0,
+    'boki: 문장 지문은 파싱하지 않는다 (칩 없음)');
+
+  // 실데이터 적중률 — 보기가 있는 문항 중 몇 개가 칩이 되는가.
+  const roundsDir = path.join(ROOT, 'data', 'rounds');
+  let bokiTotal = 0, bokiParsed = 0;
+  for (const f of fs.readdirSync(roundsDir).filter(n => n.endsWith('.json'))) {
+    for (const q of (JSON.parse(fs.readFileSync(path.join(roundsDir, f), 'utf8')).questions || [])) {
+      const raw = bokiOf(q.bodyHtml);
+      if (!raw) continue;
+      bokiTotal++;
+      if (Boki && Boki.parse(raw).length >= 2) bokiParsed++;
+    }
+  }
+  check(bokiTotal >= 50 && bokiParsed >= 45,
+    'boki: 보기 있는 문항의 파싱 적중률 (45 이상)', bokiParsed + ' / ' + bokiTotal);
 
   // ---------- 1. 메인 페이지: 회차 버튼 ----------
   const idx = await load('/');
@@ -238,7 +286,80 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   inputs[1].dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true }));
   check(d.activeElement === inputs[1], 'study: Shift+Enter 는 이동하지 않는다', d.activeElement ? d.activeElement.id : '(없음)');
 
-  // ---- B3: 학습 타이머 ----
+  // ---- ⑥: 보기 칩 (지문의 [보기] → 입력칸 채우기) ----
+  const bokiCard = [...cards].find(c => c.getAttribute('data-q') === '2026-2#1');
+  const bokiRow = bokiCard ? bokiCard.querySelector('.boki-chips') : null;
+  const bokiChips = bokiRow ? [...bokiRow.querySelectorAll('button')] : [];
+  check(bokiChips.length === 4, 'boki: 2026-2#1 카드에 보기 칩 4개', bokiChips.length + '개');
+  if (bokiCard) {
+    const kids = [...bokiCard.children].map(n => n.className);
+    const iChips = kids.findIndex(c => /boki-chips/.test(c));
+    const iRow = kids.findIndex(c => /ansrow/.test(c));
+    check(iChips >= 0 && iRow >= 0 && iChips < iRow, 'boki: 칩 줄이 답안 입력칸 바로 위에 온다', JSON.stringify(kids));
+  }
+  const noBokiCard = [...cards].find(c => c.getAttribute('data-q') === '2026-2#2');
+  check(!!noBokiCard && !noBokiCard.querySelector('.boki-chips'),
+    'boki: [보기] 가 없는 문항에는 칩을 만들지 않는다');
+  if (bokiChips.length === 4) {
+    bokiChips[0].click();
+    await sleep(60);
+    const bokiInput = bokiCard.querySelector('input.ans');
+    check(bokiInput.value === '동치분할 (Equivalence Partitioning)',
+      'boki: 칩을 누르면 첫 빈 칸에 보기 값이 채워진다', JSON.stringify(bokiInput.value));
+    check(/답한 문항\s*1\/20/.test(answeredEl.textContent),
+      'boki: 칩으로 채운 값이 input 이벤트로 "답한 문항" 에 반영된다', JSON.stringify(answeredEl.textContent));
+    // 타이핑으로 고칠 수 있어야 한다 — readonly 로 잠기면 안 된다.
+    check(bokiInput.readOnly === false, 'boki: 칩으로 채운 뒤에도 입력칸은 그대로 수정 가능');
+  }
+
+  // ---- ⑦: 하단 미니바 (#studyBar) ----
+  // jsdom 은 레이아웃을 계산하지 않는다 — 제출 버튼의 좌표만 갈아 끼우고 scroll 을 직접 쏜다.
+  // 판정(shouldShowBar) · rAF 스로틀 · 표시 토글은 study.js 의 실제 코드가 그대로 돈다.
+  const bar = d.getElementById('studyBar');
+  const submitEl = d.getElementById('submitBtn');
+  const setSubmitRect = (top, bottom) => {
+    submitEl.getBoundingClientRect = () => ({ top, bottom, left: 0, right: 200, width: 200, height: bottom - top, x: 0, y: top });
+    w.dispatchEvent(new w.Event('scroll'));
+  };
+  check(!!bar && bar.hidden === true, 'studybar: 제출 버튼이 보이는 동안에는 미니바가 없다',
+    bar ? 'hidden=' + bar.hidden : '#studyBar 없음');
+  setSubmitRect(2000, 2040);   // 화면(innerHeight 768) 아래로 밀려난 상태
+  const barOn = await waitFor(() => (bar && bar.hidden === false ? true : null), '미니바 표시', 2000).catch(() => null);
+  check(barOn === true, 'studybar: 제출 버튼이 화면 밖이면 하단 미니바가 뜬다', bar ? 'hidden=' + bar.hidden : '없음');
+  check(!!bar && /답한\s*1\/20/.test(bar.textContent), 'studybar: "답한 n/N" 표시',
+    bar ? bar.textContent.replace(/\s+/g, ' ') : '');
+  const barNext = d.getElementById('studyBarNext');
+  const barSubmit = d.getElementById('studyBarSubmit');
+  check(!!barNext && barNext.disabled === false && !!barSubmit,
+    'studybar: "다음 빈칸으로" + "제출" 버튼', barNext ? 'next.disabled=' + barNext.disabled : '버튼 없음');
+  if (barNext) {
+    barNext.click();
+    await sleep(60);
+    const focused = d.activeElement;
+    check(!!focused && focused.classList && focused.classList.contains('ans')
+      && focused.value === '',
+      'studybar: "다음 빈칸으로" 가 첫 번째 빈 칸으로 포커스를 옮긴다',
+      focused ? focused.id + '=' + JSON.stringify(focused.value) : '(없음)');
+  }
+  setSubmitRect(100, 140);     // 제출 버튼이 다시 화면 안으로 들어오면
+  const barOff = await waitFor(() => (bar && bar.hidden === true ? true : null), '미니바 숨김', 2000).catch(() => null);
+  check(barOff === true, 'studybar: 제출 버튼이 보이면 다시 숨는다', bar ? 'hidden=' + bar.hidden : '없음');
+
+  // ---- ⑬ + B3: 학습 타이머 (기본 접힘 → 토글로 펼친다) ----
+  const timerToggle = d.getElementById('timerToggle');
+  const timerPanel = d.getElementById('timerPanel');
+  check(!!timerToggle && /타이머/.test(timerToggle.textContent) && !!timerPanel && timerPanel.hidden === true,
+    'timer: 타이머 컨트롤은 기본 접힘 — 헤더에는 토글 버튼 하나 (⑬)',
+    timerToggle ? JSON.stringify(timerToggle.textContent) + ' panel.hidden=' + (timerPanel && timerPanel.hidden) : '#timerToggle 없음');
+  if (timerToggle) {
+    timerToggle.click();
+    await sleep(60);
+  }
+  check(!!timerPanel && timerPanel.hidden === false,
+    'timer: 토글을 누르면 select+시작 이 펼쳐진다', timerPanel ? 'hidden=' + timerPanel.hidden : '없음');
+  check(readStore(w, 'jpk-study:timerOpen') === '1',
+    'timer: 펼침 상태가 localStorage["jpk-study:timerOpen"] 에 저장', String(readStore(w, 'jpk-study:timerOpen')));
+
   const timerSelect = d.getElementById('timerSelect');
   const timerBtn = d.getElementById('timerBtn');
   const timerOut = d.getElementById('timerOut');
@@ -257,6 +378,14 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
       'timer: 시작하면 mm:ss 카운트다운 표시', JSON.stringify(timerOut.textContent));
     check(timerBtn.textContent === '중지' && timerSelect.disabled === true,
       'timer: 진행 중에는 버튼이 "중지", 선택은 잠긴다', timerBtn.textContent);
+    // ⑬: 도는 동안에는 접히지 않는다 — 남은 시간이 항상 보여야 한다.
+    if (timerToggle) {
+      timerToggle.click();
+      await sleep(60);
+      check(timerPanel.hidden === false && timerOut.hidden === false,
+        'timer: 타이머가 도는 동안에는 접기가 먹지 않는다 (항상 펼침)',
+        'panel.hidden=' + timerPanel.hidden + ' out.hidden=' + timerOut.hidden);
+    }
   }
 
   const setAns = (qnum, fi, val) => { const card = [...cards].find(c => c.querySelector('.num') && c.querySelector('.num').textContent.trim() === String(qnum)); const inp = card.querySelectorAll('input.ans')[fi]; inp.value = val; inp.dispatchEvent(new w.Event('input', { bubbles: true })); };
@@ -316,6 +445,9 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   const q3 = [...cardsAfter].find(c => c.querySelector('.num').textContent.trim() === '3');
   check(q3.classList.contains('wrong') && /내용결합도/.test(q3.textContent), 'study: 오답 카드에 display(정답) 노출', (q3.querySelector('.feedback') || {}).textContent);
   check(inputsAfter[0].readOnly === true || inputsAfter[0].disabled === true, 'study: 채점 후 입력 read-only/disabled');
+  check(d.querySelectorAll('.boki-chips').length === 0, 'boki: 채점 후에는 보기 칩을 만들지 않는다',
+    d.querySelectorAll('.boki-chips').length + '개 남음');
+  check(!!bar && bar.hidden === true, 'studybar: 채점 후에는 미니바가 사라진다', bar ? 'hidden=' + bar.hidden : '없음');
 
   // ---- A5: 채점 후 상단 안내 갱신 ----
   const metaText = (d.getElementById('roundMeta') || {}).textContent || '';

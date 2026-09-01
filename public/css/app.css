@@ -45,11 +45,13 @@ body {
   z-index: 20;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
+/* 전 페이지 공통. 320px 까지 한 줄을 유지해야 하므로 줄바꿈을 막고,
+   자리가 모자라면 닉네임(.who)만 말줄임으로 줄어든다. */
 .topnav .wrap {
   display: flex;
   align-items: center;
-  gap: 6px 14px;
-  flex-wrap: wrap;
+  gap: 14px;
+  flex-wrap: nowrap;
   padding-top: 10px;
   padding-bottom: 10px;
 }
@@ -58,24 +60,70 @@ body {
   font-size: 1.05rem;
   color: #fff;
   text-decoration: none;
-  margin-right: 4px;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
-.topnav a { color: #cfe3d8; text-decoration: none; font-size: 0.92rem; }
-.topnav a:hover { color: #fff; text-decoration: underline; }
-.topnav .spacer { flex: 1 1 auto; }
-.topnav .who { font-size: 0.88rem; color: #b7ccc2; }
-.topnav .who b { color: #fff; }
-.topnav button {
-  font-size: 0.82rem;
-  padding: 5px 12px;
-  border-radius: 6px;
-  border: 1px solid #6b8b7c;
-  background: transparent;
+.topnav a {
   color: #cfe3d8;
+  text-decoration: none;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.topnav a:hover { color: #fff; text-decoration: underline; }
+/* 현재 페이지는 밑줄로만 표시한다 — 알약(배경 칩) 스타일은 쓰지 않는다. */
+.topnav a[aria-current="page"] {
+  color: #fff;
+  font-weight: bold;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+.topnav .spacer { flex: 1 1 auto; min-width: 0; }
+/* `.whoami` 는 battle.js 가 아직 쓰는 옛 이름이다 — 대전 내비가 `.who` 로 바뀌면 지운다. */
+.topnav .who,
+.topnav .whoami {
+  font-size: 0.88rem;
+  color: #b7ccc2;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topnav .who b { color: #fff; }
+.topnav .whoami { color: #fff; font-weight: bold; }
+/* 로그아웃 — 테두리 없는 작은 텍스트 버튼(좁은 화면에서 자리를 덜 먹게). */
+.topnav button {
+  font-size: 0.84rem;
+  padding: 4px 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #b7ccc2;
   cursor: pointer;
   font-weight: normal;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
-.topnav button:hover { background: #2c5445; color: #fff; }
+.topnav button:hover { color: #fff; text-decoration: underline; }
+.topnav button:disabled { color: #7d938a; cursor: default; text-decoration: none; }
+/* 비로그인 안내 링크 — 로그인 폼(#account)으로 내려보낸다. 알약 아님. */
+.topnav .nav-login { color: #fff; font-weight: bold; }
+
+@media (max-width: 600px) {
+  .topnav .wrap { gap: 9px; }
+  .topnav .brand { font-size: 0.95rem; }
+  .topnav a { font-size: 0.85rem; }
+  .topnav a[aria-current="page"] { text-underline-offset: 4px; }
+  .topnav .who, .topnav .whoami { font-size: 0.82rem; }
+  .topnav button { font-size: 0.8rem; }
+}
+@media (max-width: 360px) {
+  .topnav .wrap { gap: 7px; }
+  .topnav .brand { font-size: 0.9rem; }
+  .topnav a { font-size: 0.82rem; }
+}
 
 /* ---------------------------------------------------------------- 헤더 */
 
@@ -612,6 +660,65 @@ input.ans[readonly].bad { background: #fdecec; }
 .tbl-scroll { -webkit-overflow-scrolling: touch; }
 .tbl-scroll > table.tbl { margin: 0; }
 
+/* ------------------------------------------------- 학습 하단 미니바 */
+
+/* 풀이 중 제출 버튼이 화면 밖으로 밀려나면 뜬다 (study.js 가 여닫는다).
+   모바일 키보드와 겹치지 않게 52px 예산을 지키되, 그 52px 은 **내용 높이** 기준이다
+   (content-box: 40px 줄 + 상하 6px = 52px). 홈 인디케이터용 safe-area 패딩은 그 바깥으로
+   더 붙는다 — 높이를 잘라 내면 아이폰에서 버튼이 바 배경 밖으로 넘친다. */
+.studybar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: content-box;
+  min-height: 40px;
+  padding: 6px 12px;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  background: var(--deep);
+  color: #fff;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.18);
+}
+.studybar[hidden] { display: none; }
+.studybar .sb-count {
+  flex: 1 1 auto;
+  font-size: 0.86rem;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.studybar button {
+  flex: 0 0 auto;
+  font-size: 0.86rem;
+  font-weight: bold;
+  font-family: inherit;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid #cfe3d8;
+  background: transparent;
+  color: #cfe3d8;
+}
+.studybar button:hover:not(:disabled) { background: var(--deep-2); color: #fff; }
+.studybar button:disabled { opacity: 0.45; cursor: not-allowed; }
+.studybar .sb-submit { background: #fff; border-color: #fff; color: var(--deep); }
+.studybar .sb-submit:hover { background: #e6ece9; color: var(--deep); }
+
+/* 미니바가 마지막 카드를 가리지 않게 본문 아래를 비운다. */
+body.with-studybar { padding-bottom: 64px; }
+
+@media (max-width: 620px) {
+  .studybar { gap: 6px; padding-left: 10px; padding-right: 10px; }
+  .studybar .sb-count { font-size: 0.8rem; }
+  .studybar button { padding: 7px 10px; font-size: 0.8rem; }
+  body.with-studybar { padding-bottom: 68px; }
+}
+
 /* ---------------------------------------------------------------- 토스트 */
 
 .toast-wrap {
@@ -760,6 +867,17 @@ input.ans[readonly].bad { background: #fdecec; }
   cursor: pointer;
 }
 .study-tools button:hover:not(:disabled) { background: var(--deep-2); color: #fff; }
+/* 접기 토글 — 기본 상태에서는 헤더에 이 버튼 하나만 보인다. */
+.study-tools .timer-toggle { border-color: #6b8b7c; }
+.study-tools .timer-toggle.on { background: var(--deep-2); color: #fff; }
+.timer-panel {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.timer-panel[hidden] { display: none; }
 .timer-out {
   font-family: Consolas, "Courier New", monospace;
   font-size: 1.35rem;
@@ -841,6 +959,32 @@ button.linkish {
 /* 이 회차에 0문항인 유형 — 채점 후의 일괄 비활성보다 한 단계 더 흐리게, 취소선으로 "없음"을 알린다. */
 .chip.empty { opacity: 0.38; text-decoration: line-through; }
 .chip:hover:not(:disabled):not(.on) { border-color: var(--deep-2); }
+
+/* ------------------------------------------------------------- 보기 칩 */
+
+/* 지문의 [보기] 를 파싱해 만든 선택지 줄. 답안 입력칸 바로 위에 온다 —
+   누르면 값이 채워지고, 그 뒤 타이핑으로 얼마든지 고칠 수 있다. */
+.boki-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin: 12px 0 10px;
+}
+.boki-chips .chip {
+  font-size: 0.84rem;
+  padding: 5px 12px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: left;
+  font-family: inherit;
+}
+.boki-chips .chip:active { background: #e6ece9; }
+
+@media (max-width: 620px) {
+  /* 좁은 화면에서는 손가락으로 누를 만큼 키운다 (한 줄에 두 개까지). */
+  .boki-chips { gap: 6px; }
+  .boki-chips .chip { flex: 1 1 44%; justify-content: center; text-align: center; padding: 8px 10px; }
+}
 
 /* 학습 화면(어두운 헤더 안)과 메인 회차 목록 위에서 같은 줄로 쓰인다. */
 .type-filter {

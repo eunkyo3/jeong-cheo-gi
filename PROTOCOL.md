@@ -104,6 +104,21 @@
 서버가 `validate:explain` 으로 태그 화이트리스트를 강제한 신뢰 마크업이기 때문이다.
 해설이 빈 문자열인 문항에는 버튼 자체를 만들지 않는다.
 
+### 상대 답안 — 종료 전 비노출 (동결)
+
+결과 화면에서 "상대는 뭐라고 썼나"를 보여 주기 위해 `battle:finished` 에만 두 맵을 싣는다.
+남이 입력한 값은 **정답 정보나 다름없으므로**(먼저 제출한 사람의 답을 베낄 수 있다) 종료 전에는 어떤 경로로도 나가지 않는다.
+
+- `answersByUser: { [userId]: { [qid]: string[] } }` — 참가자별 **보관 답안**. 전 문항 키를 덮고
+  배열 길이는 그 문항의 필드 수와 같다(**미입력 칸은 빈 문자열**). 이탈자·미제출자도 그때까지 보관된 답안 그대로 실린다.
+- `marksByUser: { [userId]: { [qid]: boolean } }` — 참가자별 **문항 정오 불리언**. 종료 채점(`gradeSet`) 결과에서 뽑는다.
+- 둘 다 **수신자와 무관하게 같은 맵**이다(`details` 만 본인 것). 종료 트리거(전원 제출 / 이탈로 완성된 전원 제출 / deadline)와
+  무관하게 언제나 실린다.
+- **나가지 않는 곳**: `battle:questions`, `battle:resync`, `battle:marks`, `battle:progress`, `room:state` —
+  이 이벤트들의 페이로드에는 두 키가 **구조적으로 없다**(`tests/battle.test.mjs` 의 부재 단위 검사 +
+  `scripts/e2e-battle.js` 의 종료 전 페이로드 문자열 스캔으로 고정한다).
+- 크기: 최대 8인 × 60문항이라 페이로드 부담이 없다.
+
 ## 소켓 이벤트 (전 이벤트 서버 권위, 클라이언트는 표시만)
 
 | 이벤트 | 방향 | 페이로드 |
@@ -120,7 +135,7 @@
 | `battle:marks` | S→C | `{players:[{userId, nickname, marks:{"<qid>": true\|false}}]}` — **제출자에게만 개별 발송(`to=userId`)**. 새 제출이 생길 때마다 제출 완료자 전원에게 최신 전체 목록 재발송. **정오 불리언만** |
 | `battle:tick` | S→C | `{remainingMs}` — 10초 주기 재동기 |
 | `battle:resync` | S→C | `{state, questions, myAnswers, remainingMs, players[], marks?}` — 재접속 시 **스냅샷 1회** (이벤트 재생 금지). `marks` 는 수신자가 제출자이고 `state==="playing"` 일 때만 실린다 |
-| `battle:finished` | S→C | `{results:[{userId,correctCount,score,submittedAt}], winnerUserId(무승부 null), details[](문항별 정오·display), explanations:{qid:html}}` |
+| `battle:finished` | S→C | `{results:[{userId,correctCount,score,submittedAt}], winnerUserId(무승부 null), details[](문항별 정오·display), explanations:{qid:html}, answersByUser:{userId:{qid:[입력값]}}, marksByUser:{userId:{qid:bool}}}` — 뒤의 두 맵은 **전원 답안·정오**로, 수신자와 무관하게 모두 같다(결과 화면 상대 답안 표시용) |
 
 **제출자 간 정오 공유 (`battle:marks`)**: 먼저 제출한 사람이 결과를 기다리는 동안 서로의 정오만 확인할 수 있게 한다.
 

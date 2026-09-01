@@ -69,10 +69,34 @@
 
   // --------------------------------------------------------------- 렌더
 
+  /* 상세 줄(.rank-detail)은 ≤600px 에서만 펼쳐진다 — 그 폭에서만 행을 키보드로 조작할 수
+     있게 하고, 데스크톱에서는 탭 순서에서 빼 둔다. 폭이 바뀌면 다시 맞춘다. */
+  var narrowMq = window.matchMedia ? window.matchMedia('(max-width: 600px)') : null;
+
+  function syncRowA11y() {
+    var narrow = narrowMq ? narrowMq.matches : false;
+    var rows = document.querySelectorAll('tr.rank-row');
+    for (var i = 0; i < rows.length; i++) {
+      if (narrow) {
+        rows[i].setAttribute('tabindex', '0');
+        rows[i].setAttribute('aria-expanded', rows[i].className.indexOf(' open') === -1 ? 'false' : 'true');
+      } else {
+        rows[i].removeAttribute('tabindex');
+        rows[i].removeAttribute('aria-expanded');
+      }
+    }
+  }
+
+  if (narrowMq) {
+    if (narrowMq.addEventListener) narrowMq.addEventListener('change', syncRowA11y);
+    else if (narrowMq.addListener) narrowMq.addListener(syncRowA11y);
+  }
+
   function render() {
     var root = document.getElementById('view');
     if (!root) return;
     root.replaceChildren(build());
+    syncRowA11y();
   }
 
   function build() {
@@ -107,9 +131,13 @@
     }
 
     var myUserId = state.me ? state.me.id : null;
+    // 폰(≤600px)에서는 승/무/패/참가 열을 접고(`.wide-only`) 행을 탭하면 바로 아래
+    // `.rank-detail` 한 줄이 펼쳐진다. 데스크톱에서는 detail 이 계속 숨어 있고 표는 그대로다.
     var body = rows.map(function (r) {
       var mine = myUserId != null && r.userId === myUserId;
-      return h('tr', { class: mine ? 'me' : '' }, [
+      // tabindex/aria-expanded 는 상세 줄이 실제로 열리는 폭에서만 붙인다(syncRowA11y).
+      // 데스크톱에서 행마다 탭이 멈추고 Enter 를 눌러도 아무 변화가 없는 상태를 만들지 않기 위해서다.
+      var row = h('tr', { class: 'rank-row' + (mine ? ' me' : '') }, [
         h('td', { class: 'rank' }, [
           h('span', { class: 'rankno r' + (r.rank <= 3 ? r.rank : 'n'), text: String(r.rank) }),
         ]),
@@ -117,12 +145,34 @@
           h('span', { text: r.nickname }),
           mine ? h('span', { class: 'mine-tag', text: '나' }) : null,
         ]),
-        h('td', { text: String(r.wins || 0) }),
-        h('td', { text: String(r.draws || 0) }),
-        h('td', { text: String(r.losses || 0) }),
-        h('td', { text: String(playedOf(r)) }),
+        h('td', { class: 'wide-only', text: String(r.wins || 0) }),
+        h('td', { class: 'wide-only', text: String(r.draws || 0) }),
+        h('td', { class: 'wide-only', text: String(r.losses || 0) }),
+        h('td', { class: 'wide-only', text: String(playedOf(r)) }),
         h('td', { class: 'pts', text: String(r.points || 0) }),
       ]);
+      var detail = h('tr', { class: 'rank-detail' + (mine ? ' me' : '') }, [
+        h('td', {
+          colspan: '7',
+          text: '승 ' + (r.wins || 0) + ' · 무 ' + (r.draws || 0)
+            + ' · 패 ' + (r.losses || 0) + ' · 참가 ' + playedOf(r),
+        }),
+      ]);
+
+      function toggle() {
+        var open = row.className.indexOf(' open') === -1;
+        row.className = 'rank-row' + (mine ? ' me' : '') + (open ? ' open' : '');
+        if (row.hasAttribute('aria-expanded')) row.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+      row.addEventListener('click', toggle);
+      row.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+          ev.preventDefault();
+          toggle();
+        }
+      });
+
+      return [row, detail];
     });
 
     kids.push(h('div', { class: 'card' }, [
@@ -131,21 +181,22 @@
           h('thead', {}, [h('tr', {}, [
             h('th', { text: '순위' }),
             h('th', { text: '닉네임' }),
-            h('th', { text: '승' }),
-            h('th', { text: '무' }),
-            h('th', { text: '패' }),
-            h('th', { text: '참가' }),
+            h('th', { class: 'wide-only', text: '승' }),
+            h('th', { class: 'wide-only', text: '무' }),
+            h('th', { class: 'wide-only', text: '패' }),
+            h('th', { class: 'wide-only', text: '참가' }),
             h('th', { text: '승점' }),
           ])]),
           h('tbody', {}, body),
         ]),
       ]),
       h('p', { class: 'hint', text: '정렬: 승점 → 승수 → 닉네임. 패 = 참가 − 승 − 무.' }),
+      h('p', { class: 'hint rank-tap-hint', text: '행을 탭하면 승·무·패·참가를 볼 수 있습니다.' }),
     ]));
 
     kids.push(h('div', { class: 'btnbar' }, [
       h('button', { text: '새로고침', onclick: load }),
-      h('button', { class: 'secondary', text: '대전으로', onclick: function () { window.location.href = '/battle.html'; } }),
+      h('button', { class: 'ghost', text: '대전으로', onclick: function () { window.location.href = '/battle.html'; } }),
     ]));
 
     return frag(kids);
@@ -176,18 +227,30 @@
     if (!nav) return;
     nav.replaceChildren(frag(h('div', { class: 'wrap' }, [
       h('a', { class: 'brand', href: '/', text: '정처기 배틀' }),
-      h('a', { href: '/', text: '학습' }),
-      h('a', { href: '/battle.html', text: '대전' }),
-      h('a', { href: '/ranking.html', text: '랭킹' }),
+      h('a', { href: '/', 'data-nav': 'study', text: '학습' }),
+      h('a', { href: '/battle.html', 'data-nav': 'battle', text: '대전' }),
+      h('a', { href: '/ranking.html', 'data-nav': 'ranking', 'aria-current': 'page', text: '랭킹' }),
       h('span', { class: 'spacer' }),
-      h('span', { class: 'who' }, [h('b', { text: state.me ? state.me.nickname : '' })]),
+      h('span', { class: 'who', id: 'navWho' }, state.me ? [h('b', { text: state.me.nickname }), ' 님'] : null),
       h('button', {
+        type: 'button',
+        id: 'navLogout',
         text: '로그아웃',
+        hidden: state.me ? null : 'hidden',
         onclick: function () {
           window.api.post('/api/auth/logout', {})
             .then(function () { window.location.href = '/'; })
             .catch(function () { window.location.href = '/'; });
         },
+      }),
+      // 비로그인일 때만 — 지금은 boot() 가 먼저 메인으로 돌려보내지만, 그 경로가 사라져도
+      // 내비가 "로그아웃"만 덩그러니 보여 주지 않도록 다른 페이지와 같은 구조를 유지한다.
+      h('a', {
+        class: 'nav-login',
+        id: 'navLogin',
+        href: '/#account',
+        text: '로그인',
+        hidden: state.me ? 'hidden' : null,
       }),
     ])));
   }

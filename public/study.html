@@ -12,12 +12,15 @@
 <nav class="topnav">
   <div class="wrap">
     <a class="brand" href="/">정처기 배틀</a>
-    <a href="/">학습</a>
+    <!-- 학습 계열(회차 풀기)이라 "학습" 에 현재 표시를 준다. -->
+    <a href="/" aria-current="page">학습</a>
     <a href="/battle.html">대전</a>
     <a href="/ranking.html">랭킹</a>
     <span class="spacer"></span>
     <span class="who" id="navWho"></span>
     <button type="button" id="navLogout" hidden>로그아웃</button>
+    <!-- 비로그인일 때만 보인다 — 메인의 계정 섹션으로 보낸다. -->
+    <a class="nav-login" id="navLogin" href="/#account" hidden>로그인</a>
   </div>
 </nav>
 
@@ -27,17 +30,22 @@
     <h1 id="roundTitle">회차를 불러오는 중&hellip;</h1>
     <p id="roundMeta"></p>
 
-    <!-- 학습 타이머 (선택형). 시간을 고르고 "시작"을 눌러야 흐르기 시작한다. -->
+    <!-- 학습 타이머 (선택형). 기본은 접힘 — "⏱ 타이머" 를 눌러야 컨트롤이 나온다.
+         시간을 고르고 "시작"을 눌러야 흐르기 시작한다 (타이머가 도는 동안에는 항상 펼침). -->
     <div class="study-tools" id="studyTools" hidden>
-      <label for="timerSelect">학습 타이머</label>
-      <select id="timerSelect">
-        <option value="0">타이머 없음</option>
-        <option value="30">30분</option>
-        <option value="60">60분</option>
-        <option value="90">90분</option>
-      </select>
-      <button type="button" id="timerBtn">시작</button>
-      <span class="timer-out" id="timerOut" hidden></span>
+      <button type="button" id="timerToggle" class="timer-toggle"
+              aria-expanded="false" aria-controls="timerPanel">⏱ 타이머</button>
+      <div class="timer-panel" id="timerPanel" hidden>
+        <label for="timerSelect">학습 타이머</label>
+        <select id="timerSelect">
+          <option value="0">타이머 없음</option>
+          <option value="30">30분</option>
+          <option value="60">60분</option>
+          <option value="90">90분</option>
+        </select>
+        <button type="button" id="timerBtn">시작</button>
+        <span class="timer-out" id="timerOut" hidden></span>
+      </div>
     </div>
   </header>
 
@@ -62,10 +70,18 @@
 
 </div>
 
+<!-- 풀이 중에 제출 버튼이 화면 밖으로 밀려나면 뜨는 하단 미니바 (study.js 가 스크롤에 맞춰 여닫는다). -->
+<div class="studybar" id="studyBar" hidden>
+  <span class="sb-count" id="studyBarCount"></span>
+  <button type="button" class="sb-next" id="studyBarNext">다음 빈칸으로</button>
+  <button type="button" class="sb-submit" id="studyBarSubmit">제출</button>
+</div>
+
 <div class="toast-wrap" id="toastWrap"></div>
 
 <script src="/js/api.js"></script>
 <script src="/js/clipboard.js"></script>
+<script src="/js/boki.js"></script>
 <script src="/js/study.js"></script>
 </body>
 </html>

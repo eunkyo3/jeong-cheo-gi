@@ -691,3 +691,134 @@ describe('battle:marks — 제출자끼리만 정오 공유', () => {
     assert.equal(Object.prototype.hasOwnProperty.call(rs[0].payload, 'marks'), false);
   });
 });
+
+// ------------------------------- 결과 화면 상대 답안 (battle:finished 전용 맵)
+
+describe('battle:finished — answersByUser / marksByUser', () => {
+  const Q1 = '2026-2#1', Q2 = '2026-2#2';
+
+  /** 종료 전 이벤트에 답안 맵이 한 조각도 실리지 않았는지 검사한다(치팅 방어). */
+  function assertNoAnswerMaps(fx, eventName) {
+    const list = broadcasts(fx, eventName);
+    assert.ok(list.length > 0, eventName + ' 이 한 건도 없어 검사가 무의미하다');
+    for (const f of list) {
+      assert.equal(Object.prototype.hasOwnProperty.call(f.payload, 'answersByUser'), false,
+        eventName + ' 에 answersByUser 가 있으면 안 된다');
+      assert.equal(Object.prototype.hasOwnProperty.call(f.payload, 'marksByUser'), false,
+        eventName + ' 에 marksByUser 가 있으면 안 된다');
+      assert.equal(/answersByUser|marksByUser/.test(JSON.stringify(f.payload)), false,
+        eventName + ' 페이로드 어디에도 답안 맵 흔적이 없어야 한다');
+    }
+  }
+
+  /** 1번은 1문항 정답·1문항 오답, 2번은 2번 문항만 정답인 playing 상태. */
+  function answered() {
+    const base = playingRoom();
+    return drive(base.state, [
+      ev.answer(1, Q1, '동치분할', T0 + 5000),   // 정답
+      ev.answer(1, Q2, '엉뚱한답', T0 + 5100),   // 오답
+      ev.answer(2, Q2, '캡슐화', T0 + 5200),     // 정답 (Q1 은 미입력)
+    ]).state;
+  }
+
+  test('전원 제출 종료: 수신자와 무관하게 같은 answersByUser/marksByUser 가 실린다', () => {
+    const r = drive(answered(), [ev.submit(1, T0 + 6000), ev.submit(2, T0 + 7000)]);
+    assert.equal(r.state.state, 'finished');
+
+    const finished = broadcasts(r.effects, 'battle:finished');
+    assert.equal(finished.length, 2);
+    for (const f of finished) {
+      // 미입력 칸은 '' 로 채워 전 문항 × 전 필드 모양을 유지한다
+      assert.deepEqual(f.payload.answersByUser, {
+        1: { [Q1]: ['동치분할'], [Q2]: ['엉뚱한답'] },
+        2: { [Q1]: [''], [Q2]: ['캡슐화'] },
+      });
+      assert.deepEqual(f.payload.marksByUser, {
+        1: { [Q1]: true, [Q2]: false },
+        2: { [Q1]: false, [Q2]: true },
+      });
+    }
+    // 두 수신자가 받는 맵은 완전히 같은 내용이다(details 만 본인 것)
+    assert.deepEqual(finished[0].payload.answersByUser, finished[1].payload.answersByUser);
+    assert.deepEqual(finished[0].payload.marksByUser, finished[1].payload.marksByUser);
+    assert.notDeepEqual(finished[0].payload.details, finished[1].payload.details);
+  });
+
+  test('이탈(=즉시 제출)로 끝난 종료에도 이탈자의 답안이 그대로 실린다', () => {
+    const r = drive(answered(), [
+      ev.leave(2, T0 + 6000),    // 이탈 = 즉시 제출, 보관 답안 확정
+      ev.submit(1, T0 + 7000),   // 이탈자가 제출자로 세어져 여기서 종료
+    ]);
+    assert.equal(r.state.state, 'finished');
+    assert.equal(r.state.result.reason, 'allSubmitted');
+
+    const finished = broadcasts(r.effects, 'battle:finished');
+    assert.equal(finished.length, 2);
+    for (const f of finished) {
+      assert.deepEqual(f.payload.answersByUser[2], { [Q1]: [''], [Q2]: ['캡슐화'] });
+      assert.deepEqual(f.payload.marksByUser[2], { [Q1]: false, [Q2]: true });
+    }
+  });
+
+  test('deadline 타임아웃 종료에도 두 맵이 실린다 (미제출자 포함)', () => {
+    const base = playingRoom();
+    const deadline = base.state.deadline;
+    const r = drive(base.state, [
+      ev.answer(1, Q1, '동치분할', T0 + 5000),
+      ev.timeout('deadline', deadline),
+    ]);
+    assert.equal(r.state.state, 'finished');
+    assert.equal(r.state.result.reason, 'deadline');
+
+    const finished = broadcasts(r.effects, 'battle:finished');
+    assert.equal(finished.length, 2);
+    for (const f of finished) {
+      assert.deepEqual(f.payload.answersByUser, {
+        1: { [Q1]: ['동치분할'], [Q2]: [''] },
+        2: { [Q1]: [''], [Q2]: [''] },   // 한 글자도 입력하지 않은 미제출자
+      });
+      assert.deepEqual(f.payload.marksByUser, {
+        1: { [Q1]: true, [Q2]: false },
+        2: { [Q1]: false, [Q2]: false },
+      });
+    }
+  });
+
+  test('종료 전 이벤트에는 절대 실리지 않는다 — questions / progress / marks / resync / room:state', () => {
+    // battle:questions + room:state (countdown 종료 = playing 진입)
+    const created = newRoom();
+    const started = drive(created.state, [
+      ev.join(1, '가나', T0 + 10),
+      ev.join(2, '다라', T0 + 20),
+      ev.start(1, T0 + 30),
+      ev.timeout('countdown', T0 + 30 + COUNTDOWN_MS),
+    ]);
+    assertNoAnswerMaps(started.effects, 'battle:questions');
+    assertNoAnswerMaps(started.effects, 'room:state');
+
+    // battle:progress (입력 방송)
+    const prog = drive(started.state, [
+      ev.answer(1, Q1, '동치분할', T0 + 5000),
+      ev.answer(1, Q2, '엉뚱한답', T0 + 5100),
+      ev.answer(2, Q2, '캡슐화', T0 + 5200),
+    ]);
+    assertNoAnswerMaps(prog.effects, 'battle:progress');
+
+    // battle:marks (제출자 간 정오 공유)
+    const submitted = applyEvent(prog.state, ev.submit(1, T0 + 6000));
+    assert.equal(submitted.state.state, 'playing');
+    assertNoAnswerMaps(submitted.effects, 'battle:marks');
+
+    // battle:resync (제출자 재접속 — marks 가 실리는 경로)
+    const back = drive(submitted.state, [ev.disconnect(1, T0 + 6500), ev.connect(1, T0 + 7000)]);
+    assertNoAnswerMaps(back.effects, 'battle:resync');
+    assert.ok(Array.isArray(broadcasts(back.effects, 'battle:resync')[0].payload.marks));
+
+    // 종료 시 함께 나가는 room:state 에도 없다 — 결과는 battle:finished 로만 간다
+    const fin = applyEvent(back.state, ev.submit(2, T0 + 8000));
+    assert.equal(fin.state.state, 'finished');
+    assertNoAnswerMaps(fin.effects, 'room:state');
+    const f0 = broadcasts(fin.effects, 'battle:finished')[0];
+    assert.ok(f0.payload.answersByUser && f0.payload.marksByUser);
+  });
+});

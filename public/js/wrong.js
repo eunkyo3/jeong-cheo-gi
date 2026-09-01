@@ -37,6 +37,7 @@
   var elToastWrap = document.getElementById('toastWrap');
   var elNavWho = document.getElementById('navWho');
   var elNavLogout = document.getElementById('navLogout');
+  var elNavLogin = document.getElementById('navLogin');
 
   // ------------------------------------------------------------- 작은 도구
 
@@ -169,11 +170,13 @@
     elNavWho.textContent = '';
     if (!user) {
       elNavLogout.hidden = true;
+      if (elNavLogin) elNavLogin.hidden = false;
       return;
     }
     elNavWho.appendChild(el('b', null, user.nickname));
     elNavWho.appendChild(document.createTextNode(' 님'));
     elNavLogout.hidden = false;
+    if (elNavLogin) elNavLogin.hidden = true;
   }
 
   if (elNavLogout) {

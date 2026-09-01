@@ -12,12 +12,15 @@
 <nav class="topnav">
   <div class="wrap">
     <a class="brand" href="/">정처기 배틀</a>
-    <a href="/">학습</a>
+    <!-- 오답노트는 학습 계열이라 "학습" 에 현재 표시를 준다. -->
+    <a href="/" aria-current="page">학습</a>
     <a href="/battle.html">대전</a>
     <a href="/ranking.html">랭킹</a>
     <span class="spacer"></span>
     <span class="who" id="navWho"></span>
     <button type="button" id="navLogout" hidden>로그아웃</button>
+    <!-- 비로그인일 때만 보인다 — 메인의 계정 섹션으로 보낸다. -->
+    <a class="nav-login" id="navLogin" href="/#account" hidden>로그인</a>
   </div>
 </nav>
 

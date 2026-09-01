@@ -40,7 +40,9 @@
   var TOAST_MS = 5000;
   var FLOAT_SCROLL_THRESHOLD = 260; // 대전 화면 상단 'live' 패널을 대략 지나치는 스크롤량(요구 1)
 
-  var MODE_LABEL = { round: '회차 전체', random: '랜덤' };
+  // 값(round/random)·API 는 그대로다 — 라벨만 무엇을 고르는지 바로 읽히게 바꿨다(⑧).
+  var MODE_LABEL = { round: '한 회차 통째로', random: '여러 회차 섞어서' };
+  var RECENT_PRESET_N = 3; // "최근 3회차" 프리셋이 고르는 개수
   // 문항 유형 — 서버 계약(data/types/*.json)의 값 셋과 화면 표기.
   var TYPE_ORDER = ['code', 'sql', 'theory'];
   var TYPE_LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
@@ -98,6 +100,14 @@
     reportText: {},       // {qid: string}
     reportStatus: {},     // {qid: '...'}
     copied: {},           // {qid: 'clipboard'|'execCommand'|'manual'}
+
+    // 렌더 대상이 아닌 보조 상태
+    // {year: bool} — 방 만들기 회차 그룹의 펼침(⑧). <details> 의 open 은 DOM 상태라
+    // 회차를 하나 고를 때마다 패널이 다시 만들어지면 접혀 버린다. 그래서 여기에 들고 다닌다.
+    // null 이면 아직 초기화 전 — 회차 목록이 오면 가장 최근 연도만 펼친다.
+    yearOpen: null,
+    roundsExpanded: false, // 대기실 회차 요약의 '펼치기'(⑨) — 이건 렌더 대상이라 패널 key 에 들어간다
+    lastFocusedAns: {},    // {qid: fieldIndex} — 카드별 마지막 포커스 칸(⑥ 보기 칩의 목적지). 재렌더를 부르지 않는다
   };
 
   var socket = null;
@@ -227,12 +237,67 @@
     return kids.length ? h('div', { class: 'q-badges' }, kids) : null;
   }
 
-  function roundIdsOfYear(y) {
-    var out = [];
-    for (var i = 0; i < state.roundList.length; i++) {
-      if (roundYear(state.roundList[i].round) === y) out.push(state.roundList[i].round);
+  /**
+   * 최신 연도가 먼저 오는 연도 목록 — 방 만들기 화면은 최근 회차를 위에 둔다(⑧).
+   * state.roundList 의 정렬에 기대지 않고 연도 숫자로 직접 정렬한다.
+   */
+  function yearsNewestFirst() {
+    return yearsInRoundList().sort(function (a, b) { return Number(b) - Number(a); });
+  }
+
+  /** 가장 최근 n개 회차 id(⑧ "최근 3회차" 프리셋). */
+  function recentRoundIds(n) {
+    return state.roundList
+      .map(function (r) { return r.round; })
+      .sort(function (a, b) { return compareRoundId(b, a); })
+      .slice(0, n);
+  }
+
+  /**
+   * 연도 그룹의 펼침 상태를 필요할 때 한 번만 초기화한다 — 가장 최근 연도만 펼친다(⑧).
+   * 회차 목록이 아직 없으면 아무것도 만들지 않는다(다음 렌더에서 다시 시도한다).
+   */
+  function ensureYearOpen() {
+    if (state.yearOpen || !state.roundList.length) return state.yearOpen || {};
+    var years = yearsNewestFirst();
+    var map = {};
+    for (var i = 0; i < years.length; i++) map[years[i]] = i === 0;
+    state.yearOpen = map;
+    return map;
+  }
+
+  /**
+   * 대기실 회차 요약 문구(⑨). 전 회차면 "전 회차 (21개)", 여러 개면 "2025년 3회 외 4개",
+   * 하나면 그 제목 그대로. 회차 목록을 아직 못 받았으면 개수만으로 판단하지 않는다.
+   */
+  function roundsSummaryText(ids) {
+    var list = ids || [];
+    if (!list.length) return '-';
+    if (list.length === 1) return roundTitle(list[0]);
+    if (state.roundList.length && list.length >= state.roundList.length) {
+      return '전 회차 (' + list.length + '개)';
     }
-    return out;
+    // 가장 최근 회차 하나를 대표로 — id 는 "YYYY-N" 이라 문자열 정렬로도 충분하지 않아 숫자로 비교한다.
+    var newest = list[0];
+    for (var i = 1; i < list.length; i++) if (compareRoundId(list[i], newest) > 0) newest = list[i];
+    return roundTitle(newest) + ' 외 ' + (list.length - 1) + '개';
+  }
+
+  /** "2026-2" vs "2025-3" — 연도, 회차 순 숫자 비교. 형식이 다르면 문자열 비교로 떨어뜨린다. */
+  function compareRoundId(a, b) {
+    var ma = /^(\d{4})-(\d+)$/.exec(String(a));
+    var mb = /^(\d{4})-(\d+)$/.exec(String(b));
+    if (!ma || !mb) return String(a) < String(b) ? -1 : (String(a) > String(b) ? 1 : 0);
+    if (Number(ma[1]) !== Number(mb[1])) return Number(ma[1]) - Number(mb[1]);
+    return Number(ma[2]) - Number(mb[2]);
+  }
+
+  /** 신뢰 마크업에서 텍스트만 — 보기 칩이 채울 값을 고를 때 prompt 를 텍스트로 본다(⑥). */
+  function stripHtml(html) {
+    if (!html) return '';
+    var d = document.createElement('div');
+    d.innerHTML = String(html);
+    return d.textContent || '';
   }
 
   // ------------------------------------------------------------ 상태 조회기
@@ -677,43 +742,95 @@
       ]);
     }));
 
+    /** 회차 칩 하나. round 모드는 라디오(단일), random 모드는 체크박스(복수). */
+    function roundChip(r) {
+      var on = f.roundIds.indexOf(r.round) !== -1;
+      return h('label', { class: 'chip' + (on ? ' on' : '') }, [
+        h('input', {
+          type: isRandom ? 'checkbox' : 'radio',
+          name: isRandom ? 'round-' + r.round : 'round',
+          checked: on,
+          onchange: function () {
+            if (!isRandom) {
+              f.roundIds = [r.round];
+            } else if (on) {
+              f.roundIds = f.roundIds.filter(function (x) { return x !== r.round; });
+            } else {
+              f.roundIds = f.roundIds.concat([r.round]);
+            }
+            state.createError = '';
+            render();
+          },
+        }),
+        h('span', { text: r.title || r.round }),
+        h('span', { class: 'cnt', text: (r.questionCount || 0) + '문항' }),
+      ]);
+    }
+
+    /**
+     * 연도 그룹 하나(⑧). 접힘 상태는 DOM 이 아니라 state.yearOpen 이 들고 있다 —
+     * 회차를 하나 고를 때마다 이 패널은 통째로 다시 만들어지기 때문이다.
+     */
+    function yearGroup(y) {
+      var metas = state.roundList.filter(function (r) { return roundYear(r.round) === y; });
+      var ids = metas.map(function (r) { return r.round; });
+      var onCount = ids.filter(function (id) { return f.roundIds.indexOf(id) !== -1; }).length;
+      var allOn = ids.length > 0 && onCount === ids.length;
+
+      var sumKids = [
+        h('span', { class: 'ysum-y', text: y + '년' }),
+        h('span', { class: 'ysum-n', text: onCount ? onCount + '/' + ids.length : ids.length + '회차' }),
+      ];
+      if (isRandom) {
+        // summary 안의 버튼 — preventDefault 로 그룹이 같이 접히지 않게 막는다.
+        sumKids.push(h('button', {
+          type: 'button', class: 'btn ghost sm year-toggle' + (allOn ? ' on' : ''),
+          text: allOn ? '연도 해제' : '연도 전체',
+          onclick: function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (allOn) {
+              f.roundIds = f.roundIds.filter(function (id) { return ids.indexOf(id) === -1; });
+            } else {
+              var next = f.roundIds.slice();
+              for (var k = 0; k < ids.length; k++) if (next.indexOf(ids[k]) === -1) next.push(ids[k]);
+              f.roundIds = next;
+            }
+            state.createError = '';
+            render();
+          },
+        }));
+      }
+
+      return h('details', {
+        class: 'yeargroup',
+        open: !!state.yearOpen[y],
+        ontoggle: function (e) { state.yearOpen[y] = !!e.target.open; }, // 표시 상태만 — 재렌더하지 않는다
+      }, [
+        h('summary', {}, sumKids),
+        h('div', { class: 'chips' }, metas.map(roundChip)),
+      ]);
+    }
+
     var roundKids;
     if (state.roundsError) {
       roundKids = h('div', { class: 'banner err', text: state.roundsError });
     } else if (!state.roundList.length) {
       roundKids = h('div', { class: 'empty', text: '불러올 회차가 없습니다.' });
     } else {
-      roundKids = h('div', { class: 'chips' }, state.roundList.map(function (r) {
-        var on = f.roundIds.indexOf(r.round) !== -1;
-        return h('label', { class: 'chip' + (on ? ' on' : '') }, [
-          h('input', {
-            type: isRandom ? 'checkbox' : 'radio',
-            name: isRandom ? 'round-' + r.round : 'round',
-            checked: on,
-            onchange: function () {
-              if (!isRandom) {
-                f.roundIds = [r.round];
-              } else if (on) {
-                f.roundIds = f.roundIds.filter(function (x) { return x !== r.round; });
-              } else {
-                f.roundIds = f.roundIds.concat([r.round]);
-              }
-              state.createError = '';
-              render();
-            },
-          }),
-          h('span', { text: r.title || r.round }),
-          h('span', { class: 'cnt', text: (r.questionCount || 0) + '문항' }),
-        ]);
-      }));
+      ensureYearOpen();
+      roundKids = h('div', { class: 'yeargroups' }, yearsNewestFirst().map(yearGroup));
     }
 
     var yearControls = null;
     if (isRandom && state.roundList.length) {
       var allIds = state.roundList.map(function (r) { return r.round; });
-      var years = yearsInRoundList();
       yearControls = h('div', { class: 'yearrow' }, [
         h('div', { class: 'radiorow' }, [
+          h('button', {
+            type: 'button', class: 'btn ghost sm', text: '최근 ' + RECENT_PRESET_N + '회차',
+            onclick: function () { f.roundIds = recentRoundIds(RECENT_PRESET_N); state.createError = ''; render(); },
+          }),
           h('button', {
             type: 'button', class: 'btn ghost sm', text: '전체 선택',
             onclick: function () { f.roundIds = allIds.slice(); state.createError = ''; render(); },
@@ -721,26 +838,6 @@
           h('button', {
             type: 'button', class: 'btn ghost sm', text: '전체 해제',
             onclick: function () { f.roundIds = []; state.createError = ''; render(); },
-          }),
-          years.map(function (y) {
-            var ids = roundIdsOfYear(y);
-            var allOn = ids.length > 0 && ids.every(function (id) { return f.roundIds.indexOf(id) !== -1; });
-            return h('button', {
-              type: 'button',
-              class: 'btn ghost sm year-toggle' + (allOn ? ' on' : ''),
-              text: y + '년',
-              onclick: function () {
-                if (allOn) {
-                  f.roundIds = f.roundIds.filter(function (id) { return ids.indexOf(id) === -1; });
-                } else {
-                  var next = f.roundIds.slice();
-                  for (var k = 0; k < ids.length; k++) if (next.indexOf(ids[k]) === -1) next.push(ids[k]);
-                  f.roundIds = next;
-                }
-                state.createError = '';
-                render();
-              },
-            });
           }),
         ]),
         h('div', { class: 'muted', text: f.roundIds.length + '개 회차 선택' }),
@@ -759,13 +856,16 @@
       h('div', { class: 'field' }, [h('span', { class: 'flabel', text: '모드' }), modeRow]),
       h('div', { class: 'field' }, [
         h('span', { class: 'flabel', text: isRandom ? '회차 선택 (여러 개)' : '회차 선택 (하나)' }),
-        roundKids,
         yearControls,
+        roundKids,
       ]),
     ];
 
+    // 뒤쪽 짧은 설정 셋은 한 줄에 나란히 둔다 — 세로로 쌓으면 "방 만들기" 버튼이 첫 화면 밖으로 밀린다(⑧).
+    var tail = [];
+
     if (isRandom) {
-      fields.push(h('div', { class: 'field' }, [
+      tail.push(h('div', { class: 'field' }, [
         h('span', { class: 'flabel', text: '문항 수' }),
         h('div', { class: 'radiorow' }, COUNT_CHOICES.map(function (n) {
           return h('label', { class: 'chip' + (f.questionCount === n ? ' on' : '') }, [
@@ -780,7 +880,7 @@
     }
 
     // 문항 유형 — 방 생성 시 1회만 적용된다(진행 중 변경 없음). 전체면 서버에 싣지 않는다.
-    fields.push(h('div', { class: 'field' }, [
+    tail.push(h('div', { class: 'field' }, [
       h('span', { class: 'flabel', text: '문항 유형' }),
       h('div', { class: 'radiorow' }, [{ v: '', label: '전체' }].concat(TYPE_ORDER.map(function (t) {
         return { v: t, label: TYPE_LABEL[t] };
@@ -795,7 +895,7 @@
       })),
     ]));
 
-    fields.push(h('div', { class: 'field' }, [
+    tail.push(h('div', { class: 'field' }, [
       h('span', { class: 'flabel', text: '제한 시간' }),
       h('div', { class: 'radiorow' }, TIME_CHOICES.map(function (c) {
         return h('label', { class: 'chip' + (f.timeLimitS === c.v ? ' on' : '') }, [
@@ -807,6 +907,8 @@
         ]);
       })),
     ]));
+
+    fields.push(h('div', { class: 'fieldrow' }, tail));
 
     var kids = [h('h2', { text: '새 대전방 만들기' }), h('div', { class: 'formgrid' }, fields)];
 
@@ -838,6 +940,8 @@
         JSON.stringify(state.room.settings),
         state.online,
         state.copied.roomcode || '',
+        state.roundsExpanded ? 1 : 0,  // 회차 요약 펼침(⑨)
+        state.roundList.length,        // 회차 목록이 늦게 도착하면 제목이 id → 정식 명칭으로 바뀐다
       ].join('|'),
       build: buildRoom,
     }];
@@ -858,7 +962,21 @@
       ]));
     }
 
-    var roundText = (s.roundIds || []).map(roundTitle).join(', ') || '-';
+    // 회차는 21개까지 늘어난다 — 나열하면 대기실이 회차 목록으로 덮인다. 한 줄 요약 + 펼치기(⑨).
+    var roundIds = s.roundIds || [];
+    var roundKids = [h('span', { class: 'roundsum-text', text: roundsSummaryText(roundIds) })];
+    if (roundIds.length > 1) {
+      roundKids.push(h('button', {
+        type: 'button', class: 'btn ghost sm',
+        text: state.roundsExpanded ? '접기' : '펼치기',
+        onclick: function () { state.roundsExpanded = !state.roundsExpanded; render(); },
+      }));
+    }
+    var roundBlock = [h('span', { class: 'roundsum' }, roundKids)];
+    if (roundIds.length > 1 && state.roundsExpanded) {
+      roundBlock.push(h('div', { class: 'roundsum-list', text: roundIds.map(roundTitle).join(', ') }));
+    }
+
     kids.push(h('section', { class: 'card' }, [
       h('h2', { text: s.name || '대기실' }),
       h('div', { class: 'roomcode' }, [
@@ -870,7 +988,7 @@
       ]),
       h('div', { class: 'setting-list' }, [
         h('div', {}, [h('b', { text: '모드 ' }), MODE_LABEL[s.mode] || s.mode || '-']),
-        h('div', {}, [h('b', { text: '회차 ' }), roundText]),
+        h('div', {}, [h('b', { text: '회차 ' }), roundBlock]),
         h('div', {}, [h('b', { text: '문항 수 ' }), (s.questionCount || 0) + '문항']),
         h('div', {}, [h('b', { text: '문항 유형 ' }), TYPE_LABEL[normalizeType(s.type)] || '전체']),
         h('div', {}, [h('b', { text: '제한 시간 ' }), Math.round((s.timeLimitS || 0) / 60) + '분']),
@@ -1055,26 +1173,31 @@
   function buildQuestionCard(q, idx, readOnly) {
     var fields = q.fields || [];
     var answers = state.myAnswers[q.id] || [];
+    var inputs = [];
 
     // fi = 필드 인덱스. 바깥 idx(문항 순번)를 가리지 않도록 다른 이름을 쓴다.
     var rows = fields.map(function (f, fi) {
+      var input = h('input', {
+        class: 'ans',
+        type: 'text',
+        'data-fkey': 'ans:' + q.id + ':' + fi,
+        value: answers[fi] == null ? '' : answers[fi],
+        readOnly: readOnly,
+        maxlength: '500',
+        autocomplete: 'off',
+        autocapitalize: 'off',
+        spellcheck: 'false',
+        placeholder: readOnly ? '' : '답을 입력하세요',
+        oninput: function (e) { onAnswerInput(q, fi, e.target.value); },
+      });
+      inputs.push(input);
       return h('div', { class: 'ansrow' }, [
         h('label', { text: (f.label || '답') + ':' }),
-        h('input', {
-          class: 'ans',
-          type: 'text',
-          'data-fkey': 'ans:' + q.id + ':' + fi,
-          value: answers[fi] == null ? '' : answers[fi],
-          readOnly: readOnly,
-          maxlength: '500',
-          autocomplete: 'off',
-          autocapitalize: 'off',
-          spellcheck: 'false',
-          placeholder: readOnly ? '' : '답을 입력하세요',
-          oninput: function (e) { onAnswerInput(q, fi, e.target.value); },
-        }),
+        input,
       ]);
     });
+
+    var body = q.bodyHtml ? h('div', { html: q.bodyHtml }) : null;
 
     return h('div', { class: 'q' + (readOnly ? ' readonly' : '') }, [
       badgeRow(q.type, q.id),
@@ -1082,9 +1205,61 @@
         h('span', { class: 'num', text: String(displayNum(q, idx)) }),
         h('span', { html: q.prompt || '' }), // 서버 자산의 신뢰 마크업
       ]),
-      q.bodyHtml ? h('div', { html: q.bodyHtml }) : null,
+      body,
+      readOnly ? null : bokiChips(q, body, inputs),
       rows,
     ]);
+  }
+
+  /**
+   * 보기형 문항의 보기 칩(⑥). `.boki` 안의 텍스트를 공용 파서 window.Boki 로 나눠 칩을 만들고,
+   * 칩을 누르면 대상 입력칸의 value 만 바꾼 뒤 `input` 이벤트를 쏜다 —
+   * 저장·'답한 문항' 카운트·battle:answer 전송이 전부 그 이벤트를 타고, 재렌더는 일어나지 않는다.
+   * boki.js 가 아직 없거나 파싱이 실패하면 조용히 칩 없음(기존 타이핑 그대로).
+   */
+  function bokiChips(q, body, inputs) {
+    if (!window.Boki || !body || !inputs.length) return null;
+    var items;
+    try { items = window.Boki.parse(bokiTextOf(body)); } catch (e) { return null; }
+    if (!items || !items.length) return null;
+
+    var promptText = stripHtml(q.prompt || '');
+    return h('div', { class: 'boki-chips' }, items.map(function (item) {
+      var value = window.Boki.fillValue(item, promptText);
+      var label = String(item.raw == null ? '' : item.raw).trim() || String(value);
+      return h('button', {
+        type: 'button', class: 'chip', title: '입력칸에 채우기',
+        text: label,
+        onclick: function () { fillFromChip(q, inputs, String(value == null ? '' : value)); },
+      });
+    }));
+  }
+
+  /**
+   * `.boki` 블록에서 파서에 넣을 텍스트. 이미 만들어 둔 본문 노드를 다시 읽는다 —
+   * bodyHtml 을 두 번 파싱하지 않는다. `<br>` 처리는 boki.js 의 textFromNode 가 맡는다.
+   */
+  function bokiTextOf(body) {
+    var el = body && body.querySelector ? body.querySelector('.boki') : null;
+    if (!el) return '';
+    return window.Boki.textFromNode ? window.Boki.textFromNode(el) : (el.innerHTML || '');
+  }
+
+  /**
+   * 칩이 채울 칸: 그 카드에서 마지막으로 포커스했던 칸 → 없으면 첫 빈 칸 → 다 찼으면 첫 칸.
+   * 채운 뒤에는 기억을 지운다 — 칩을 연달아 누르면 다음 빈 칸으로 이어서 들어간다.
+   */
+  function fillFromChip(q, inputs, value) {
+    var fi = state.lastFocusedAns[q.id];
+    var target = fi != null ? inputs[fi] : null;
+    if (!target) {
+      for (var i = 0; i < inputs.length; i++) { if (!inputs[i].value) { target = inputs[i]; break; } }
+    }
+    if (!target) target = inputs[0];
+    if (!target || target.readOnly) return;
+    delete state.lastFocusedAns[q.id];
+    target.value = value;
+    target.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
   function onAnswerInput(q, idx, value) {
@@ -1295,6 +1470,40 @@
     return typeof html === 'string' ? html : '';
   }
 
+  /**
+   * 결과 카드의 상대 답안 줄(⑩) — `상대 닉네임: 입력값 ✓/✗`, 미입력은 `(미입력)`.
+   * `battle:finished` 의 answersByUser/marksByUser 로만 만든다(대전 중에는 서버가 보내지 않는다).
+   * 맵이 없으면 null 을 돌려 아무것도 그리지 않는다 — 서버가 아직 안 실어 주는 동안도 화면은 그대로다.
+   */
+  function opponentRows(qid) {
+    var r = state.result;
+    if (!r || !r.answersByUser) return null;
+    var marks = r.marksByUser || {};
+
+    var rows = [];
+    var results = r.results || [];
+    for (var i = 0; i < results.length; i++) {
+      var uid = results[i].userId;
+      if (uid == null || uid === myId()) continue; // 내 답은 위 칸에 이미 있다
+      var byQid = r.answersByUser[uid];
+      if (!byQid) continue;
+      var vals = byQid[qid];
+      var given = (Array.isArray(vals) ? vals : [])
+        .map(function (v) { return String(v == null ? '' : v).trim(); })
+        .filter(function (v) { return v !== ''; })
+        .join(', ');
+      var ok = (marks[uid] || {})[qid];
+      rows.push(h('div', { class: 'opp-row' }, [
+        h('span', { class: 'opp-name', text: results[i].nickname + ':' }),
+        h('span', { class: 'opp-val' + (given ? '' : ' blank'), text: given || '(미입력)' }),
+        ok === true || ok === false
+          ? h('span', { class: 'opp-mark ' + (ok ? 'ok' : 'bad'), text: ok ? '✓' : '✗' })
+          : null,
+      ]));
+    }
+    return rows.length ? h('div', { class: 'opp-answers' }, rows) : null;
+  }
+
   function buildDetailCard(detail) {
     var q = questionById(detail.questionId);
     var qid = detail.questionId;
@@ -1321,6 +1530,7 @@
       ]),
       q && q.bodyHtml ? h('div', { html: q.bodyHtml }) : null,
       rows,
+      opponentRows(qid),
       h('div', { class: 'feedback' }, [
         h('div', { text: detail.correct ? '정답입니다.' : '오답입니다.' }),
         h('div', { class: 'answer-line', text: '정답: ' + (detail.display || '(표기 없음)') }),
@@ -1713,6 +1923,7 @@
       if (p.state === 'waiting') {
         state.questions = []; state.result = null; setTimer(null);
         state.marks = []; state.floatVisible = false; // 요구 1·2 — 새 대기실로 돌아오면 이전 대전 흔적을 지운다
+        state.roundsExpanded = false; // 회차 요약은 접힌 채로 시작한다(⑨)
       }
       var me = myPlayer();
       if (me && me.submitted) state.submitted = true;
@@ -1729,6 +1940,7 @@
       state.countdownEndsAt = null;
       state.marks = []; // 새 대전 시작 — 이전 판 채점 현황을 지운다(요구 2)
       state.floatVisible = false; // 새 화면이니 스크롤 전 상태로(요구 1)
+      state.lastFocusedAns = {}; // 이전 판의 포커스 기억은 새 문항에 쓸 수 없다(⑥)
       setTimer(p && p.deadlineInfo ? p.deadlineInfo.remainingMs : null);
       render();
     });
@@ -1792,6 +2004,10 @@
         details: p.details || [],
         reason: p.reason || '',
         explanations: p.explanations && typeof p.explanations === 'object' ? p.explanations : {},
+        // 상대 답안(⑩) — 종료 시점에만 오는 맵이다. 서버가 아직 안 실어 주면 빈 맵으로 두고
+        // 결과 카드는 내 답만 보여 준다(기능이 조용히 빠질 뿐 깨지지 않는다).
+        answersByUser: p.answersByUser && typeof p.answersByUser === 'object' ? p.answersByUser : null,
+        marksByUser: p.marksByUser && typeof p.marksByUser === 'object' ? p.marksByUser : null,
       };
       state.showExplain = {};
       state.submitPending = false;
@@ -1806,23 +2022,39 @@
 
   // ================================================================== 부팅
 
+  /**
+   * 상단 내비 — 5개 화면이 같은 DOM 구조를 쓴다(⑫). 정적 nav(index/study/wrong)·ranking.js 와
+   * 태그·클래스·순서가 같아야 app.css 의 `.topnav` 한 벌로 전부 같은 모양이 된다.
+   */
   function buildNav() {
     var nav = document.getElementById('nav');
     if (!nav) return;
     nav.replaceChildren(frag(h('div', { class: 'wrap' }, [
       h('a', { class: 'brand', href: '/', text: '정처기 배틀' }),
-      h('a', { href: '/', text: '학습' }),
-      h('a', { href: '/battle.html', text: '대전' }),
-      h('a', { href: '/ranking.html', text: '랭킹' }),
+      h('a', { href: '/', 'data-nav': 'study', text: '학습' }),
+      h('a', { href: '/battle.html', 'data-nav': 'battle', 'aria-current': 'page', text: '대전' }),
+      h('a', { href: '/ranking.html', 'data-nav': 'ranking', text: '랭킹' }),
       h('span', { class: 'spacer' }),
-      h('span', { class: 'whoami' }, [state.me ? state.me.nickname : '']),
+      // 비로그인이면 닉네임 칸은 비우고 로그아웃을 감춘 채 로그인 링크를 보인다.
+      // 대전 화면은 비로그인이면 메인으로 되돌리므로 그 상태가 보일 일은 거의 없다 — 구조만 맞춘다.
+      h('span', { class: 'who', id: 'navWho' }, state.me
+        ? [h('b', { text: state.me.nickname }), ' 님']
+        : null),
       h('button', {
+        type: 'button',
+        class: 'nav-logout',
+        id: 'navLogout',
+        hidden: state.me ? null : 'hidden',
         text: '로그아웃',
         onclick: function () {
           window.api.post('/api/auth/logout', {})
             .then(function () { window.location.href = '/'; })
             .catch(function () { window.location.href = '/'; });
         },
+      }),
+      h('a', {
+        class: 'nav-login', id: 'navLogin', href: '/#account', text: '로그인',
+        hidden: state.me ? 'hidden' : null,
       }),
     ])));
   }
@@ -1861,6 +2093,19 @@
 
     // 플로팅 현황 패널(요구 1) — 부팅 시 한 번만 등록. 대전 화면이 아닐 때는 onFloatScroll 내부에서 무시한다.
     window.addEventListener('scroll', onFloatScroll, { passive: true });
+
+    // 보기 칩(⑥)이 채울 칸을 알기 위한 "마지막 포커스" 기록. 문서에 한 번만 걸어 두면
+    // 패널이 다시 만들어져도 다시 붙일 필요가 없고, 기록 자체는 렌더를 부르지 않는다.
+    document.addEventListener('focusin', function (e) {
+      var el = e.target;
+      if (!el || !el.getAttribute) return;
+      var key = el.getAttribute('data-fkey');
+      if (!key || key.slice(0, 4) !== 'ans:') return;
+      var parts = key.split(':'); // ans:<qid>:<fieldIndex>
+      var fi = Number(parts[parts.length - 1]);
+      if (isNaN(fi)) return;
+      state.lastFocusedAns[parts.slice(1, parts.length - 1).join(':')] = fi;
+    });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

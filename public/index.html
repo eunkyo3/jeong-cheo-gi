@@ -10,13 +10,7 @@
 /* index 전용 — 히어로 CTA / 안내 배너 / 한 줄 로그인 폼.
    app.css 는 다른 화면과 공유하므로, 메인에서만 쓰는 것은 여기에 둔다. */
 
-/* 상단 내비의 "로그인" (비로그인일 때만 보인다) */
-.topnav .nav-login {
-  border: 1px solid #6b8b7c;
-  border-radius: 6px;
-  padding: 4px 12px;
-}
-.topnav .nav-login:hover { background: var(--deep-2); color: #fff; text-decoration: none; }
+/* 상단 내비는 app.css 의 `.topnav` 블록이 단독으로 소유한다(전 페이지 공통). */
 
 /* 히어로 CTA — 첫 화면에서 바로 풀러 갈 수 있게. 회차 목록이 오기 전에는 비활성. */
 .hero-cta { margin-top: 16px; }
@@ -93,13 +87,15 @@
 <nav class="topnav">
   <div class="wrap">
     <a class="brand" href="/">정처기 배틀</a>
-    <a href="/">학습</a>
+    <a href="/" aria-current="page">학습</a>
     <a href="/battle.html">대전</a>
     <a href="/ranking.html">랭킹</a>
     <span class="spacer"></span>
+    <span class="who" id="navWho"></span>
+    <!-- 로그인일 때만 보인다. 계정 상자의 로그아웃과 같은 경로를 탄다. -->
+    <button type="button" id="navLogout" hidden>로그아웃</button>
     <!-- 비로그인일 때만 보인다 — 계정 섹션이 맨 아래라 여기서 바로 내려갈 수 있게. -->
     <a class="nav-login" id="navLogin" href="#account" hidden>로그인</a>
-    <span class="who" id="navWho"></span>
   </div>
 </nav>
 
@@ -158,6 +154,7 @@
   var roundTypeFilter = document.getElementById('roundTypeFilter');
   var navWho = document.getElementById('navWho');
   var navLogin = document.getElementById('navLogin');
+  var navLogout = document.getElementById('navLogout');
   var heroStart = document.getElementById('heroStart');
   var msgBanner = document.getElementById('msgBanner');
   var studySection = document.getElementById('studySection');
@@ -311,11 +308,23 @@
   function renderNav(user) {
     navWho.textContent = '';
     navLogin.hidden = !!user;
+    navLogout.hidden = !user;
     if (!user) return;
     var b = el('b', null, user.nickname);
     navWho.appendChild(b);
     navWho.appendChild(document.createTextNode(' 님'));
   }
+
+  // 내비의 로그아웃 — 계정 상자의 버튼과 같은 경로(api.logout → 화면 다시 그리기).
+  navLogout.addEventListener('click', function () {
+    navLogout.disabled = true;
+    api.logout().then(function () {
+      navLogout.disabled = false;
+      renderSession(null);
+    }).catch(function () {
+      navLogout.disabled = false;
+    });
+  });
 
   function renderLoggedIn(user) {
     clearSessionBox();

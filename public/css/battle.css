@@ -5,24 +5,8 @@
 
 /* ------------------------------------------------------------------ 공통 */
 
-.topnav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-  font-size: 0.92rem;
-}
-.topnav a {
-  color: #1e3a2f;
-  text-decoration: none;
-  font-weight: bold;
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: #e6ece9;
-}
-.topnav a:hover { background: #d3ded8; }
-.topnav .who { margin-left: auto; color: #55645c; }
+/* 상단 내비(.topnav)는 app.css 가 단독으로 소유한다 — 전 페이지가 같은 모양이라
+   여기에 재정의를 두지 않는다. */
 
 .card {
   background: #fff;
@@ -107,6 +91,9 @@
 
 .formgrid { display: flex; flex-direction: column; gap: 14px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
+/* 짧은 설정(문항 수·유형·제한 시간)은 한 줄에 나란히 — 좁아지면 알아서 접힌다(⑧). */
+.fieldrow { display: flex; flex-wrap: wrap; gap: 14px 22px; }
+.fieldrow > .field { flex: 1 1 200px; }
 .field > .flabel { font-weight: bold; font-size: 0.92rem; color: #34473e; }
 .field input[type="text"],
 .field select {
@@ -146,9 +133,34 @@
 }
 .codejoin .codeinput:focus { outline: none; border-color: #1e3a2f; }
 
-/* 랜덤 회차 전체 선택 (A4) — 전체 선택/해제 + 연도별 퀵 토글. */
-.yearrow { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+/* 랜덤 회차 프리셋 (A4·⑧) — 최근 3회차 / 전체 선택 / 전체 해제 + 선택 요약. */
+.yearrow { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
 .year-toggle.on { border-color: #1e3a2f; background: #e6ece9; font-weight: bold; }
+
+/* 연도별 회차 그룹 (⑧) — 21개 칩이 "방 만들기" 버튼을 첫 화면 밖으로 밀어내지 않게
+   닫힌 연도는 알약 한 개로 줄이고, 펼친 연도만 한 줄을 통째로 차지한다. */
+.yeargroups { display: flex; flex-wrap: wrap; gap: 6px; }
+.yeargroup { border: 0; }
+.yeargroup[open] { flex: 1 1 100%; }
+.yeargroup > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  border: 2px solid #c6ccd2;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.86rem;
+  background: #fff;
+  user-select: none;
+}
+.yeargroup > summary::-webkit-details-marker { display: none; }
+.yeargroup[open] > summary { border-color: #1e3a2f; background: #eef4f0; }
+.yeargroup > summary .ysum-y { font-weight: bold; color: #1e3a2f; }
+.yeargroup > summary .ysum-n { color: #77857e; font-size: 0.8rem; }
+.yeargroup > summary .year-toggle { padding: 2px 8px; font-size: 0.76rem; }
+.yeargroup > .chips { margin: 8px 0 4px 4px; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
@@ -196,6 +208,17 @@
 
 .setting-list { font-size: 0.9rem; color: #45564d; line-height: 1.9; }
 .setting-list b { color: #1e3a2f; }
+
+/* 회차 요약 + 펼치기 (⑨) — 21개를 나열하면 대기실이 회차 목록으로 덮인다. */
+.roundsum { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.roundsum .btn.sm { padding: 2px 8px; font-size: 0.76rem; }
+.roundsum-list {
+  margin: 2px 0 0 0;
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: #55645c;
+  word-break: keep-all;
+}
 
 /* 방 코드 표시 + 복사 (A3) — 대기실 상단, 회차/시간 요약보다 눈에 띄게. */
 .roomcode {
@@ -447,8 +470,6 @@ table.res tr.self td { box-shadow: inset 3px 0 0 #2e9e5b; }
   .card { padding: 14px 13px; }
   .btn { padding: 11px 14px; }          /* 좁아져도 탭 영역은 유지 */
   .btn.sm { padding: 9px 11px; }
-  .topnav { font-size: 0.86rem; }
-  .topnav .who { flex-basis: 100%; margin-left: 0; }
   .timerbar { padding: 10px 12px; }
   .timerbar .timer { font-size: 1.6rem; }
   .field input[type="text"], .field select { max-width: none; }
@@ -464,16 +485,6 @@ table.res tr.self td { box-shadow: inset 3px 0 0 #2e9e5b; }
 /* ================================================================ 추가분
    battle.html 의 실제 마크업(js/battle.js 가 생성)에 맞춘 보강 규칙.
    위쪽 규칙은 그대로 두고, 충돌하는 지점만 여기서 정리한다. */
-
-/* 상단 내비는 app.css 가 소유한다(전 페이지 공통 다크 바).
-   이 파일 위쪽의 `.topnav a` 알약 스타일은 그 다크 바 위에서도 읽히므로 살려 두되,
-   닉네임만 대비가 무너지므로 `.who` 대신 `.whoami` 를 쓰고 여기서 색을 준다. */
-.topnav .whoami {
-  font-size: 0.88rem;
-  color: #cfe3d8;
-  font-weight: bold;
-  white-space: nowrap;
-}
 
 /* 렌더러가 만드는 패널 컨테이너. 레이아웃은 안쪽 카드가 가진다. */
 .panel { display: block; }
@@ -546,3 +557,46 @@ h2.section { color: #1e3a2f; }
   /* 좁은 폭에서는 버튼 아래로 내린다 — 버튼이 줄바꿈되어 눌리기 어려워지지 않게. */
   .btnbar .answered-count { display: block; width: fit-content; margin: 10px auto 0; }
 }
+
+/* 보기형 문항의 보기 칩 (⑥) — 입력칸 바로 위. 누르면 입력칸 값만 채우고 재렌더는 없다.
+   `.chip` 알약을 그대로 쓰되, 여기 칩은 <button> 이라 라벨이 길어질 수 있어 줄바꿈을 허용한다. */
+.boki-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 4px;
+}
+.boki-chips .chip {
+  font-family: inherit;
+  text-align: left;
+  padding: 6px 12px;
+  max-width: 100%;
+  white-space: normal;
+  word-break: break-word;
+  color: #1e3a2f;
+}
+.boki-chips .chip:hover { border-color: #1e3a2f; background: #eef4f0; }
+.boki-chips .chip:active { background: #e0eae4; }
+
+/* 결과 카드의 상대 답안 (⑩) — 내 답 칸 바로 아래 한 줄씩. */
+.opp-answers {
+  margin: 6px 0 2px;
+  padding-left: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.opp-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 0.86rem;
+  color: #55645c;
+}
+.opp-row .opp-name { font-weight: bold; color: #45564d; white-space: nowrap; }
+.opp-row .opp-val { word-break: break-all; }
+.opp-row .opp-val.blank { color: #9aa5a0; }
+.opp-row .opp-mark { font-weight: bold; }
+.opp-row .opp-mark.ok { color: #2e9e5b; }
+.opp-row .opp-mark.bad { color: #c0392b; }
