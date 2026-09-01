@@ -102,6 +102,7 @@ function cloneState(s) {
     roundIds: s.roundIds.slice(),
     questionCount: s.questionCount,
     type: s.type,
+    lang: s.lang,
     timeLimitS: s.timeLimitS,
     questions: s.questions,        // 불변 데이터 — 참조 공유
     questionIds: s.questionIds.slice(),
@@ -140,6 +141,20 @@ function normalizeType(v) {
   return typeof v === 'string' && TYPES.indexOf(v) !== -1 ? v : null;
 }
 
+/** 코드 문항 언어 동결 집합. server/rounds.js · scripts/validate-langs.mjs 와 반드시 같아야 한다. */
+const LANGS = ['c', 'java', 'python'];
+
+/** 문항·방 설정의 언어 정규화. 허용되지 않은 값은 null(= 전체). */
+function normalizeLang(v) {
+  return typeof v === 'string' && LANGS.indexOf(v) !== -1 ? v : null;
+}
+
+/** 문항의 언어. **코드 유형에만** 값이 있다 — 유형과 달리 기본값이 없다(rounds.langOf 와 같은 규칙). */
+function questionLang(q) {
+  if ((normalizeType(q.type) || DEFAULT_TYPE) !== 'code') return null;
+  return normalizeLang(q.lang);
+}
+
 function questionById(s, id) {
   for (let i = 0; i < s.questions.length; i++) if (s.questions[i].id === id) return s.questions[i];
   return null;
@@ -154,6 +169,7 @@ function publicQuestion(q) {
     bodyHtml: q.bodyHtml,
     bodyText: q.bodyText, // 결과 화면 "AI에게 질문하기" 프롬프트용 — 정답 정보가 아니므로 허용 (PROTOCOL 치팅 방어 참조)
     type: normalizeType(q.type) || DEFAULT_TYPE, // 유형 뱃지용 — 정답 정보가 아니다
+    lang: questionLang(q), // 코드 문항 언어 뱃지용(c|java|python|null) — 정답 정보가 아니다
     // explanationHtml 은 화이트리스트에 없다 — 정답을 그대로 담고 있어 battle:finished 에서만 나간다.
 
     answerMode: q.answerMode === 'unordered' ? 'unordered' : 'ordered',
@@ -245,6 +261,7 @@ function settingsPayload(s) {
     roundIds: s.roundIds.slice(),
     questionCount: s.questionIds.length,
     type: s.type == null ? null : s.type, // null = 전체 유형
+    lang: s.lang == null ? null : s.lang, // null = 전체 언어
     timeLimitS: s.timeLimitS,
   };
 }
@@ -302,8 +319,9 @@ function createRoom(opts) {
     mode: o.mode === 'random' ? 'random' : 'round',
     roundIds: (o.roundIds || []).slice(),
     questionCount: o.questionCount == null ? null : Number(o.questionCount),
-    // 유형은 방 생성 시 1회만 적용된다 — 진행 중 변경 없음(양쪽이 같은 문항을 본다).
+    // 유형·언어는 방 생성 시 1회만 적용된다 — 진행 중 변경 없음(양쪽이 같은 문항을 본다).
     type: normalizeType(o.type),
+    lang: normalizeLang(o.lang),
     timeLimitS: Number(o.timeLimitS),
     questions: questions,
     questionIds: questions.map(function (q) { return q.id; }),
@@ -948,7 +966,10 @@ module.exports = {
   buildQuestionSet: buildQuestionSet,
   publicQuestion: publicQuestion,
   normalizeType: normalizeType,
+  normalizeLang: normalizeLang,
+  questionLang: questionLang,
   TYPES: TYPES,
+  LANGS: LANGS,
   answeredCount: answeredCount,
   pickWinner: pickWinner,
   roomStatePayload: roomStatePayload,

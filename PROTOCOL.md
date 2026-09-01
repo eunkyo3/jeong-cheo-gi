@@ -8,19 +8,20 @@
 | POST | `/api/auth/login` | `{nickname, password}` | `{user:{id,nickname}}` / 401 |
 | POST | `/api/auth/logout` | – | `{ok:true}` (쿠키 삭제) |
 | GET | `/api/auth/me` | – | `{user}` 또는 `{user:null}` |
-| GET | `/api/rounds` | – | `[{round,title,questionCount,counts:{code,sql,theory}}]` (연도 그룹핑은 클라이언트) |
-| GET | `/api/rounds/:id` | `?type=code\|sql\|theory` (선택) | `{round,title,sourceUrl,type,questions:[{id,num,prompt,bodyHtml,type,fields:[{label}]}]}` |
-| POST | `/api/rounds/:id/grade` | `{answers:{qid:[string]}, type?:"code"\|"sql"\|"theory"}` | `{round,type,correctCount,totalCount,score,details[],bodyTexts{},explanations{}}` (로그인 시 `study_results` 적재) |
-| GET | `/api/practice` | `?rounds=all\|<id,id,…>&count=<5..60>&type=` (선택) | `{setKey:"practice", title, roundIds[], type, questions:[…공개 문항]}` / 400 |
+| GET | `/api/rounds` | – | `[{round,title,questionCount,counts:{code,sql,theory},langs:{c,java,python}}]` (연도 그룹핑은 클라이언트. `langs` 는 그 회차 **코드 문항**의 언어별 개수) |
+| GET | `/api/rounds/:id` | `?type=code\|sql\|theory` · `?lang=c\|java\|python` (둘 다 선택) | `{round,title,sourceUrl,type,lang,questions:[{id,num,prompt,bodyHtml,type,lang,fields:[{label}]}]}` |
+| POST | `/api/rounds/:id/grade` | `{answers:{qid:[string]}, type?:"code"\|"sql"\|"theory", lang?:"c"\|"java"\|"python"}` | `{round,type,lang,correctCount,totalCount,score,details[],bodyTexts{},explanations{}}` (로그인 시 `study_results` 적재) |
+| GET | `/api/practice` | `?rounds=all\|<id,id,…>&count=<5..60>&type=&lang=` (선택) | `{setKey:"practice", title, roundIds[], type, lang, questions:[…공개 문항]}` / 400 |
 | POST | `/api/practice/grade` | `{setKey:"practice"\|"wrong", answers:{qid:[string]}}` | 회차 채점과 동일 형태(`round`=setKey) / 400 |
 | GET | `/api/me/history` | – (로그인 필수) | `{rounds:{setKey:{count,best,last,lastAt}}, recent:[{round,score,takenAt,total,correct}](≤20, 최신 먼저), wrongCount}` — `round==="battle"` 인 recent 항목에는 `matchId, roomName` 이 더 붙는다(`match_id` 가 없는 예전 기록은 안 붙는다) |
-| GET | `/api/me/wrong` | `?type=` (선택, 로그인 필수) | `{setKey:"wrong", title:"오답노트", type, round:null, questions:[…공개 문항]}` |
-| GET | `/api/me/wrong` | `?round=<회차 id>[&type=]` | 그 회차의 **현재 오답**만. `title:"오답노트 · 2024년 1회"`, `round` 는 회차 id / 없는 회차는 400 |
-| GET | `/api/me/wrong` | `?match=<매치 id>[&type=]` | **그 대전에서 틀린 문항 전부**(지금은 맞힌 것 포함, 과거 스냅샷). `{…, title:"오답노트 · 대전 <방이름>", match, battle:{…아래 대전 머리말}, resolvedIds:[지금은 오답이 아닌 id], questions}` / 정수가 아닌 값 400 / 내 대전이 아니거나 없는 id 404 |
-| GET | `/api/me/wrong/summary` | – (로그인 필수) | `{total, byRound:[{round,title,count,counts:{code,sql,theory}}], byBattle:[{…대전 머리말, wrongCount, stillWrongCount, wrongQuestions:[{id,num,prompt,type,stillWrong}]}]}` — byRound 는 회차 순·오답 0 인 회차 제외, byBattle 은 최신 먼저 |
+| GET | `/api/me/wrong` | `?type=&lang=` (선택, 로그인 필수) | `{setKey:"wrong", title:"오답노트", type, lang, round:null, questions:[…공개 문항]}` |
+| GET | `/api/me/wrong` | `?round=<회차 id>[&type=][&lang=]` | 그 회차의 **현재 오답**만. `title:"오답노트 · 2024년 1회"`, `round` 는 회차 id / 없는 회차는 400 |
+| GET | `/api/me/wrong` | `?match=<매치 id>[&type=][&lang=]` | **그 대전에서 틀린 문항 전부**(지금은 맞힌 것 포함, 과거 스냅샷). `{…, title:"오답노트 · 대전 <방이름>", match, battle:{…아래 대전 머리말}, resolvedIds:[지금은 오답이 아닌 id], questions}` / 정수가 아닌 값 400 / 내 대전이 아니거나 없는 id 404 |
+| GET | `/api/me/wrong/summary` | – (로그인 필수) | `{total, byRound:[{round,title,count,counts:{code,sql,theory},langs:{c,java,python}}], byBattle:[{…대전 머리말, wrongCount, stillWrongCount, wrongQuestions:[{id,num,prompt,type,lang,stillWrong}]}]}` — byRound 는 회차 순·오답 0 인 회차 제외, byBattle 은 최신 먼저 |
+| GET | `/api/me/wrong/explain` | `?ids=<qid,qid,…>` 1~50개 (로그인 필수) | `{explanations:{qid:{display,html}}}` — **채점 전 비노출의 유일한 예외**. 사용자가 이미 채점 기록을 가진 문항만 담고 나머지는 조용히 생략한다(403 아님). 비로그인 401 / ids 가 비었거나 50개 초과면 400 |
 | POST | `/api/reports` | `{questionId, myAnswer, comment}` | `{ok:true}` → `data/reports.json` 적재 |
-| POST | `/api/rooms` | `{name, mode:"round"\|"random", roundIds[], questionCount(5\|10\|20, random만), type?:"code"\|"sql"\|"theory", timeLimitS(600\|1200\|1800), inviteUserIds?:number[](최대 8, 생성자·정수 아닌 값 무시)}` | `{roomId}` |
-| GET | `/api/rooms` | – | `[{roomId,name,host,playerCount,mode,state,questionCount,type,timeLimitS}]` (waiting 이면서 참가자 1명 이상인 방만 — 전원 퇴장 후 GC 유예 중인 빈 방은 제외) |
+| POST | `/api/rooms` | `{name, mode:"round"\|"random", roundIds[], questionCount(5\|10\|20, random만), type?:"code"\|"sql"\|"theory", lang?:"c"\|"java"\|"python", timeLimitS(600\|1200\|1800), inviteUserIds?:number[](최대 8, 생성자·정수 아닌 값 무시)}` | `{roomId}` |
+| GET | `/api/rooms` | – | `[{roomId,name,host,playerCount,mode,state,questionCount,type,lang,timeLimitS}]` (waiting 이면서 참가자 1명 이상인 방만 — 전원 퇴장 후 GC 유예 중인 빈 방은 제외) |
 | GET | `/api/ranking` | – | `[{rank,userId,nickname,wins,draws,losses,points}]` |
 
 **에러 규약**: REST 는 400 `{error:"사유"}` (잘못된 설정값, **선택 회차의 유효 문항 총합 < questionCount**),
@@ -49,11 +50,12 @@
 `byBattle` 에서만 빠지고 **회차별 집계·`wrongCount` 에는 그대로 든다** — `scripts/backfill-battle-notes.mjs` 가 소급해 채운다.
 소유권 검사는 "내가 참가한 매치만 조회"로 끝난다 — 남의 매치 id 는 존재 여부조차 알리지 않고 404 다.
 `stillWrong`·`resolvedIds` 는 **정오 이력**이지 정답 정보가 아니며, 문항은 여전히 `publicQuestion()` 화이트리스트로만 나간다
-(`/api/me/wrong/summary` 의 `wrongQuestions` 는 `id`·`num`·`prompt`·`type` 만 싣는 더 좁은 목록이다).
+(`/api/me/wrong/summary` 의 `wrongQuestions` 는 `id`·`num`·`prompt`·`type`·`lang` 만 싣는 더 좁은 목록이다).
 
 **치팅 방어**: `/api/rounds/:id` 와 `battle:questions` 페이로드에서 `accept`·`sampleAnswer`·`validator`·`display`
 를 **반드시 제거**한다. `fields` 는 `{label}` 만 남긴다. 채점은 서버에서만 한다.
-`bodyText`(지문 평문)·`type`(문항 유형) 은 정답 정보가 아니므로 `battle:questions` 에는 포함한다(각각 결과 화면 AI 질문 복사용·유형 뱃지용).
+`bodyText`(지문 평문)·`type`(문항 유형)·`lang`(코드 문항 언어) 은 정답 정보가 아니므로 `battle:questions` 에는 포함한다
+(각각 결과 화면 AI 질문 복사용·유형 뱃지용·언어 뱃지용).
 `/api/rounds/:id` 는 학습 모드 채점 응답의 `bodyTexts` 맵으로 채점 후에만 내보낸다. `sourceImages` 는 어느 쪽에도 보내지 않는다.
 회차 id 는 **인메모리 화이트리스트**로 검사해 경로 순회를 차단한다.
 
@@ -87,6 +89,36 @@
 - **대전은 방 생성 시 1회만** 필터한다. 양쪽이 같은 문항을 봐야 하므로 진행 중 변경은 없고,
   `room:state`·`battle:resync` 의 `settings.type` 과 `GET /api/rooms` 행의 `type` 으로 표시만 한다(전체면 `null`).
 
+### 문항 언어 필터 (동결)
+
+언어 분류(`data/langs/*.json`, SCHEMA.md)는 서버가 기동 시(유형을 붙인 뒤에) 문항 객체에 `lang` 으로 붙인다.
+값은 `c` / `java` / `python` **셋뿐**이고, **코드 유형 문항에만** 붙는다 — 비코드·미분류 문항의 `lang` 은 `null` 이다.
+유형과 달리 기본값이 없다.
+
+**`lang` 도 정답 정보가 아니다.** `type` 과 똑같이 `publicQuestion()` 화이트리스트에 올라가 채점 전에도 나간다.
+
+**파라미터 규칙 (다섯 곳 공통 — `type` 과 나란히 쓴다)**
+
+| 경로 | 자리 |
+|---|---|
+| `GET /api/rounds/:id` | 쿼리 `?lang=` |
+| `POST /api/rounds/:id/grade` | 본문 `lang` — **그 부분집합만 채점**. `totalCount`·`score`·`details`·`bodyTexts`·`explanations`·`study_results.question_ids` 가 전부 언어 부분집합 기준이다. 언어로 좁혀 푼 세트를 코드 전체로 채점하면 분모가 어긋나므로 **프런트는 푼 것과 같은 `type`·`lang` 을 그대로 보내야 한다** |
+| `GET /api/practice` | 쿼리 `?lang=` (출제 풀을 먼저 좁힌다) |
+| `GET /api/me/wrong` | 쿼리 `?lang=` (`?round=`·`?match=` 하위 뷰에도 그대로 겹쳐 걸린다) |
+| `POST /api/rooms` | 본문 `lang` (**방 생성 시 1회만**, `settings.lang` 으로 보존) |
+
+- **언어는 코드 문항에만 있다.** `lang` 이 오면 `type` 은 생략이거나 `"code"` 여야 한다 —
+  그 밖이면 **400** `{error:"lang 은 코드 문항에만 쓸 수 있습니다."}`.
+- **`lang` 만 오면 `type=code` 로 간주**한다. 응답의 `type` 은 `"code"` 로 에코된다.
+- **미지정·빈 값·`"all"` = 전체**(응답의 `lang` 은 `null`). 값 주위 공백은 무시한다.
+- 그 밖의 값(`Java`, `js`, 비문자열 …)은 **400** `{error:"언어는 c/java/python 중 하나여야 합니다."}`.
+- 필터 결과가 **0문항**이면 400 `{error:"해당 언어의 문항이 없습니다."}` — 적용 범위는 유형 필터와 같다
+  (`GET /api/me/wrong` 은 빈 목록을 200 으로 돌려주는 예외, `GET /api/practice` 는 기존 사유로 400).
+- `GET /api/rounds` 목록 항목의 `langs:{c,java,python}` 는 그 회차 **코드 문항**의 언어별 개수다.
+  합계는 `counts.code` 이하다(미분류 코드 문항만큼 모자랄 수 있다) — 프런트의 언어 칩 비활성 판단에 쓴다.
+- **대전은 방 생성 시 1회만** 필터한다. `room:state`·`battle:resync` 의 `settings.lang` 과
+  `GET /api/rooms` 행의 `lang` 으로 표시만 한다(전체면 `null`).
+
 ### 해설 — 채점 전 비노출 (동결)
 
 문항 해설(`data/explanations/*.json`, SCHEMA.md)은 정답을 그대로 서술한다. 서버는 기동 시 이를 읽어
@@ -94,11 +126,19 @@
 
 - **나가지 않는 곳**: `GET /api/rounds/:id`, `GET /api/practice`, `GET /api/me/wrong`(`?round=`·`?match=` 포함),
   `GET /api/me/wrong/summary`, `battle:questions`, `battle:resync`, `battle:marks` — 전부 `publicQuestion()`
-  화이트리스트(요약은 `id`·`num`·`prompt`·`type` 만 싣는 더 좁은 목록)를 거치므로 `explanationHtml` 은 구조적으로 실리지 않는다.
+  화이트리스트(요약은 `id`·`num`·`prompt`·`type`·`lang` 만 싣는 더 좁은 목록)를 거치므로 `explanationHtml` 은 구조적으로 실리지 않는다.
 - **나가는 곳(채점 후에만)**:
   - `POST /api/rounds/:id/grade` · `POST /api/practice/grade` → 최상위 `explanations: {qid: html}`
     (`bodyTexts` 와 같은 패턴. 해설이 없는 문항은 **빈 문자열**이므로 키는 언제나 전 문항을 덮는다)
   - `battle:finished` → 최상위 `explanations: {qid: html}` (수신자와 무관하게 **모두 같은 맵**)
+- **예외(오답노트 전용)**: 이미 채점 기록이 있는 문항의 정답·해설은 오답노트에서 채점 전에도
+  `GET /api/me/wrong/explain` 으로 조회 가능 — 서버가 사용자의 채점 이력으로 권한 검사.
+  판정 기준은 그 사용자의 `study_results` 각 행 `question_ids` 의 합집합
+  (`wrongSetFromRows` 의 decided 집합과 **같은 규칙**, `question_ids` 가 없는 예전 행은 제외).
+  오답노트에 뜨는 문항은 정의상 이미 채점받은 문항이므로 새로 새는 정보가 없다.
+  이 경로에서만 `display`(정답 표기)도 채점 전에 나간다. 권한이 없거나 없는 문항 id 는
+  **조용히 생략**한다 — 403 을 주면 "그 문항이 존재하는가"가 새기 때문이다.
+  **이 한 경로 말고는** 어떤 경로로도 채점 전 해설·`display` 가 나가지 않는다.
 
 프런트는 채점 결과에서만 이 맵을 읽어 "해설 보기" 토글로 `.explain-box` 에 `innerHTML` 로 넣는다 —
 서버가 `validate:explain` 으로 태그 화이트리스트를 강제한 신뢰 마크업이기 때문이다.
@@ -126,9 +166,9 @@
 | `room:join` | C→S | `{roomId}` — waiting 상태에서만 허용 |
 | `room:leave` | C→S | `{}` |
 | `room:start` | C→S | `{}` — 방장 소켓 + 2인 이상 검증 |
-| `room:invite` | S→C | `{roomId, name, fromUserId, fromNickname, settings:{mode, roundIds, questionCount, type, timeLimitS}}` — `POST /api/rooms` 의 `inviteUserIds` 중 **지금 소켓이 붙어 있는** 대상에게 1회 배달. 상태를 만들지 않으며(보관·재시도 없음) 받은 쪽이 `room:join` 을 보내야 참가다 |
-| `room:state` | S→C | `{state, players:[{userId,nickname,connected}], settings:{roomId,name,hostUserId,mode,roundIds,questionCount,type,timeLimitS}}` — 방 상태 변경 시 브로드캐스트. `settings.type` 은 방 생성 시 고정된 유형(전체면 `null`) |
-| `battle:questions` | S→C | `{questions[](정답·sampleAnswer 제외, 각 문항에 `type` 포함), deadlineInfo}` — countdown 종료 시 |
+| `room:invite` | S→C | `{roomId, name, fromUserId, fromNickname, settings:{mode, roundIds, questionCount, type, lang, timeLimitS}}` — `POST /api/rooms` 의 `inviteUserIds` 중 **지금 소켓이 붙어 있는** 대상에게 1회 배달. 상태를 만들지 않으며(보관·재시도 없음) 받은 쪽이 `room:join` 을 보내야 참가다 |
+| `room:state` | S→C | `{state, players:[{userId,nickname,connected}], settings:{roomId,name,hostUserId,mode,roundIds,questionCount,type,lang,timeLimitS}}` — 방 상태 변경 시 브로드캐스트. `settings.type`·`settings.lang` 은 방 생성 시 고정된 유형·언어(전체면 `null`) |
+| `battle:questions` | S→C | `{questions[](정답·sampleAnswer 제외, 각 문항에 `type`·`lang` 포함), deadlineInfo}` — countdown 종료 시 |
 | `battle:answer` | C→S | `{questionId, fieldIndex, value}` — 서버가 실시간 보관(제출 아님) |
 | `battle:progress` | S→C | `{userId, answeredCount}` — 400ms 디바운스 브로드캐스트, **정오 비공개** |
 | `battle:submit` | C→S | `{}` — **명시적·비가역**. 서버가 submitted_at 기록, 이후 `battle:answer` 거부 |

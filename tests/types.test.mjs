@@ -80,7 +80,7 @@ describe('유형 값 계약 — code | sql | theory 셋뿐', () => {
 describe('publicQuestion — type 은 나가고 정답 계열은 막힌다', () => {
   test('rounds.publicQuestion 화이트리스트에 type 이 있다', () => {
     const pub = rounds.publicQuestion(question('2026-2#1', 1, 'code'));
-    assert.deepEqual(Object.keys(pub).sort(), ['bodyHtml', 'fields', 'id', 'num', 'prompt', 'type']);
+    assert.deepEqual(Object.keys(pub).sort(), ['bodyHtml', 'fields', 'id', 'lang', 'num', 'prompt', 'type']);
     assert.equal(pub.type, 'code');
     // type 이 늘어나도 정답 계열은 여전히 구조적으로 빠진다
     assert.equal(JSON.stringify(pub).includes('결합도'), false);
@@ -91,7 +91,7 @@ describe('publicQuestion — type 은 나가고 정답 계열은 막힌다', () 
     const pub = battle.publicQuestion(question('2026-2#1', 1, 'sql'));
     assert.deepEqual(
       Object.keys(pub).sort(),
-      ['answerMode', 'bodyHtml', 'bodyText', 'fields', 'id', 'num', 'prompt', 'type']
+      ['answerMode', 'bodyHtml', 'bodyText', 'fields', 'id', 'lang', 'num', 'prompt', 'type']
     );
     assert.equal(pub.type, 'sql');
     assert.equal('explanationHtml' in pub, false);
@@ -319,7 +319,7 @@ describe('GET /api/rounds/:id?type=', () => {
     assert.equal(r.json.type, null);
     assert.equal(r.json.questions.length, 20);
     for (const q of r.json.questions) {
-      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'num', 'prompt', 'type']);
+      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'lang', 'num', 'prompt', 'type']);
       assert.equal(isValidType(q.type), true, q.id);
     }
   });
@@ -419,7 +419,7 @@ describe('GET /api/practice?type=', () => {
     assert.equal(r.json.questions.length, 5);
     for (const q of r.json.questions) {
       assert.equal(q.type, 'sql', q.id);
-      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'num', 'prompt', 'type']);
+      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'lang', 'num', 'prompt', 'type']);
     }
   });
 

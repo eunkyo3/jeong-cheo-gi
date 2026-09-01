@@ -93,7 +93,7 @@ describe('GET /api/practice', () => {
 
     for (const q of r.json.questions) {
       // 공개 문항의 키 집합을 못박는다 — accept/sampleAnswer/validator/display/bodyText 유출 차단
-      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'num', 'prompt', 'type']);
+      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'lang', 'num', 'prompt', 'type']);
       for (const f of q.fields) assert.deepEqual(Object.keys(f), ['label']);
     }
   });
@@ -181,7 +181,7 @@ describe('학습 이력 · 오답노트', () => {
     assert.equal(w.json.questions.length, TOTAL - 1);
     assert.ok(!w.json.questions.some((q) => q.id === ROUND.questions[0].id)); // 맞힌 문항은 빠진다
     for (const q of w.json.questions) {
-      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'num', 'prompt', 'type']);
+      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'lang', 'num', 'prompt', 'type']);
     }
 
     // 오답노트를 전부 맞히면 비워진다
@@ -285,7 +285,7 @@ describe('오답노트 허브 — GET /api/me/wrong/summary · ?round= · ?match
     assert.equal(b0.wrongQuestions.length, 2);
     for (const q of b0.wrongQuestions) {
       // 요약에도 정답 계열 필드는 없다 — 공개 필드 + 정오 이력뿐이다
-      assert.deepEqual(Object.keys(q).sort(), ['id', 'num', 'prompt', 'stillWrong', 'type']);
+      assert.deepEqual(Object.keys(q).sort(), ['id', 'lang', 'num', 'prompt', 'stillWrong', 'type']);
       assert.equal(q.stillWrong, true);
     }
   });
@@ -299,7 +299,7 @@ describe('오답노트 허브 — GET /api/me/wrong/summary · ?round= · ?match
     assert.equal(w.json.round, ROUND_ID);
     assert.equal(w.json.questions.length, 2);
     for (const q of w.json.questions) {
-      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'num', 'prompt', 'type']);
+      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'lang', 'num', 'prompt', 'type']);
     }
 
     // 유형 필터는 그 위에 겹쳐 걸린다
@@ -331,7 +331,7 @@ describe('오답노트 허브 — GET /api/me/wrong/summary · ?round= · ?match
     assert.equal(w.json.battle.result, 'lose');
     assert.deepEqual(w.json.battle.opponents, [{ nickname: '대전상대', correctCount: 4 }]);
     for (const q of w.json.questions) {
-      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'num', 'prompt', 'type']);
+      assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'lang', 'num', 'prompt', 'type']);
     }
 
     // 유형 필터

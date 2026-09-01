@@ -422,6 +422,20 @@ function attach(ctx) {
       }
     }
 
+    // 언어 필터(선택). 언어는 코드 문항에만 있으므로 유형은 생략이거나 code 여야 한다(handoff C3).
+    // 언어만 오면 유형을 code 로 간주한다 — 아래 풀 구성이 유형 필터를 그대로 쓴다.
+    let lang = null;
+    if (body.lang != null && body.lang !== '' && body.lang !== 'all') {
+      lang = battle.normalizeLang(body.lang);
+      if (lang == null) {
+        return res.status(400).json({ error: '언어는 ' + battle.LANGS.join('/') + ' 중 하나여야 합니다.' });
+      }
+      if (type != null && type !== 'code') {
+        return res.status(400).json({ error: 'lang 은 코드 문항에만 쓸 수 있습니다.' });
+      }
+      type = 'code';
+    }
+
     const override = timeOverrideS();
     let timeLimitS = Number(body.timeLimitS);
     if (override != null) {
@@ -432,10 +446,10 @@ function attach(ctx) {
 
     const pools = roundIds.map(function (id) {
       const r = rounds.getRound(id);
-      return { round: r.round, questions: rounds.filterByType(r.questions, type) };
+      return { round: r.round, questions: rounds.filterByLang(rounds.filterByType(r.questions, type), lang) };
     });
-    if (type && pools.every(function (p) { return p.questions.length === 0; })) {
-      return res.status(400).json({ error: '해당 유형의 문항이 없습니다.' });
+    if ((type || lang) && pools.every(function (p) { return p.questions.length === 0; })) {
+      return res.status(400).json({ error: lang ? '해당 언어의 문항이 없습니다.' : '해당 유형의 문항이 없습니다.' });
     }
 
     const built = battle.buildQuestionSet({
@@ -468,13 +482,14 @@ function attach(ctx) {
       roundIds: roundIds,
       questionCount: questionCount,
       type: type,
+      lang: lang,
       timeLimitS: timeLimitS,
       questions: built.questions,
       at: Date.now(),
     });
     rooms.set(roomId, created.state);
     runEffects(created.effects);
-    log('battle', roomId, '방 생성', name, mode, type || '전체',
+    log('battle', roomId, '방 생성', name, mode, (type || '전체') + (lang ? '/' + lang : ''),
       built.questions.length + '문항', timeLimitS + '초', 'by ' + req.user.nickname);
 
     if (inviteUserIds.length > 0) {
@@ -489,6 +504,7 @@ function attach(ctx) {
           roundIds: roundIds,
           questionCount: built.questions.length,
           type: type,
+          lang: lang,
           timeLimitS: timeLimitS,
         },
       };
@@ -519,6 +535,7 @@ function attach(ctx) {
         state: state.state,
         questionCount: state.questionIds.length,
         type: state.type == null ? null : state.type,
+        lang: state.lang == null ? null : state.lang,
         timeLimitS: state.timeLimitS,
       });
     }

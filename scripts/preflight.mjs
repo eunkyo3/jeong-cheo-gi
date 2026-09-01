@@ -11,6 +11,10 @@
  *   ⑤ 커버리지 집계 data/PROGRESS.md + data/excluded.md 판독 (게이트 아님, 보고)
  *   ⑥ 해설 검증   node scripts/validate-explanations.mjs (전체 모드)
  *                 — data/explanations 에 json 이 하나도 없으면 집필 전이므로 SKIP
+ *   ⑦ 유형 검증   node scripts/validate-types.mjs (전체 모드)
+ *                 — data/types 에 json 이 하나도 없으면 분류 전이므로 SKIP
+ *   ⑧ 언어 검증   node scripts/validate-langs.mjs (전체 모드)
+ *                 — data/langs 에 json 이 하나도 없으면 분류 전이므로 SKIP
  *
  * 회차 파일이 20개 더 늘어나도 그대로 동작해야 하므로 현재 상태를 하나도 못박지 않는다.
  * 테스트 파일 목록도 회차 목록도 진행 표도 전부 **디스크에서 읽어** 센다.
@@ -28,6 +32,7 @@ const DATA_DIR = path.join(ROOT, 'data');
 const ROUNDS_DIR = path.join(DATA_DIR, 'rounds');
 const EXPLAIN_DIR = path.join(DATA_DIR, 'explanations');
 const TYPES_DIR = path.join(DATA_DIR, 'types');
+const LANGS_DIR = path.join(DATA_DIR, 'langs');
 const PROGRESS_FILE = path.join(DATA_DIR, 'PROGRESS.md');
 const EXCLUDED_FILE = path.join(DATA_DIR, 'excluded.md');
 
@@ -291,6 +296,25 @@ function main() {
     const r = run('⑦ 유형 검증', [path.join(ROOT, 'scripts', 'validate-types.mjs')]);
     results.push({ name: '⑦ 유형 검증', ok: r.ok, ms: r.ms, detail: r.detail });
     if (!r.ok) failed = '⑦ 유형 검증';
+  }
+
+  // ⑧ 언어 검증 — 코드 문항 언어 오버레이. ⑦ 과 같은 규칙(파일이 하나라도 있으면 전체 모드 게이트).
+  let langFiles = 0;
+  try {
+    langFiles = fs.readdirSync(LANGS_DIR).filter((f) => f.toLowerCase().endsWith('.json')).length;
+  } catch { /* 디렉터리 없음 = 0개 */ }
+
+  if (failed) {
+    results.push({ name: '⑧ 언어 검증', ok: null, ms: 0, detail: '미실행' });
+  } else if (langFiles === 0) {
+    console.log('');
+    console.log('=== ⑧ 언어 검증 ===');
+    console.log('    data/langs/*.json 이 0개 — 분류 전이므로 건너뜁니다.');
+    results.push({ name: '⑧ 언어 검증', ok: null, ms: 0, detail: '분류 파일 0개 — 건너뜀' });
+  } else {
+    const r = run('⑧ 언어 검증', [path.join(ROOT, 'scripts', 'validate-langs.mjs')]);
+    results.push({ name: '⑧ 언어 검증', ok: r.ok, ms: r.ms, detail: r.detail });
+    if (!r.ok) failed = '⑧ 언어 검증';
   }
 
   // ------------------------------------------------------------- 요약 출력

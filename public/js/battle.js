@@ -46,6 +46,10 @@
   // 문항 유형 — 서버 계약(data/types/*.json)의 값 셋과 화면 표기.
   var TYPE_ORDER = ['code', 'sql', 'theory'];
   var TYPE_LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
+  // 코드 문항 언어 — 서버 계약(data/langs/*.json)의 값 셋과 화면 표기.
+  // `lang` 은 **코드 문항에만** 붙는다(비코드·미분류는 null). 정답 정보가 아니라 채점 전에도 나온다.
+  var LANGS = ['c', 'java', 'python'];
+  var LANG_LABEL = { c: 'C', java: 'Java', python: 'Python' };
   var TIME_CHOICES = [
     { v: 600, label: '10분' },
     { v: 1200, label: '20분' },
@@ -69,7 +73,9 @@
     roundList: [],        // [{round,title,questionCount}]
     roundsError: '',
     // form.type: '' = 전체 유형 (POST /api/rooms 에 아예 싣지 않는다)
-    form: { name: '', mode: 'round', roundIds: [], questionCount: 10, timeLimitS: 1200, type: '' },
+    // form.lang: '' = 전체 언어. 유형이 'code' 일 때만 고를 수 있고, 다른 유형을 고르면 비워진다
+    //            (서버 계약: lang 은 코드 문항에만 쓸 수 있다).
+    form: { name: '', mode: 'round', roundIds: [], questionCount: 10, timeLimitS: 1200, type: '', lang: '' },
     createError: '',
     creating: false,
     joiningRoomId: null,
@@ -200,10 +206,45 @@
     return TYPE_ORDER.indexOf(t) === -1 ? '' : t;
   }
 
+  /** 알 수 없는 값은 '' (= 전체) 로 떨어뜨린다 — normalizeType 과 같은 규칙이다. */
+  function normalizeLang(value) {
+    var l = String(value == null ? '' : value).trim().toLowerCase();
+    return LANGS.indexOf(l) === -1 ? '' : l;
+  }
+
   /** 유형 뱃지 (없는 유형이면 null → 뱃지 생략). */
   function typeBadge(type) {
     var t = normalizeType(type);
     return t ? h('span', { class: 'q-type ' + t, text: TYPE_LABEL[t] }) : null;
+  }
+
+  /** 언어 뱃지 (코드 문항에만 붙는다 — 없으면 null → 뱃지 생략). */
+  function langBadge(lang) {
+    var l = normalizeLang(lang);
+    return l ? h('span', { class: 'q-lang ' + l, text: LANG_LABEL[l] }) : null;
+  }
+
+  /**
+   * "코드 · Python" 처럼 유형 옆에 언어를 붙인 한 줄 표기(방 목록·대기실 요약).
+   * 유형이 없으면 '' 를 돌려준다 — 부르는 쪽이 '전체' 등으로 대체한다.
+   */
+  function typeLangText(type, lang) {
+    var t = normalizeType(type);
+    if (!t) return '';
+    var l = normalizeLang(lang);
+    return TYPE_LABEL[t] + (l ? ' · ' + LANG_LABEL[l] : '');
+  }
+
+  /**
+   * 문항 본문 노드의 `pre.code` 들여쓰기를 표시 시점에 정규화한다(요구 1).
+   * 원본 데이터(data/rounds/*.json)는 건드리지 않는다 — 화면에 넣기 직전에만 손본다.
+   * codefmt.js 가 없거나 던져도 조용히 원본 그대로 둔다(표시 실패는 무해하다).
+   * **카드를 만드는 시점에만** 부른다 — 입력 이벤트에서 카드를 다시 만들지 않는다는 규칙(IME 보호)은 그대로다.
+   */
+  function applyCodeFmt(node, lang) {
+    if (!node || !window.CodeFmt || typeof window.CodeFmt.applyTo !== 'function') return node;
+    try { window.CodeFmt.applyTo(node, normalizeLang(lang) || null); } catch (e) { /* 원본 유지 */ }
+    return node;
   }
 
   /**
@@ -229,11 +270,12 @@
   }
 
   /**
-   * 문항 카드 우상단 뱃지 줄 — 유형 + 출처 회차. 둘 다 없으면 줄 자체를 만들지 않는다.
+   * 문항 카드 우상단 뱃지 줄 — 유형 (+ 언어) + 출처 회차. 전부 없으면 줄 자체를 만들지 않는다.
+   * 언어 뱃지는 코드 문항에만 붙고 유형 뱃지 바로 옆에 선다.
    * 뱃지는 문항이 정해지면 변하지 않는다 — 패널 key 에 새로 넣을 값이 없다.
    */
-  function badgeRow(type, qid) {
-    var kids = [typeBadge(type), originBadge(qid)].filter(Boolean);
+  function badgeRow(type, qid, lang) {
+    var kids = [typeBadge(type), langBadge(lang), originBadge(qid)].filter(Boolean);
     return kids.length ? h('div', { class: 'q-badges' }, kids) : null;
   }
 
@@ -649,6 +691,7 @@
           state.form.questionCount,
           state.form.timeLimitS,
           state.form.type,
+          state.form.lang,
           state.roundList.length,
           state.roundsError,
           state.createError,
@@ -674,8 +717,11 @@
         var meta = ['방장 ' + host, (r.playerCount || 0) + '명', MODE_LABEL[r.mode] || r.mode || ''];
         if (r.questionCount) meta.push(r.questionCount + '문항');
         // 유형 필터가 걸린 방만 표기한다 (없으면 전체 출제 — 굳이 적지 않는다).
+        // 언어가 함께 걸린 코드 방은 "코드 · Python" 으로 한 칸에 붙여 쓴다.
         var rType = normalizeType(r.type || (r.settings && r.settings.type));
-        if (rType) meta.push(TYPE_LABEL[rType]);
+        var rLang = normalizeLang(r.lang || (r.settings && r.settings.lang));
+        var typeText = typeLangText(rType, rLang);
+        if (typeText) meta.push(typeText);
         if (r.timeLimitS) meta.push(Math.round(r.timeLimitS / 60) + '분');
         return h('div', { class: 'room' }, [
           h('span', { class: 'rname', text: r.name || '(이름 없음)' }),
@@ -888,12 +934,37 @@
         return h('label', { class: 'chip' + (f.type === o.v ? ' on' : ''), 'data-type': o.v || 'all' }, [
           h('input', {
             type: 'radio', name: 'qtype', checked: f.type === o.v,
-            onchange: function () { f.type = o.v; state.createError = ''; render(); },
+            onchange: function () {
+              f.type = o.v;
+              // 언어는 코드 문항 전용이다 — 다른 유형을 고르면 남아 있던 선택을 비운다.
+              if (o.v !== 'code') f.lang = '';
+              state.createError = '';
+              render();
+            },
           }),
           h('span', { text: o.label }),
         ]);
       })),
     ]));
+
+    // 언어 — 유형이 '코드' 일 때만 나온다(다른 유형에서는 줄 자체가 없다).
+    // 전체면 서버에 싣지 않는다 — 구버전 서버와도 그대로 호환된다.
+    if (f.type === 'code') {
+      tail.push(h('div', { class: 'field' }, [
+        h('span', { class: 'flabel', text: '언어' }),
+        h('div', { class: 'radiorow' }, [{ v: '', label: '전체' }].concat(LANGS.map(function (l) {
+          return { v: l, label: LANG_LABEL[l] };
+        })).map(function (o) {
+          return h('label', { class: 'chip' + (f.lang === o.v ? ' on' : ''), 'data-lang': o.v || 'all' }, [
+            h('input', {
+              type: 'radio', name: 'qlang', checked: f.lang === o.v,
+              onchange: function () { f.lang = o.v; state.createError = ''; render(); },
+            }),
+            h('span', { text: o.label }),
+          ]);
+        })),
+      ]));
+    }
 
     tail.push(h('div', { class: 'field' }, [
       h('span', { class: 'flabel', text: '제한 시간' }),
@@ -990,7 +1061,8 @@
         h('div', {}, [h('b', { text: '모드 ' }), MODE_LABEL[s.mode] || s.mode || '-']),
         h('div', {}, [h('b', { text: '회차 ' }), roundBlock]),
         h('div', {}, [h('b', { text: '문항 수 ' }), (s.questionCount || 0) + '문항']),
-        h('div', {}, [h('b', { text: '문항 유형 ' }), TYPE_LABEL[normalizeType(s.type)] || '전체']),
+        // 언어가 걸린 코드 방은 "코드 · Python" 으로 함께 보여 준다(전체면 '전체').
+        h('div', {}, [h('b', { text: '문항 유형 ' }), typeLangText(s.type, s.lang) || '전체']),
         h('div', {}, [h('b', { text: '제한 시간 ' }), Math.round((s.timeLimitS || 0) / 60) + '분']),
       ]),
     ]));
@@ -1197,10 +1269,12 @@
       ]);
     });
 
-    var body = q.bodyHtml ? h('div', { html: q.bodyHtml }) : null;
+    // 본문을 만든 **직후** 코드 들여쓰기를 정규화한다(요구 1). 카드 생성 시점 1회뿐이라
+    // 입력 이벤트로 재렌더가 일어나지 않는 규칙(IME 보호)에 영향을 주지 않는다.
+    var body = q.bodyHtml ? applyCodeFmt(h('div', { html: q.bodyHtml }), q.lang) : null;
 
     return h('div', { class: 'q' + (readOnly ? ' readonly' : '') }, [
-      badgeRow(q.type, q.id),
+      badgeRow(q.type, q.id, q.lang),
       h('div', { class: 'qtitle' }, [
         h('span', { class: 'num', text: String(displayNum(q, idx)) }),
         h('span', { html: q.prompt || '' }), // 서버 자산의 신뢰 마크업
@@ -1436,8 +1510,9 @@
       inviteUserIds: others,
     };
     if (s.mode === 'random') body.questionCount = s.questionCount;
-    // 같은 설정으로 다시 — 유형 필터도 그대로 이어간다.
+    // 같은 설정으로 다시 — 유형·언어 필터도 그대로 이어간다.
     if (normalizeType(s.type)) body.type = normalizeType(s.type);
+    if (normalizeType(s.type) === 'code' && normalizeLang(s.lang)) body.lang = normalizeLang(s.lang);
 
     state.rematching = true;
     render();
@@ -1522,13 +1597,16 @@
       ]);
     });
 
+    // 결과 상세 카드의 본문도 문항 카드와 같은 규칙으로 들여쓰기를 정규화한다(요구 1).
+    var body = q && q.bodyHtml ? applyCodeFmt(h('div', { html: q.bodyHtml }), q.lang) : null;
+
     var kids = [
-      badgeRow(q && q.type, qid),
+      badgeRow(q && q.type, qid, q && q.lang),
       h('div', { class: 'qtitle' }, [
         h('span', { class: 'num', text: q && qIdx >= 0 ? String(displayNum(q, qIdx)) : '?' }),
         h('span', { html: q ? (q.prompt || '') : qid }),
       ]),
-      q && q.bodyHtml ? h('div', { html: q.bodyHtml }) : null,
+      body,
       rows,
       opponentRows(qid),
       h('div', { class: 'feedback' }, [
@@ -1541,7 +1619,8 @@
     var explainHtml = explanationOf(qid);
     if (explainHtml && state.showExplain[qid]) {
       // 서버가 검증(validate:explain)해서 내려주는 신뢰 마크업이다 — 화이트리스트 태그만 들어 있다.
-      kids.push(h('div', { class: 'explain-box', html: explainHtml }));
+      // 해설도 본문과 같은 코드 블록(pre.code)을 품을 수 있으므로 같은 규칙으로 들여쓰기를 정규화한다(요구 1).
+      kids.push(applyCodeFmt(h('div', { class: 'explain-box', html: explainHtml }), q && q.lang));
     }
 
     var actions = [];
@@ -1764,6 +1843,8 @@
     if (f.mode === 'random') body.questionCount = f.questionCount;
     // 전체 유형이면 아예 싣지 않는다 (구버전 서버와도 그대로 호환된다).
     if (normalizeType(f.type)) body.type = normalizeType(f.type);
+    // 언어도 같은 규칙 — 코드 유형 + 특정 언어일 때만 싣는다(lang 은 코드 문항 전용이다).
+    if (normalizeType(f.type) === 'code' && normalizeLang(f.lang)) body.lang = normalizeLang(f.lang);
 
     state.creating = true;
     state.createError = '';

@@ -34,6 +34,15 @@
   // 문항 유형 — 서버 계약(data/types/*.json)의 값 셋과 화면 표기.
   var TYPE_ORDER = ['code', 'sql', 'theory'];
   var TYPE_LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
+  // 코드 문항 언어 — 서버 계약(data/langs/*.json)의 값 셋과 화면 표기.
+  // 언어는 **코드 유형에만** 있는 축이다 (lang 이 오면 type 은 생략이거나 code 여야 한다).
+  var LANGS = ['c', 'java', 'python'];
+  var LANG_LABEL = { c: 'C', java: 'Java', python: 'Python' };
+  // 오답노트 즉시 해설 — 한 번에 물어볼 수 있는 문항 수 상한 (서버 계약: ids 는 1~50개).
+  var PEEK_CHUNK = 50;
+  // 서버가 조용히 생략한 문항 = 그 사용자의 채점 기록에 없다 (403 이 아니라 응답에서 빠진다).
+  var PEEK_DENIED = '이 문항의 해설을 볼 권한이 없습니다.';
+  var WRONG_AUTH_MESSAGE = '로그인이 필요합니다. 오답노트는 로그인한 사용자의 채점 기록으로 만들어집니다.';
   // 대전 오답 보기의 부제에 쓰는 승패 표기 (battle.js 결과 화면과 같은 말).
   var RESULT_LABEL = { win: '승', lose: '패', draw: '무' };
 
@@ -46,7 +55,9 @@
     battle: null,     // match 보기에서 서버가 주는 {roomName,finishedAt,opponents,me,questionCount,result}
     resolvedIds: {},  // qid -> true (그 대전에서는 틀렸지만 지금은 오답이 아닌 문항)
     typeFilter: '',   // '' | 'code' | 'sql' | 'theory' — 쿼리스트링 ?type= 에서 온다
+    langFilter: '',   // '' | 'c' | 'java' | 'python' — 쿼리스트링 ?lang= (코드 유형에서만 의미가 있다)
     roundCounts: null, // {code,sql,theory} — 회차 모드에서만. 0문항 유형 칩을 비활성화하는 데 쓴다
+    roundLangs: null, // {c,java,python} — 회차 모드에서만. 0문항 언어 칩을 비활성화하는 데 쓴다
     practiceRounds: 'all', // mode==='practice' 일 때 필터 링크를 다시 만들기 위해 보관
     practiceCount: '20',
     round: null,      // {round,title,sourceUrl,questions[]}
@@ -54,6 +65,13 @@
     result: null,     // {correctCount,totalCount,score,details[],bodyTexts{},explanations{}}
     submitting: false,
     showExplain: {},  // qid -> true (해설 펼침 — 채점 후에만 의미 있다)
+    // 오답노트 즉시 해설(채점 **전**) — GET /api/me/wrong/explain 으로 받아 캐시한다.
+    // 여기 들어 있는 문항은 사용자가 이미 채점받은 문항뿐이다 (서버가 이력으로 권한을 검사한다).
+    peek: {},         // qid -> {display, html} — 서버가 실제로 내려준 문항만 들어간다
+    peekDenied: {},   // qid -> true (서버가 조용히 생략 = 채점 기록 없음). 빈 해설로 캐시하지 않는다
+    peekOpen: {},     // qid -> true (그 카드의 정답·해설 펼침)
+    peekLoading: {},  // qid -> true (그 카드만 불러오는 중)
+    peekAllLoading: false, // "해설 모두 펼치기" 가 도는 중
     // 이의 제기 인라인 상자 (battle.js 와 같은 모양)
     reportOpen: {},   // qid -> true
     reportText: {},   // qid -> string
@@ -177,6 +195,24 @@
     return TYPE_ORDER.indexOf(t) === -1 ? '' : t;
   }
 
+  /** normalizeType 과 같은 규칙 — 알 수 없는 값(비코드 문항의 null 포함)은 ''. */
+  function normalizeLang(value) {
+    var l = String(value == null ? '' : value).trim().toLowerCase();
+    return LANGS.indexOf(l) === -1 ? '' : l;
+  }
+
+  /**
+   * 원본 회차 데이터에는 탭·공백이 뒤섞인 코드 블록이 있다(2020~2021 회차). 데이터는 손대지 않고
+   * **보여 줄 때만** codefmt.js 로 정규화한다. 스크립트가 없는 서버·구버전에서도 원문 그대로 읽히면 되므로
+   * 없거나 던지면 조용히 넘어간다.
+   */
+  function applyCodeFmt(node, lang) {
+    if (!node || !window.CodeFmt || typeof window.CodeFmt.applyTo !== 'function') return;
+    try {
+      window.CodeFmt.applyTo(node, normalizeLang(lang) || null);
+    } catch (e) { /* 표시용 정규화다 — 실패하면 원문을 그대로 둔다 */ }
+  }
+
   function detailFor(questionId) {
     if (!state.result) return null;
     var list = state.result.details || [];
@@ -274,7 +310,8 @@
     var scope = wrongScope();
     return STORE_PREFIX + state.setKey
       + (scope ? ':' + scope : '')
-      + (state.typeFilter ? ':' + state.typeFilter : '');
+      + (state.typeFilter ? ':' + state.typeFilter : '')
+      + (state.langFilter ? ':' + state.langFilter : '');
   }
 
   function hasAnswers() {
@@ -601,7 +638,196 @@
     var box = el('div', 'explain-box');
     // 서버가 검증(validate:explain)해서 내려주는 신뢰 마크업이다 — 화이트리스트 태그만 들어 있다.
     box.innerHTML = html;
+    // 해설 안의 <pre class="code"> 도 같은 규칙으로 정돈한다 — 언어는 그 문항의 것을 쓴다.
+    applyCodeFmt(box, question.lang);
     card.appendChild(box);
+  }
+
+  // -------------------------------------------- 오답노트 즉시 해설 (채점 전)
+
+  /**
+   * 지금 화면에서 "채점 전 정답·해설 보기" 를 쓸 수 있는가.
+   * 오답노트(전체·회차·대전 하위 보기 모두)에서 **채점 전**에만 쓴다 —
+   * 채점 후에는 채점 응답의 explanations 를 쓰는 기존 흐름(renderExplain)이 이긴다.
+   */
+  function peekEligible() {
+    return !pageFailed && state.mode === 'wrong' && !state.result;
+  }
+
+  /**
+   * 세션이 끊긴 뒤(401) 도착하는 곳. 최초 로드 실패와 **같은 화면**(로그인 안내)으로 떨어진다 —
+   * 토스트만 띄우면 사용자는 왜 해설이 안 열리는지 알 수 없다.
+   */
+  function failWrongAuth() {
+    state.peekOpen = {};
+    state.peekLoading = {};
+    state.peekAllLoading = false;
+    fail(WRONG_AUTH_MESSAGE);
+  }
+
+  /** 지금 화면에 있는 문항 id 들 — "해설 모두 펼치기" 의 대상. */
+  function visibleQuestionIds() {
+    return ((state.round && state.round.questions) || []).map(function (q) { return q.id; });
+  }
+
+  /**
+   * 서버는 ids 를 한 번에 1~50개만 받는다. 요청 하나에 한 덩어리씩, 차례로 보낸다.
+   * 응답에서 빠진 문항(= 그 사용자의 채점 기록에 없는 문항)도 빈 값으로 캐시해 둔다 —
+   * 그래야 누를 때마다 같은 요청을 되풀이하지 않는다.
+   */
+  function fetchPeekChunk(ids, denied) {
+    var q = ids.map(function (id) { return encodeURIComponent(id); }).join(',');
+    return api.get('/api/me/wrong/explain?ids=' + q).then(function (data) {
+      var map = (data && data.explanations) || {};
+      ids.forEach(function (qid) {
+        var row = map[qid];
+        if (!row || typeof row !== 'object') {
+          // 서버가 조용히 생략했다 = 그 사용자의 채점 기록에 없는 문항.
+          // 빈 값으로 캐시하면 "해설이 아직 없습니다" 처럼 보인다 — 권한 없음으로만 기억하고
+          // (같은 요청을 되풀이하지 않도록) 부른 쪽에 알린다.
+          state.peekDenied[qid] = true;
+          denied.push(qid);
+          return;
+        }
+        state.peek[qid] = {
+          display: typeof row.display === 'string' ? row.display : '',
+          html: typeof row.html === 'string' ? row.html : '',
+        };
+      });
+    });
+  }
+
+  /** @returns {Promise<string[]>} 서버가 내려주지 않은(=권한 없는) 문항 id 들 */
+  function loadPeek(ids) {
+    var denied = [];
+    var chunks = [];
+    for (var i = 0; i < ids.length; i += PEEK_CHUNK) chunks.push(ids.slice(i, i + PEEK_CHUNK));
+    return chunks.reduce(function (p, chunk) {
+      return p.then(function () { return fetchPeekChunk(chunk, denied); });
+    }, Promise.resolve()).then(function () { return denied; });
+  }
+
+  function togglePeek(qid) {
+    // 일괄 펼치기가 도는 동안에는 같은 문항을 두 번 요청하지 않는다.
+    if (state.peekLoading[qid] || state.peekAllLoading) return;
+    if (state.peekOpen[qid]) {
+      state.peekOpen[qid] = false;
+      render();
+      return;
+    }
+    if (state.peekDenied[qid]) {    // 이미 "없다" 고 답을 들은 문항 — 다시 묻지 않는다
+      toast(PEEK_DENIED, 'bad');
+      return;
+    }
+    if (state.peek[qid]) {          // 이미 받아 둔 문항 — 왕복 없이 편다
+      state.peekOpen[qid] = true;
+      render();
+      return;
+    }
+    state.peekLoading[qid] = true;
+    render();
+    loadPeek([qid]).then(function (denied) {
+      state.peekLoading[qid] = false;
+      if (pageFailed) return;       // 그 사이 401 로 화면이 끝났다 — 늦게 온 응답은 버린다
+      if (denied.length) {
+        render();
+        toast(PEEK_DENIED, 'bad');
+        return;
+      }
+      state.peekOpen[qid] = true;
+      render();
+    }).catch(function (e) {
+      state.peekLoading[qid] = false;
+      if (pageFailed) return;       // 이미 로그인 안내 화면이다 — 그 위에 토스트를 겹치지 않는다
+      // 세션이 끊겼으면 최초 로드와 같은 로그인 안내 화면으로 보낸다.
+      if (e && e.status === 401) return failWrongAuth();
+      render();
+      toast(e && e.message ? e.message : '해설을 불러오지 못했습니다.', 'bad');
+    });
+  }
+
+  /**
+   * 채점 전 카드의 "정답·해설 보기" 버튼 + 펼쳐진 상자.
+   * 정답 한 줄(.feedback.peek)은 채점 피드백과 구분되는 중립 톤이다 — 아직 채점한 게 아니다.
+   */
+  function renderPeek(question, actions, card) {
+    var qid = question.id;
+    var loading = !!state.peekLoading[qid];
+    var open = !!state.peekOpen[qid];
+
+    var toggle = el('button', 'ghost',
+      loading ? '불러오는 중…' : (open ? '해설 닫기' : '정답·해설 보기'));
+    toggle.type = 'button';
+    // 일괄 펼치기가 도는 동안에는 개별 버튼도 잠가 중복 요청을 막는다.
+    toggle.disabled = loading || state.peekAllLoading;
+    toggle.setAttribute('data-peek', qid);
+    toggle.addEventListener('click', function () { togglePeek(qid); });
+    actions.appendChild(toggle);
+
+    if (!open) return;
+    var data = state.peek[qid];
+    if (!data) return;
+
+    var line = el('div', 'feedback peek');
+    line.appendChild(document.createTextNode('정답: '));
+    line.appendChild(el('b', null, data.display || '(정답 표기가 등록되어 있지 않습니다)'));
+    card.appendChild(line);
+
+    if (data.html) {
+      var box = el('div', 'explain-box');
+      // 채점 응답의 해설과 같은 신뢰 마크업이다 (서버가 validate:explain 으로 검증한다).
+      box.innerHTML = data.html;
+      applyCodeFmt(box, question.lang);
+      card.appendChild(box);
+    } else {
+      card.appendChild(el('p', 'muted peek-none', '해설이 아직 없습니다.'));
+    }
+  }
+
+  /** 받아 둔 문항만 편다 — 권한이 없어 못 받은 문항은 빈 상자를 열지 않는다. */
+  function openFetched(ids) {
+    ids.forEach(function (qid) { if (state.peek[qid]) state.peekOpen[qid] = true; });
+  }
+
+  function onPeekAll(allOpen, ids) {
+    if (state.peekAllLoading) return;
+    if (allOpen) {
+      ids.forEach(function (qid) { state.peekOpen[qid] = false; });
+      render();
+      return;
+    }
+    var missing = ids.filter(function (qid) {
+      // 개별 버튼으로 이미 요청이 나간 문항은 뺀다 — 같은 id 를 두 번 묻지 않는다.
+      // (그 요청이 끝나면 자기 자리에서 알아서 펼쳐진다.)
+      return !state.peek[qid] && !state.peekDenied[qid] && !state.peekLoading[qid];
+    });
+    if (!missing.length) {
+      openFetched(ids);
+      render();
+      // 보이는 문항이 전부 "권한 없음" 이면 화면이 아무 반응도 없는 것처럼 보인다 — 이유를 알린다.
+      var knownDenied = ids.filter(function (qid) { return state.peekDenied[qid]; });
+      if (knownDenied.length) {
+        toast(knownDenied.length + '개 문항은 해설을 볼 권한이 없습니다.', 'bad');
+      }
+      return;
+    }
+    state.peekAllLoading = true;
+    render();
+    loadPeek(missing).then(function (denied) {
+      state.peekAllLoading = false;
+      if (pageFailed) return;       // 401 로 화면이 끝난 뒤 도착 — 되살리지 않는다
+      openFetched(ids);
+      render();
+      if (denied.length) {
+        toast(denied.length + '개 문항은 해설을 볼 권한이 없습니다.', 'bad');
+      }
+    }).catch(function (e) {
+      state.peekAllLoading = false;
+      if (pageFailed) return;
+      if (e && e.status === 401) return failWrongAuth();
+      render();
+      toast(e && e.message ? e.message : '해설을 불러오지 못했습니다.', 'bad');
+    });
   }
 
   function renderReport(question, detail, actions, card) {
@@ -657,6 +883,7 @@
   var elTypeFilter = null;
   var elBattleSub = null;
   var hasSource = false;
+  var pageFailed = false;   // fail() 로 떨어진 화면인가 (문항이 없다)
 
   /**
    * 대전 오답 보기(?set=wrong&match=)의 부제 한 줄. study.html 에는 자리가 없으므로
@@ -715,9 +942,13 @@
     return elTypeFilter;
   }
 
-  /** 지금 출처를 그대로 두고 type 만 바꾼 학습 URL. 오답노트의 회차·대전 한정도 그대로 이어간다. */
-  function studyUrlForType(type) {
-    var tail = type ? '&type=' + encodeURIComponent(type) : '';
+  /**
+   * 지금 출처를 그대로 두고 type·lang 만 바꾼 학습 URL. 오답노트의 회차·대전 한정도 그대로 이어간다.
+   * `&lang=` 은 `&type=` 과 나란히 붙는다.
+   */
+  function studyUrl(type, lang) {
+    var tail = (type ? '&type=' + encodeURIComponent(type) : '')
+      + (lang ? '&lang=' + encodeURIComponent(lang) : '');
     if (state.mode === 'wrong') {
       var base = '/study.html?set=wrong';
       if (state.wrongMatch) base += '&match=' + encodeURIComponent(state.wrongMatch);
@@ -729,6 +960,25 @@
         + '&count=' + encodeURIComponent(state.practiceCount) + tail;
     }
     return '/study.html?round=' + encodeURIComponent(state.roundId) + tail;
+  }
+
+  /** 유형 칩 — 코드가 아닌 유형(‘전체’ 포함)으로 옮기면 언어 한정은 의미가 없으므로 버린다. */
+  function studyUrlForType(type) {
+    return studyUrl(type, type === 'code' ? state.langFilter : '');
+  }
+
+  /** 언어 칩 — 언어 줄은 코드 유형에서만 보이므로 type 은 항상 code 로 고정한다. */
+  function studyUrlForLang(lang) {
+    return studyUrl('code', lang);
+  }
+
+  /**
+   * 지금 화면에 걸린 유형. `?lang=` 만 있는 주소는 코드 유형으로 본다
+   * (서버 계약: lang 만 오면 type=code 로 간주). parseSource 가 이미 맞춰 두지만,
+   * 판정을 한 곳에 모아 둔다.
+   */
+  function effectiveType() {
+    return state.typeFilter || (state.langFilter ? 'code' : '');
   }
 
   /**
@@ -755,8 +1005,9 @@
     var options = [{ value: '', label: '전체' }];
     TYPE_ORDER.forEach(function (t) { options.push({ value: t, label: TYPE_LABEL[t] }); });
 
+    var current = effectiveType();
     options.forEach(function (opt) {
-      var on = state.typeFilter === opt.value;
+      var on = current === opt.value;
       var empty = typeIsEmpty(opt.value);
       var btn = el('button', 'chip' + (on ? ' on' : '') + (empty ? ' empty' : ''), opt.label);
       btn.type = 'button';
@@ -770,6 +1021,117 @@
       });
       node.appendChild(btn);
     });
+
+    // 유형 줄 아래에 딸린 두 줄 — 언어 칩(코드일 때만)과 오답노트 해설 일괄 펼치기.
+    renderLangFilter();
+    renderPeekBar();
+  }
+
+  // ------------------------------------------------------------- 언어 필터
+
+  var elLangFilter = null;
+
+  function ensureLangFilterNode() {
+    if (elLangFilter) return elLangFilter;
+    var after = ensureTypeFilterNode();
+    if (!after || !after.parentNode) return null;
+    elLangFilter = el('div', 'type-filter lang-filter');
+    elLangFilter.id = 'langFilter';
+    after.parentNode.insertBefore(elLangFilter, after.nextSibling);
+    return elLangFilter;
+  }
+
+  /**
+   * 이 회차에 그 언어의 코드 문항이 0개인가.
+   * typeIsEmpty 와 같은 규칙 — `state.roundLangs` 는 회차 모드에서 /api/rounds 가 langs 를 줄 때만 찬다.
+   */
+  function langIsEmpty(lang) {
+    if (!lang || !state.roundLangs) return false;
+    return Number(state.roundLangs[lang]) === 0;
+  }
+
+  /**
+   * 언어 필터(전체/C/Java/Python). 코드 유형을 보고 있을 때만 유형 줄 아래에 한 줄 더 붙인다.
+   * 유형 칩과 같은 동작이다 — 누르면 `lang=` 만 바꿔 다시 로드하고, 채점 후에는 비활성.
+   */
+  function renderLangFilter() {
+    if (!hasSource) return;
+    var node = ensureLangFilterNode();
+    if (!node) return;
+    node.textContent = '';
+    if (effectiveType() !== 'code') {   // 언어는 코드 문항에만 있는 축이다
+      node.hidden = true;
+      return;
+    }
+    node.hidden = false;
+
+    var graded = !!state.result;
+    node.appendChild(el('span', 'type-filter-label', '언어'));
+
+    var options = [{ value: '', label: '전체' }];
+    LANGS.forEach(function (l) { options.push({ value: l, label: LANG_LABEL[l] }); });
+
+    options.forEach(function (opt) {
+      var on = state.langFilter === opt.value;
+      var empty = langIsEmpty(opt.value);
+      var btn = el('button', 'chip' + (on ? ' on' : '') + (empty ? ' empty' : ''), opt.label);
+      btn.type = 'button';
+      btn.setAttribute('data-lang', opt.value || 'all');
+      btn.disabled = graded || empty;
+      if (empty) btn.title = '이 회차에는 ' + opt.label + ' 코드 문항이 없습니다.';
+      btn.addEventListener('click', function () {
+        if (on || state.result) return;
+        window.location.href = studyUrlForLang(opt.value);
+      });
+      node.appendChild(btn);
+    });
+  }
+
+  // ------------------------------------------- 오답노트 해설 일괄 펼치기 줄
+
+  var elPeekBar = null;
+
+  function ensurePeekBarNode() {
+    if (elPeekBar) return elPeekBar;
+    var after = ensureLangFilterNode() || ensureTypeFilterNode();
+    if (!after || !after.parentNode) return null;
+    elPeekBar = el('div', 'peek-bar');
+    elPeekBar.id = 'peekBar';
+    after.parentNode.insertBefore(elPeekBar, after.nextSibling);
+    return elPeekBar;
+  }
+
+  function renderPeekBar() {
+    if (!hasSource) return;
+    var node = ensurePeekBarNode();
+    if (!node) return;
+    node.textContent = '';
+
+    var ids = peekEligible() ? visibleQuestionIds() : [];
+    if (!ids.length) {
+      node.hidden = true;
+      return;
+    }
+    node.hidden = false;
+
+    var allOpen = true;
+    var anyOpen = false;
+    for (var i = 0; i < ids.length; i++) {
+      var qid = ids[i];
+      if (state.peekOpen[qid]) { anyOpen = true; continue; }
+      if (state.peekDenied[qid]) continue;   // 애초에 열 수 없는 문항은 세지 않는다
+      allOpen = false;
+    }
+    allOpen = allOpen && anyOpen;
+
+    var btn = el('button', 'chip',
+      state.peekAllLoading ? '불러오는 중…' : (allOpen ? '모두 접기' : '해설 모두 펼치기'));
+    btn.id = 'peekAll';
+    btn.type = 'button';
+    btn.disabled = state.peekAllLoading;
+    btn.addEventListener('click', function () { onPeekAll(allOpen, ids); });
+    node.appendChild(btn);
+    node.appendChild(el('span', 'peek-hint', '이미 채점받은 문항이라 채점 전에도 정답·해설을 볼 수 있습니다.'));
   }
 
   /**
@@ -783,9 +1145,18 @@
       (Array.isArray(list) ? list : []).forEach(function (r) {
         if (r && r.round === state.roundId) found = r;
       });
-      if (!found || !found.counts || typeof found.counts !== 'object') return;
-      state.roundCounts = found.counts;
-      renderTypeFilter();
+      if (!found) return;
+      var any = false;
+      if (found.counts && typeof found.counts === 'object') {
+        state.roundCounts = found.counts;
+        any = true;
+      }
+      // 언어별 개수도 같은 항목에 실려 온다 (구버전 서버면 없다 — 그러면 언어 칩을 막지 않는다).
+      if (found.langs && typeof found.langs === 'object') {
+        state.roundLangs = found.langs;
+        any = true;
+      }
+      if (any) renderTypeFilter();
     }).catch(function () { /* 부가 정보다 — 없으면 없는 대로 */ });
   }
 
@@ -878,10 +1249,13 @@
     if (graded) card.classList.add(detail.correct ? 'correct' : 'wrong');
     card.setAttribute('data-q', question.id);
 
-    // 우상단 뱃지 줄 — 유형(있을 때만) + 출처 회차. 회차 뱃지는 모든 모드에서 항상 표시한다.
+    // 우상단 뱃지 줄 — 유형(있을 때만) + 언어(코드 문항에만) + 출처 회차.
+    // 회차 뱃지는 모든 모드에서 항상 표시한다.
     var badges = el('div', 'q-badges');
     var qType = normalizeType(question.type);
     if (qType) badges.appendChild(el('span', 'q-type ' + qType, TYPE_LABEL[qType]));
+    var qLang = normalizeLang(question.lang);
+    if (qLang) badges.appendChild(el('span', 'q-lang ' + qLang, LANG_LABEL[qLang]));
     badges.appendChild(el('span', 'q-origin', questionOrigin(question.id)));
     // 대전 오답 보기에서 "그때는 틀렸지만 지금은 오답이 아닌" 문항 (서버 resolvedIds).
     if (state.resolvedIds[question.id]) badges.appendChild(el('span', 'q-resolved', '이후 맞힘'));
@@ -901,6 +1275,9 @@
       body = el('div', 'qbody');
       body.innerHTML = question.bodyHtml;
       wrapTables(body);
+      // 원본 회차 데이터에는 탭·공백이 뒤섞인 코드 블록이 있다 — 데이터는 그대로 두고 표시할 때만 정돈한다.
+      // (채점 후 카드도 같은 renderQuestion 을 지나므로 여기 한 곳이면 두 경로가 모두 덮인다.)
+      applyCodeFmt(body, question.lang);
       card.appendChild(body);
     }
 
@@ -946,6 +1323,14 @@
       row.appendChild(input);
       card.appendChild(row);
     });
+
+    // 오답노트 채점 전 — "정답·해설 보기". 이미 채점 기록이 있는 문항이라 서버가 미리 내려 준다.
+    // (몰라서 틀린 문항은 풀이법을 봐야 다시 풀 수 있다.)
+    if (!graded && peekEligible()) {
+      var peekActions = el('div', 'q-actions');
+      card.appendChild(peekActions);
+      renderPeek(question, peekActions, card);
+    }
 
     // 채점 피드백
     if (graded) {
@@ -1305,9 +1690,11 @@
     var head = '총 ' + n + '문항';
     if (state.wrongMatch) head = '이 대전에서 틀린 ' + n + '문항 (지금은 맞힌 문항도 포함)';
     else if (state.wrongRound) head = '이 회차의 현재 오답 ' + n + '문항';
+    var scope = '';
+    if (state.typeFilter) scope += ' · ' + TYPE_LABEL[state.typeFilter] + ' 유형만';
+    if (state.langFilter) scope += ' · ' + LANG_LABEL[state.langFilter];
     return head + ' · 100점 만점 ('
-      + PASS_SCORE + '점 이상 합격) — 답을 입력하고 맨 아래 제출 버튼을 누르세요'
-      + (state.typeFilter ? ' · ' + TYPE_LABEL[state.typeFilter] + ' 유형만' : '');
+      + PASS_SCORE + '점 이상 합격) — 답을 입력하고 맨 아래 제출 버튼을 누르세요' + scope;
   }
 
   /**
@@ -1345,6 +1732,9 @@
   }
 
   function render() {
+    // fail() 로 떨어진 화면은 **종결**이다. 뒤늦게 도착한 응답이나 화면에 남아 있던 버튼이
+    // 문항·제출 버튼을 되살리면 로그인 안내 위로 시험지가 다시 깔린다.
+    if (pageFailed) return;
     var round = state.round;
     if (!round) return;
 
@@ -1401,6 +1791,8 @@
       // 유형 필터가 걸린 채점은 그 부분집합만 채점한다 (총점도 부분집합 기준).
       var body = { answers: answers };
       if (state.typeFilter) body.type = state.typeFilter;
+      // 언어까지 좁혀 풀었으면 채점도 같은 부분집합이어야 총점 분모가 맞는다.
+      if (state.langFilter) body.lang = state.langFilter;
       return api.post('/api/rounds/' + encodeURIComponent(state.roundId) + '/grade', body);
     }
     // practice/wrong 세트는 이미 필터된 문항만 들고 있으므로 경로를 바꾸지 않는다.
@@ -1440,6 +1832,11 @@
     state.answers = {};
     lastFocusField = {};
     state.showExplain = {};
+    // 받아 둔 정답·해설(state.peek)은 그대로 둔다 — 같은 문항이라 다시 물어볼 이유가 없다.
+    // 펼침 상태만 접는다.
+    state.peekOpen = {};
+    state.peekLoading = {};
+    state.peekAllLoading = false;
     state.reportOpen = {};
     state.reportText = {};
     state.reportStatus = {};
@@ -1457,8 +1854,11 @@
   // ------------------------------------------------------------------ 시작
 
   function fail(message, extraLink, linkText) {
+    pageFailed = true;   // 이 뒤로는 문항이 없는 화면이다 — render() 도 여기서 멈춘다
     elTitle.textContent = '학습 모드';
     elMeta.textContent = '';
+    // 복원 배너를 남기면 그 안의 "불러온 답안 지우기" 가 render() 를 불러 화면을 되살리려 든다.
+    hideRestoreNotice();
     // 유형 필터로 문항이 0개면 서버가 400 을 준다 — 문구는 그대로 띄우되 필터는 남겨 둔다
     // (다른 유형이나 '전체' 로 곧바로 되돌아갈 수 있어야 한다).
     renderTypeFilter();
@@ -1480,7 +1880,17 @@
    */
   function parseSource() {
     var type = normalizeType(queryParam('type'));
-    var typeQ = type ? '&type=' + encodeURIComponent(type) : '';
+    var lang = normalizeLang(queryParam('lang'));
+    // 서버 계약: lang 은 코드 문항에만 쓴다. lang 만 오면 type=code 로 간주하고,
+    // 코드가 아닌 유형과 함께 오면(서버 400 감) 여기서 미리 버린다.
+    if (lang && !type) type = 'code';
+    if (lang && type !== 'code') lang = '';
+
+    var qs = [];
+    if (type) qs.push('type=' + encodeURIComponent(type));
+    if (lang) qs.push('lang=' + encodeURIComponent(lang));
+    var tail = qs.length ? '&' + qs.join('&') : '';
+
     var set = queryParam('set');
     if (set === 'wrong') {
       // 허브에서 넘어오는 한정자. 둘 다 오면 match 가 이긴다 (더 좁은 보기다).
@@ -1489,11 +1899,12 @@
       var parts = [];
       if (wrongMatch) parts.push('match=' + encodeURIComponent(wrongMatch));
       else if (wrongRound) parts.push('round=' + encodeURIComponent(wrongRound));
-      if (type) parts.push('type=' + encodeURIComponent(type));
+      parts = parts.concat(qs);
       return {
         mode: 'wrong',
         setKey: 'wrong',
         type: type,
+        lang: lang,
         wrongRound: wrongRound,
         wrongMatch: wrongMatch,
         url: '/api/me/wrong' + (parts.length ? '?' + parts.join('&') : ''),
@@ -1506,10 +1917,11 @@
         mode: 'practice',
         setKey: 'practice',
         type: type,
+        lang: lang,
         practiceRounds: roundsParam,
         practiceCount: count,
         url: '/api/practice?rounds=' + encodeURIComponent(roundsParam)
-          + '&count=' + encodeURIComponent(count) + typeQ,
+          + '&count=' + encodeURIComponent(count) + tail,
       };
     }
     var round = queryParam('round');
@@ -1519,8 +1931,8 @@
         setKey: round,
         roundId: round,
         type: type,
-        url: '/api/rounds/' + encodeURIComponent(round)
-          + (type ? '?type=' + encodeURIComponent(type) : ''),
+        lang: lang,
+        url: '/api/rounds/' + encodeURIComponent(round) + (qs.length ? '?' + qs.join('&') : ''),
       };
     }
     return null;
@@ -1536,6 +1948,7 @@
     state.wrongRound = source.wrongRound || '';
     state.wrongMatch = source.wrongMatch || '';
     state.typeFilter = source.type || '';
+    state.langFilter = source.lang || '';
     if (source.practiceRounds) state.practiceRounds = source.practiceRounds;
     if (source.practiceCount) state.practiceCount = source.practiceCount;
     hasSource = true;
@@ -1569,7 +1982,7 @@
       })
       .catch(function (e) {
         if (state.mode === 'wrong' && e.status === 401) {
-          fail('로그인이 필요합니다. 오답노트는 로그인한 사용자의 채점 기록으로 만들어집니다.');
+          failWrongAuth();
           return;
         }
         // 회차·대전 한정 보기의 실패(없는 대전 404, 잘못된 값 400)는 허브로 되돌려 준다.

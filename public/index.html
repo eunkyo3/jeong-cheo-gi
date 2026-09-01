@@ -127,6 +127,8 @@
   <h2 class="section">회차 선택</h2>
   <!-- 유형 칩 (전체/코드/SQL/이론). /api/rounds 가 counts 를 주지 않는 구버전 서버면 계속 숨긴다. -->
   <div class="type-filter" id="roundTypeFilter" hidden></div>
+  <!-- 언어 칩 (전체/C/Java/Python). 유형이 "코드" 일 때만 보인다 — 언어는 코드 문항에만 있는 축이다. -->
+  <div class="type-filter lang-filter" id="roundLangFilter" hidden></div>
   <div id="roundList">
     <p class="muted">회차를 불러오는 중&hellip;</p>
   </div>
@@ -156,6 +158,7 @@
   var sessionBox = document.getElementById('sessionBox');
   var roundList = document.getElementById('roundList');
   var roundTypeFilter = document.getElementById('roundTypeFilter');
+  var roundLangFilter = document.getElementById('roundLangFilter');
   var navWho = document.getElementById('navWho');
   var navLogin = document.getElementById('navLogin');
   var navLogout = document.getElementById('navLogout');
@@ -170,6 +173,13 @@
   var TYPE_LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
   var roundType = '';   // 회차 목록 위 유형 칩에서 고른 값 ('' = 전체)
   var practiceType = ''; // 랜덤 모의고사 유형 선택
+
+  // 코드 문항 언어 — 서버 계약(data/langs/*.json)의 값 셋과 화면 표기.
+  // 언어는 코드 유형에만 있는 축이다 (lang 이 오면 type 은 생략이거나 code 여야 한다).
+  var LANGS = ['c', 'java', 'python'];
+  var LANG_LABEL = { c: 'C', java: 'Java', python: 'Python' };
+  var roundLang = '';    // 회차 목록 위 언어 칩에서 고른 값 ('' = 전체 언어)
+  var practiceLang = ''; // 랜덤 모의고사 언어 선택
 
   // 회차 목록과 학습 이력은 따로 도착한다. 둘 다 여기에 모아 두고,
   // 어느 쪽이 늦게 오든 그때마다 화면을 다시 그린다.
@@ -206,6 +216,55 @@
     return parts.join(' · ');
   }
 
+  /** 회차 하나라도 langs 를 들고 있으면 언어 UI 를 켠다 (구버전 서버면 조용히 생략). */
+  function hasLangs(list) {
+    for (var i = 0; i < (list || []).length; i++) {
+      var L = list[i].langs;
+      if (L && typeof L === 'object') return true;
+    }
+    return false;
+  }
+
+  /** {c:4,java:3,python:1} → "C 4 · Java 3 · Python 1" (0인 언어는 생략). */
+  function langsText(langs) {
+    if (!langs || typeof langs !== 'object') return '';
+    var parts = [];
+    LANGS.forEach(function (l) {
+      var n = Number(langs[l]) || 0;
+      if (n > 0) parts.push(LANG_LABEL[l] + ' ' + n);
+    });
+    return parts.join(' · ');
+  }
+
+  /** 전 회차를 합한 언어별 코드 문항 수 — 0개인 언어 칩을 비활성화하는 데 쓴다. */
+  function langTotals(list) {
+    var out = { c: 0, java: 0, python: 0 };
+    (list || []).forEach(function (r) {
+      var L = r && r.langs;
+      if (!L || typeof L !== 'object') return;
+      LANGS.forEach(function (l) { out[l] += Number(L[l]) || 0; });
+    });
+    return out;
+  }
+
+  /** 전체 언어/C/Java/Python <select>. typeSelect 와 같은 모양이다. */
+  function langSelect(id, current, onPick) {
+    var sel = document.createElement('select');
+    if (id) sel.id = id;
+    sel.className = 'type-select';
+    [{ v: '', label: '전체 언어' }].concat(LANGS.map(function (l) {
+      return { v: l, label: LANG_LABEL[l] };
+    })).forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o.v;
+      opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
+    sel.value = current || '';
+    sel.addEventListener('change', function () { onPick(sel.value); });
+    return sel;
+  }
+
   /** 전체/코드/SQL/이론 <select>. 고른 값을 onPick 으로 돌려준다. */
   function typeSelect(id, current, onPick) {
     var sel = document.createElement('select');
@@ -229,6 +288,11 @@
     return type ? '&type=' + encodeURIComponent(type) : '';
   }
 
+  /** 링크 뒤에 붙일 언어 한정. 코드 유형이 아니면 언어는 의미가 없으므로 빈 문자열. */
+  function langTail(type, lang) {
+    return type === 'code' && lang ? '&lang=' + encodeURIComponent(lang) : '';
+  }
+
   /** 회차 목록 위 유형 칩. counts 가 없으면 통째로 숨긴다. */
   function renderRoundTypeFilter() {
     if (!roundTypeFilter) return;
@@ -247,10 +311,49 @@
       btn.setAttribute('data-type', o.v || 'all');
       btn.addEventListener('click', function () {
         roundType = o.v;
+        // 코드가 아닌 유형으로 옮기면 언어 한정은 의미가 없다 — 조용히 푼다.
+        if (roundType !== 'code') roundLang = '';
         renderRoundTypeFilter();
         renderRounds();
       });
       roundTypeFilter.appendChild(btn);
+    });
+    renderRoundLangFilter();
+  }
+
+  /**
+   * 회차 목록 위 언어 칩. 유형이 "코드" 이고 서버가 langs 를 줄 때만 한 줄 더 보인다.
+   * 전 회차를 합해 0개인 언어는 유형 칩과 같은 방식(.empty + disabled)으로 막는다.
+   */
+  function renderRoundLangFilter() {
+    if (!roundLangFilter) return;
+    roundLangFilter.textContent = '';
+    if (roundType !== 'code' || !hasLangs(roundsData)) {
+      roundLangFilter.hidden = true;
+      return;
+    }
+    roundLangFilter.hidden = false;
+    roundLangFilter.appendChild(el('span', 'type-filter-label', '언어'));
+    var totals = langTotals(roundsData);
+    [{ v: '', label: '전체' }].concat(LANGS.map(function (l) {
+      return { v: l, label: LANG_LABEL[l] };
+    })).forEach(function (o) {
+      var empty = !!o.v && Number(totals[o.v]) === 0;
+      var btn = el('button', 'chip' + (roundLang === o.v ? ' on' : '') + (empty ? ' empty' : ''), o.label);
+      btn.type = 'button';
+      btn.setAttribute('data-lang', o.v || 'all');
+      btn.disabled = empty;
+      if (o.v) {
+        btn.title = empty
+          ? LANG_LABEL[o.v] + ' 코드 문항이 없습니다.'
+          : LANG_LABEL[o.v] + ' 코드 문항 ' + totals[o.v] + '개';
+      }
+      btn.addEventListener('click', function () {
+        roundLang = o.v;
+        renderRoundLangFilter();
+        renderRounds();
+      });
+      roundLangFilter.appendChild(btn);
     });
   }
 
@@ -636,21 +739,27 @@
       byYear.groups[year].forEach(function (r) {
         // 고른 유형이 이 회차에 0문항이면 눌러 봐야 서버 400 이다 — 링크를 아예 만들지 않는다.
         // ('전체' 선택이거나 counts 를 모르는 구버전 서버면 아무것도 막지 않는다.)
-        var zero = !!roundType && !!r.counts && Number(r.counts[roundType]) === 0;
+        var zeroType = !!roundType && !!r.counts && Number(r.counts[roundType]) === 0;
+        // 언어까지 골랐으면 그 언어가 0개인 회차도 같은 이유로 막는다.
+        var zeroLang = !zeroType && roundType === 'code' && !!roundLang
+          && !!r.langs && Number(r.langs[roundLang]) === 0;
+        var zero = zeroType || zeroLang;
+        var zeroLabel = zeroLang ? LANG_LABEL[roundLang] : TYPE_LABEL[roundType];
         var a = el(zero ? 'span' : 'a', 'round-btn' + (zero ? ' empty' : ''));
         if (zero) {
-          a.title = '이 회차에는 ' + TYPE_LABEL[roundType] + ' 문항이 없습니다.';
+          a.title = '이 회차에는 ' + zeroLabel + ' 문항이 없습니다.';
           a.setAttribute('aria-disabled', 'true');
         } else {
-          a.href = '/study.html?round=' + encodeURIComponent(r.round) + typeTail(roundType);
+          a.href = '/study.html?round=' + encodeURIComponent(r.round)
+            + typeTail(roundType) + langTail(roundType, roundLang);
         }
         a.appendChild(document.createTextNode(r.title || r.round));
         a.appendChild(el('span', 'cnt', r.questionCount + '문항'));
-        // 유형 구성 — 서버가 counts 를 줄 때만 (구버전이면 조용히 생략)
-        var ct = countsText(r.counts);
+        // 구성 표기 — 코드 유형을 보고 있으면 언어 구성이 더 쓸모 있다 (서버가 줄 때만).
+        var ct = roundType === 'code' && langsText(r.langs) ? langsText(r.langs) : countsText(r.counts);
         if (ct) a.appendChild(el('span', 'types', ct));
         // 왜 눌리지 않는지 툴팁 없이도 보이게 한 줄 적어 둔다
-        if (zero) a.appendChild(el('span', 'empty-note', TYPE_LABEL[roundType] + ' 문항 없음'));
+        if (zero) a.appendChild(el('span', 'empty-note', zeroLabel + ' 문항 없음'));
         var h = hist[r.round];
         if (h && Number(h.count) > 0) {
           a.appendChild(el('span', 'badge',
@@ -720,9 +829,26 @@
       typeRow.appendChild(typeLabel);
       typeRow.appendChild(typeSelect('practiceType', practiceType, function (v) {
         practiceType = v;
+        // 코드가 아닌 유형에서는 언어 한정이 의미가 없다 — 줄을 걷고 값도 푼다.
+        if (practiceType !== 'code') practiceLang = '';
+        syncLangRow();
         syncHref();
       }));
       practiceBox.appendChild(typeRow);
+    }
+
+    // 언어 선택 — 유형이 "코드" 일 때만 유형 줄 아래에 끼워 넣는다 (서버가 langs 를 줄 때만).
+    // 매번 다시 만들지 않고 붙였다 뗐다 한다 — 연도 체크박스 상태를 잃지 않기 위해서다.
+    var langRow = null;
+    if (hasCounts(list) && hasLangs(list)) {
+      langRow = el('div', 'form-row');
+      var langLabel = el('label', null, '언어');
+      langLabel.htmlFor = 'practiceLang';
+      langRow.appendChild(langLabel);
+      langRow.appendChild(langSelect('practiceLang', practiceLang, function (v) {
+        practiceLang = v;
+        syncHref();
+      }));
     }
 
     var actions = el('div', 'form-actions');
@@ -744,9 +870,24 @@
       return ids.length ? ids.join(',') : 'all';
     }
 
+    /** 언어 줄을 유형 줄 바로 아래에 넣거나 뺀다 (코드 유형일 때만 보인다). */
+    function syncLangRow() {
+      if (!langRow) return;
+      var want = practiceType === 'code';
+      if (want && !langRow.parentNode) {
+        practiceBox.insertBefore(langRow, actions);
+        var sel = langRow.querySelector('select');
+        if (sel) sel.value = practiceLang || '';
+      } else if (!want && langRow.parentNode) {
+        langRow.parentNode.removeChild(langRow);
+      }
+    }
+    syncLangRow();
+
     function syncHref() {
       start.href = '/study.html?set=practice&rounds=' + encodeURIComponent(selectedRounds())
-        + '&count=' + encodeURIComponent(count.value) + typeTail(practiceType);
+        + '&count=' + encodeURIComponent(count.value) + typeTail(practiceType)
+        + langTail(practiceType, practiceLang);
     }
     boxes.forEach(function (b) { b.input.addEventListener('change', syncHref); });
     count.addEventListener('change', syncHref);

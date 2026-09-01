@@ -19,6 +19,10 @@
   // 문항 유형 — 서버 계약(data/types/*.json)의 값 셋과 화면 표기.
   var TYPE_ORDER = ['code', 'sql', 'theory'];
   var TYPE_LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
+  // 코드 문항 언어 — 서버 계약(data/langs/*.json)의 값 셋과 화면 표기.
+  // 언어는 코드 유형에만 있는 축이라 유형이 "코드" 일 때만 고를 수 있다.
+  var LANGS = ['c', 'java', 'python'];
+  var LANG_LABEL = { c: 'C', java: 'Java', python: 'Python' };
   var RESULT_LABEL = { win: '승', lose: '패', draw: '무' };
 
   var state = {
@@ -26,6 +30,7 @@
     error: null,       // {kind:'auth'|'missing'|'other', message}
     tab: 'round',      // 'round' | 'battle'
     typeFilter: '',    // '' | 'code' | 'sql' | 'theory'
+    langFilter: '',    // '' | 'c' | 'java' | 'python' (유형이 코드일 때만 쓴다)
     expanded: {},      // matchId -> true (틀린 문항 목록 펼침)
   };
 
@@ -129,6 +134,41 @@
     return parts.join(' · ');
   }
 
+  /** {c:2,java:1} → "C 2 · Java 1" (0인 언어는 생략). countsText 와 같은 모양이다. */
+  function langsText(langs) {
+    if (!langs || typeof langs !== 'object') return '';
+    var parts = [];
+    LANGS.forEach(function (l) {
+      var n = Number(langs[l]) || 0;
+      if (n > 0) parts.push(LANG_LABEL[l] + ' ' + n);
+    });
+    return parts.join(' · ');
+  }
+
+  /**
+   * 지금 링크에 언어 한정이 실리는가. langTail 과 **같은 조건**이어야 한다 —
+   * 화면에 적는 문항 수와 그 링크가 여는 study 화면의 문항 수가 어긋나면 안 된다.
+   */
+  function langActive() {
+    return state.typeFilter === 'code' && !!state.langFilter;
+  }
+
+  /**
+   * 목록 한 줄에 적을 오답 수. 필터가 걸려 있으면 **그 필터의 문항 수**를 적는다 —
+   * "오답 16" 을 눌렀는데 5문항이 열리는 일이 없도록.
+   * 서버가 counts/langs 를 안 주는 구버전이면 전체 수 그대로다.
+   */
+  function scopedCount(row) {
+    var all = Number(row.count) || 0;
+    if (langActive() && row.langs && typeof row.langs === 'object') {
+      return Number(row.langs[state.langFilter]) || 0;
+    }
+    if (state.typeFilter && row.counts && typeof row.counts === 'object') {
+      return Number(row.counts[state.typeFilter]) || 0;
+    }
+    return all;
+  }
+
   /** 문항 prompt 는 HTML 자산이다 — 목록에서는 태그를 걷어내고 텍스트만 보여 준다. */
   function htmlToText(html) {
     var div = document.createElement('div');
@@ -141,14 +181,30 @@
     return TYPE_ORDER.indexOf(t) === -1 ? '' : t;
   }
 
+  function normalizeLang(value) {
+    var l = String(value == null ? '' : value).trim().toLowerCase();
+    return LANGS.indexOf(l) === -1 ? '' : l;
+  }
+
   function typeTail() {
     return state.typeFilter ? '&type=' + encodeURIComponent(state.typeFilter) : '';
   }
 
-  function allUrl() { return '/study.html?set=wrong' + typeTail(); }
-  function roundUrl(id) { return '/study.html?set=wrong&round=' + encodeURIComponent(id) + typeTail(); }
+  /** 언어 한정. 유형이 코드가 아니면 의미가 없으므로 빈 문자열 (서버 400 을 미리 막는다). */
+  function langTail() {
+    return state.typeFilter === 'code' && state.langFilter
+      ? '&lang=' + encodeURIComponent(state.langFilter) : '';
+  }
+
+  function allUrl() { return '/study.html?set=wrong' + typeTail() + langTail(); }
+  function roundUrl(id) {
+    return '/study.html?set=wrong&round=' + encodeURIComponent(id) + typeTail() + langTail();
+  }
   // 대전별은 "그 대전에서 틀린 문항" 전부가 대상이다 — 유형으로 다시 자르지 않는다.
-  function matchUrl(id) { return '/study.html?set=wrong&match=' + encodeURIComponent(id); }
+  // 다만 언어를 고른 경우는 이어 준다 (lang 만 오면 서버가 type=code 로 간주한다).
+  function matchUrl(id) {
+    return '/study.html?set=wrong&match=' + encodeURIComponent(id) + langTail();
+  }
 
   /** index.html 과 같은 전체/코드/SQL/이론 <select>. */
   function typeSelect(current, onPick) {
@@ -165,6 +221,24 @@
     });
     sel.value = current || '';
     sel.addEventListener('change', function () { onPick(normalizeType(sel.value)); });
+    return sel;
+  }
+
+  /** typeSelect 와 같은 모양의 언어 <select>. 유형이 "코드" 일 때만 만든다. */
+  function langSelect(current, onPick) {
+    var sel = document.createElement('select');
+    sel.id = 'wrongLang';
+    sel.className = 'type-select';
+    [{ v: '', label: '전체 언어' }].concat(LANGS.map(function (l) {
+      return { v: l, label: LANG_LABEL[l] };
+    })).forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o.v;
+      opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
+    sel.value = current || '';
+    sel.addEventListener('change', function () { onPick(normalizeLang(sel.value)); });
     return sel;
   }
 
@@ -271,8 +345,17 @@
     actions.appendChild(link);
     actions.appendChild(typeSelect(state.typeFilter, function (v) {
       state.typeFilter = v;
+      // 코드가 아닌 유형으로 옮기면 언어 한정은 의미가 없다 — 조용히 푼다.
+      if (v !== 'code') state.langFilter = '';
       render();
     }));
+    // 언어는 코드 문항에만 있는 축이다 — 유형이 "코드" 일 때만 한 칸 더 낸다.
+    if (state.typeFilter === 'code') {
+      actions.appendChild(langSelect(state.langFilter, function (v) {
+        state.langFilter = v;
+        render();
+      }));
+    }
     elSummary.appendChild(actions);
   }
 
@@ -310,12 +393,23 @@
     var list = el('ul', 'history-list wn-rounds');
     rows.forEach(function (r) {
       var li = document.createElement('li');
-      var a = el('a', 'h-name', roundLabel(r.round));
-      a.href = roundUrl(r.round);
+      var shown = scopedCount(r);
+      // 고른 유형·언어가 이 회차에 0문항이면 눌러 봐야 빈 화면이다 — 링크를 아예 만들지 않는다.
+      var zero = shown === 0 && (state.typeFilter || langActive());
+      var label = langActive() ? LANG_LABEL[state.langFilter] : TYPE_LABEL[state.typeFilter];
+      var a = el(zero ? 'span' : 'a', 'h-name' + (zero ? ' empty' : ''), roundLabel(r.round));
+      if (zero) {
+        a.title = '이 회차에는 ' + label + ' 오답이 없습니다.';
+        a.setAttribute('aria-disabled', 'true');
+      } else {
+        a.href = roundUrl(r.round);
+      }
       li.appendChild(a);
-      li.appendChild(el('span', 'h-score', '오답 ' + (Number(r.count) || 0)));
-      var types = countsText(r.counts);
-      if (types) li.appendChild(el('span', 'h-detail', types));
+      li.appendChild(el('span', 'h-score', '오답 ' + shown));
+      // 구성 표기 — 코드 유형을 보고 있으면 언어 구성이 더 쓸모 있다 (서버가 줄 때만).
+      var detail = state.typeFilter === 'code' && langsText(r.langs)
+        ? langsText(r.langs) : countsText(r.counts);
+      if (detail) li.appendChild(el('span', 'h-detail', detail));
       list.appendChild(li);
     });
     card.appendChild(list);
@@ -335,6 +429,8 @@
       if (origin) head.appendChild(el('span', 'q-origin', origin));
       var qType = normalizeType(q.type);
       if (qType) head.appendChild(el('span', 'q-type ' + qType, TYPE_LABEL[qType]));
+      var qLang = normalizeLang(q.lang);
+      if (qLang) head.appendChild(el('span', 'q-lang ' + qLang, LANG_LABEL[qLang]));
       if (q.stillWrong === false) head.appendChild(el('span', 'q-resolved', '이후 맞힘'));
       li.appendChild(head);
 
@@ -372,10 +468,19 @@
     if (RESULT_LABEL[b.result]) bits.push(RESULT_LABEL[b.result]);
     if (bits.length) card.appendChild(el('p', 'wn-bmeta', bits.join(' · ')));
 
-    var wrongCount = Number(b.wrongCount) || 0;
-    var stillWrong = Number(b.stillWrongCount) || 0;
+    // matchUrl 은 언어만 이어 간다(유형으로는 자르지 않는다) — 여기 적는 수도 같은 규칙이어야
+    // 링크가 여는 study 화면의 문항 수와 맞는다.
+    var listed = b.wrongQuestions || [];
+    var scoped = langActive()
+      ? listed.filter(function (q) { return normalizeLang(q.lang) === state.langFilter; })
+      : listed;
+    var wrongCount = langActive() ? scoped.length : (Number(b.wrongCount) || 0);
+    var stillWrong = langActive()
+      ? scoped.filter(function (q) { return q.stillWrong !== false; }).length
+      : (Number(b.stillWrongCount) || 0);
     card.appendChild(el('p', 'wn-bwrong',
-      '틀린 ' + wrongCount + '문항 (지금도 오답 ' + stillWrong + ')'));
+      '틀린 ' + wrongCount + '문항 (지금도 오답 ' + stillWrong + ')'
+      + (langActive() ? ' · ' + LANG_LABEL[state.langFilter] + '만' : '')));
 
     var open = !!state.expanded[matchId];
     var actions = el('div', 'form-actions wn-bactions');
@@ -397,7 +502,7 @@
     }
     card.appendChild(actions);
 
-    if (open) card.appendChild(buildWrongList(b.wrongQuestions));
+    if (open) card.appendChild(buildWrongList(scoped));
     return card;
   }
 

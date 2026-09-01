@@ -3,7 +3,8 @@
 // 격리 임시 DATA_DIR + 임의 포트. 검증 항목: 메인 회차 버튼 수 / 풀이→채점 점수 / 오답 카드의 AI 복사 버튼 →
 // 클립보드 3단 폴백의 최종 단계(모달) 진입 + 프롬프트 4요소 / 인라인 이의 제기 → reports.json 적재 /
 // 답안 자동 저장·복원 / Enter→다음 칸 / 학습 이력 카드·회차 뱃지 / 오답노트 + 허브(wrong.html) / 랜덤 모의고사 / favicon /
-// 가입→me→로그아웃 / 문항 유형 필터(코드·SQL·이론) — 유형 뱃지·필터 칩·부분집합 채점·메인 유형 구성.
+// 가입→me→로그아웃 / 문항 유형 필터(코드·SQL·이론) — 유형 뱃지·필터 칩·부분집합 채점·메인 유형 구성 /
+// 코드 들여쓰기 정규화(codefmt) / 언어 필터(C·Java·Python) / 오답노트 채점 전 정답·해설 즉시 보기.
 //   npm run headless
 'use strict';
 const path = require('path');
@@ -1123,6 +1124,425 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
     } else {
       log('SKIP  fmt: public/js/fmt.js 미작성 — 상대 날짜 단위 검사 건너뜀');
     }
+  }
+
+  // ---------- 12. 코드 들여쓰기 · 언어 필터 · 오답노트 즉시 해설 ----------
+  // 세 갈래 모두 다른 레인의 산출물에 기댄다:
+  //   codefmt  → public/js/codefmt.js (lane-codefmt)
+  //   lang     → /api/rounds 의 langs · 문항의 lang · 쿼리 lang (lane-server)
+  //   즉시 해설 → GET /api/me/wrong/explain (lane-server)
+  // 아직 안 들어왔으면 여기서 FAIL 이 난다 — 그게 "미완성" 신호다 (조용히 넘기지 않는다).
+
+  // ---- ⓐ codefmt: study.html 이 읽고, 전역이 서 있는가 ----
+  {
+    const cf = await load('/study.html?round=2020-1');
+    const cfDoc = cf.window.document;
+    check(!!cfDoc.querySelector('script[src="/js/codefmt.js"]'),
+      'codefmt: study.html 이 /js/codefmt.js 를 study.js 보다 먼저 읽는다');
+    const CF = cf.window.CodeFmt;
+    check(!!CF && typeof CF.applyTo === 'function' && typeof CF.normalize === 'function'
+      && typeof CF.detect === 'function' && Array.isArray(CF.LANGS),
+      'codefmt: window.CodeFmt = { LANGS, detect, normalize, applyTo } 계약',
+      CF ? Object.keys(CF).join(',') : '전역 없음');
+
+    // ---- ⓑ 2020-1 은 원본이 탭·공백 뒤죽박죽이다 (2020-1#12/13/14). 화면에서는 정돈돼야 한다 ----
+    await waitFor(() => cfDoc.querySelector('.q pre.code'), '2020-1 코드 블록', 8000).catch(() => null);
+    const allPre = [...cfDoc.querySelectorAll('.q pre.code')];
+    check(allPre.length > 0, 'codefmt: 2020-1 화면에 코드 블록이 있다', allPre.length + '개');
+    const withTab = allPre.filter(el => (el.textContent || '').indexOf('\t') !== -1);
+    check(withTab.length === 0, 'codefmt: 2020-1 의 어떤 코드 블록에도 탭 문자가 남지 않는다',
+      withTab.length + '개 블록에 탭 잔존');
+
+    // 원본에 탭이 섞여 있던 C 문항 — 들여쓰기가 4의 배수로 다시 잡혀야 한다.
+    const messy = cfDoc.querySelector('.q[data-q="2020-1#12"] pre.code');
+    check(!!messy, 'codefmt: 2020-1#12(탭·공백 혼용 C 코드) 카드의 코드 블록');
+    if (messy) {
+      const lines = (messy.textContent || '').split('\n');
+      const odd = lines.filter(l => l.trim() !== '' && (/^ */.exec(l)[0].length % 4) !== 0);
+      check(odd.length === 0, 'codefmt: 2020-1#12 의 모든 줄 들여쓰기가 4의 배수',
+        odd.length + '줄 어긋남: ' + JSON.stringify(odd.slice(0, 2)));
+      check((messy.textContent || '').indexOf('\t') === -1, 'codefmt: 2020-1#12 에 탭 없음');
+      // 첫 줄은 전처리기다 — 0열에 붙어야 한다 (원본은 " #include" 로 한 칸 들어가 있었다).
+      const firstLine = lines.filter(l => l.trim() !== '')[0] || '';
+      check(/^#include/.test(firstLine), 'codefmt: 전처리기 줄은 0열', JSON.stringify(firstLine));
+    }
+    check(cf.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+      'codefmt: 2020-1 학습 화면 JS 오류 없음', cf.errors.slice(0, 2).join(' | '));
+  }
+
+  // ---- ⓒ 언어 필터 ----
+  {
+    const roundsL = await (await makeFetch()('/api/rounds')).json();
+    const r241 = (roundsL || []).find(r => r.round === '2024-1');
+    const langs241 = r241 && r241.langs;
+    check(!!langs241 && ['c', 'java', 'python'].every(k => typeof langs241[k] === 'number'),
+      'lang: /api/rounds 항목에 langs {c,java,python} 개수',
+      langs241 ? JSON.stringify(langs241) : 'langs 없음');
+
+    // 문항 응답에 lang 이 실리되, 정답·해설은 여전히 없어야 한다 (채점 전 비노출 규약 유지).
+    const raw241 = await (await makeFetch()('/api/rounds/2024-1')).text();
+    check(/"lang"\s*:/.test(raw241), 'lang: GET /api/rounds/2024-1 응답에 lang 필드');
+    check(!/explanationHtml|"explanations"\s*:|"display"\s*:|"answers?"\s*:/.test(raw241),
+      'lang: GET /api/rounds/2024-1 응답에 정답·해설 필드 없음 (채점 전 비노출)');
+
+    const javaApi = await (await makeFetch()('/api/rounds/2024-1?lang=java')).json().catch(() => null);
+    const javaN = javaApi && Array.isArray(javaApi.questions) ? javaApi.questions.length : -1;
+    check(javaN > 0, 'lang: GET /api/rounds/2024-1?lang=java 가 Java 문항을 준다', javaN + '문항');
+
+    const jv = await load('/study.html?round=2024-1&lang=java');
+    const jvDoc = jv.window.document;
+    const jvCards = await waitFor(() => { const c = jvDoc.querySelectorAll('.q'); return c.length > 0 ? c : null; },
+      'lang=java 문항 카드', 8000).catch(() => null);
+    check(!!jvCards && jvCards.length === javaN,
+      'lang: ?round=2024-1&lang=java 화면 문항 수 == API 문항 수',
+      (jvCards ? jvCards.length : 0) + ' / ' + javaN);
+    const javaBadges = jvCards
+      ? [...jvCards].filter(c => { const b = c.querySelector('.q-lang'); return b && b.textContent.trim() === 'Java'; }).length
+      : 0;
+    check(!!jvCards && jvCards.length > 0 && javaBadges === jvCards.length,
+      'lang: 모든 카드에 "Java" 언어 뱃지', javaBadges + ' / ' + (jvCards ? jvCards.length : 0));
+
+    // 언어 칩 줄 — 유형 줄 아래 한 줄 더, 지금 언어에 .on
+    const langChips = [...jvDoc.querySelectorAll('#langFilter button')];
+    check(langChips.length === 4, 'lang: 학습 상단 언어 칩 4개', langChips.length);
+    check(langChips.map(b => b.textContent.trim()).join('/') === '전체/C/Java/Python',
+      'lang: 칩 문구가 전체/C/Java/Python', langChips.map(b => b.textContent.trim()).join('/'));
+    const jvOn = jvDoc.querySelector('#langFilter button[data-lang="java"]');
+    check(!!jvOn && jvOn.classList.contains('on'),
+      'lang: 지금 보고 있는 언어 칩에 .on', jvOn ? jvOn.className : '칩 없음');
+    // lang 만 있는 주소도 유형은 "코드" 로 읽힌다 (lang 만 오면 type=code 로 간주하는 서버 규칙과 같다).
+    const jvType = jvDoc.querySelector('#typeFilter button[data-type="code"]');
+    check(!!jvType && jvType.classList.contains('on'),
+      'lang: ?lang= 만 있어도 유형 칩은 "코드" 에 .on', jvType ? jvType.className : '칩 없음');
+    // 언어까지 좁혀 풀었으면 채점 분모도 그 부분집합이어야 한다
+    // (채점 요청이 lang 을 안 실으면 그 회차 코드 문항 전체가 채점돼 분모가 부풀어 오른다).
+    const jvSubmit = [...jvDoc.querySelectorAll('button')].find(b => /제출하고 채점/.test(b.textContent));
+    check(!!jvSubmit, 'lang: 언어 필터 상태에서 제출 버튼 존재');
+    if (jvSubmit) {
+      jvSubmit.click();
+      const jvBoard = await waitFor(() => { const b = jvDoc.getElementById('scoreBoard'); return b && b.classList.contains('shown') ? b : null; },
+        '언어 채점 점수판', 8000).catch(() => null);
+      const jvText = jvBoard ? jvBoard.textContent.replace(/\s+/g, ' ') : '';
+      check(new RegExp('\\(\\d+/' + javaN + ' 문제 정답\\)').test(jvText),
+        'lang: 채점 점수판 분모 == 그 언어의 문항 수 (' + javaN + ')', jvText.slice(0, 70) || '점수판 없음');
+      // 채점 후에는 언어 칩도 유형 칩과 함께 잠긴다.
+      const jvChipsAfter = [...jvDoc.querySelectorAll('#langFilter button')];
+      check(jvChipsAfter.length === 4 && jvChipsAfter.every(b => b.disabled === true),
+        'lang: 채점 후 언어 필터 비활성', jvChipsAfter.map(b => b.disabled).join(','));
+    }
+    check(jv.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+      'lang: 언어 필터 학습 화면 JS 오류 없음', jv.errors.slice(0, 2).join(' | '));
+
+    // 코드가 아닌 유형에서는 언어 줄이 아예 없다.
+    const thDoc = (await load('/study.html?round=2024-1&type=theory')).window.document;
+    await waitFor(() => thDoc.querySelector('#typeFilter button') ? true : null, '이론 유형 칩', 8000).catch(() => null);
+    const thLang = thDoc.getElementById('langFilter');
+    check(!thLang || thLang.hidden === true,
+      'lang: 코드가 아닌 유형에서는 언어 칩 줄을 감춘다', thLang ? 'hidden=' + thLang.hidden : '줄 없음(정상)');
+
+    // ---- ⓓ 메인 랜덤 모의고사 — 유형이 "코드" 일 때만 언어 select ----
+    const ipx = await load('/');
+    const pType = await waitFor(() => ipx.window.document.getElementById('practiceType'),
+      '모의고사 유형 select', 8000).catch(() => null);
+    check(!!pType, 'index: 랜덤 모의고사 유형 select');
+    check(!ipx.window.document.getElementById('practiceLang'),
+      'index: 유형이 코드가 아니면 언어 select 를 만들지 않는다');
+    if (pType) {
+      pType.value = 'code';
+      pType.dispatchEvent(new ipx.window.Event('change', { bubbles: true }));
+      await sleep(80);
+      const pLang = ipx.window.document.getElementById('practiceLang');
+      check(!!pLang, 'index: 유형을 "코드" 로 고르면 #practiceLang 이 나타난다',
+        pLang ? '있음' : '없음');
+      if (pLang) {
+        pLang.value = 'java';
+        pLang.dispatchEvent(new ipx.window.Event('change', { bubbles: true }));
+        await sleep(80);
+        const startHref = (ipx.window.document.getElementById('practiceStart') || {}).getAttribute
+          ? ipx.window.document.getElementById('practiceStart').getAttribute('href') : '';
+        check(/&type=code/.test(startHref) && /&lang=java/.test(startHref),
+          'index: 시작 링크에 &type=code&lang=java 가 붙는다', startHref);
+        // 유형을 되돌리면 언어 줄도 사라지고 링크에서 lang 이 빠진다.
+        pType.value = 'theory';
+        pType.dispatchEvent(new ipx.window.Event('change', { bubbles: true }));
+        await sleep(80);
+        const back = ipx.window.document.getElementById('practiceStart').getAttribute('href');
+        check(!ipx.window.document.getElementById('practiceLang') && !/lang=/.test(back),
+          'index: 유형을 코드에서 되돌리면 언어 select·lang 링크가 사라진다', back);
+      }
+    }
+
+    // 메인 회차 목록 위 언어 칩 — 유형이 "코드" 일 때만
+    const idxLang0 = ipx.window.document.getElementById('roundLangFilter');
+    check(!!idxLang0 && idxLang0.hidden === true,
+      'index: 유형이 "전체" 면 언어 칩 줄이 숨겨져 있다', idxLang0 ? 'hidden=' + idxLang0.hidden : '#roundLangFilter 없음');
+    // .type-filter 는 display:flex 라 author 스타일이 UA 의 [hidden]{display:none} 을 이긴다 —
+    // hidden 속성만 세워 두면 빈 줄의 margin 이 남는다. 명시적 규칙이 살아 있는지 못 박는다.
+    check(!!idxLang0 && ipx.window.getComputedStyle(idxLang0).display === 'none',
+      'index: hidden 인 언어 칩 줄이 실제로 display:none (margin 도 남지 않는다)',
+      idxLang0 ? ipx.window.getComputedStyle(idxLang0).display : '-');
+    const idxTypeChips = [...ipx.window.document.querySelectorAll('#roundTypeFilter button')];
+    if (idxTypeChips.length === 4) {
+      idxTypeChips[1].click();   // '코드'
+      await sleep(150);
+      const idxLangChips = [...ipx.window.document.querySelectorAll('#roundLangFilter button')];
+      check(idxLangChips.length === 4, 'index: 유형이 "코드" 면 언어 칩 4개가 나온다', idxLangChips.length);
+      if (idxLangChips.length === 4) {
+        idxLangChips[2].click();   // 'Java'
+        await sleep(150);
+        const links = [...ipx.window.document.querySelectorAll('a.round-btn')];
+        check(links.length > 0 && links.every(a => /&type=code&lang=java/.test(a.getAttribute('href') || '')),
+          'index: 언어 칩을 고르면 회차 링크에 &type=code&lang=java 가 붙는다',
+          links.length ? links[0].getAttribute('href') : '회차 버튼 없음');
+      }
+      // ---- M5 회귀: 두 필터 줄의 라벨이 같은 색·같은 정렬 (밝은 배경용 톤) ----
+      const labelOf = id => {
+        const box = ipx.window.document.getElementById(id);
+        const lb = box && box.querySelector('.type-filter-label');
+        return lb ? ipx.window.getComputedStyle(lb) : null;
+      };
+      const tyLb = labelOf('roundTypeFilter');
+      const lgLb = labelOf('roundLangFilter');
+      check(!!tyLb && !!lgLb && tyLb.color === lgLb.color,
+        'index: 언어 라벨 색이 유형 라벨과 같다 (#roundLangFilter 가 밝은 배경 규칙에 걸린다)',
+        (tyLb ? tyLb.color : '없음') + ' vs ' + (lgLb ? lgLb.color : '없음'));
+      const boxOf = id => ipx.window.getComputedStyle(ipx.window.document.getElementById(id));
+      check(boxOf('roundTypeFilter').justifyContent === boxOf('roundLangFilter').justifyContent,
+        'index: 언어 칩 줄 정렬이 유형 줄과 같다 (flex-start)',
+        boxOf('roundTypeFilter').justifyContent + ' vs ' + boxOf('roundLangFilter').justifyContent);
+    }
+    check(ipx.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+      'index: 언어 UI JS 오류 없음', ipx.errors.slice(0, 2).join(' | '));
+  }
+
+  // ---- ⓔ 오답노트 채점 전 정답·해설 즉시 보기 ----
+  {
+    // 오답이 쌓여 있는 첫 계정으로 되돌아간다 (지금 항아리에는 두 번째 계정 쿠키가 들어 있다).
+    const relog = await makeFetch()('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nickname: nick, password: 'pw1234' }),
+    });
+    check(relog.status === 200, 'peek: 오답이 있는 계정으로 재로그인', relog.status);
+
+    // 오답노트 본문 응답에는 정답·해설이 실리면 안 된다 — 전용 엔드포인트로만 나간다.
+    const wrongRaw = await (await makeFetch()('/api/me/wrong')).text();
+    check(!/explanationHtml|"explanations"\s*:|"display"\s*:/.test(wrongRaw),
+      'peek: GET /api/me/wrong 응답에는 여전히 정답·해설이 없다 (채점 전 비노출)');
+
+    // ---- 오답노트 허브 — 유형이 "코드" 일 때만 언어 select, 링크에 &lang= ----
+    {
+      const hb = await load('/wrong.html');
+      const hbDoc = hb.window.document;
+      await waitFor(() => hbDoc.getElementById('wrongType'), '허브 유형 select', 8000).catch(() => null);
+      check(!hbDoc.getElementById('wrongLang'),
+        'wronghub: 유형이 코드가 아니면 언어 select 를 만들지 않는다');
+      const hbType = hbDoc.getElementById('wrongType');
+      if (hbType) {
+        hbType.value = 'code';
+        hbType.dispatchEvent(new hb.window.Event('change', { bubbles: true }));
+        await sleep(150);
+        const hbLang = hbDoc.getElementById('wrongLang');
+        check(!!hbLang, 'wronghub: 유형을 "코드" 로 고르면 #wrongLang 이 나타난다', hbLang ? '있음' : '없음');
+        if (hbLang) {
+          hbLang.value = 'java';
+          hbLang.dispatchEvent(new hb.window.Event('change', { bubbles: true }));
+          await sleep(150);
+          const hbAll = hbDoc.querySelector('#wrongSummary a.btn-link');
+          check(!!hbAll && /type=code/.test(hbAll.getAttribute('href')) && /lang=java/.test(hbAll.getAttribute('href')),
+            'wronghub: "전체 풀기" 링크에 &type=code&lang=java 가 붙는다',
+            hbAll ? hbAll.getAttribute('href') : '링크 없음');
+
+          // ---- 언어를 고르면 회차 행의 오답 수도 그 언어로 좁혀지고, 0인 회차는 링크가 죽는다 ----
+          // (허브에 적힌 수와 그 링크가 여는 study 화면의 문항 수가 어긋나면 안 된다.)
+          const sumL = await (await makeFetch()('/api/me/wrong/summary')).json().catch(() => null);
+          check(!!sumL && Array.isArray(sumL.byRound) && sumL.byRound.every(r => r.langs && typeof r.langs === 'object'),
+            'wronghub: /api/me/wrong/summary 의 byRound 에 langs 집계',
+            sumL ? JSON.stringify((sumL.byRound[0] || {}).langs) : '응답 없음');
+
+          const zeroRow = ((sumL && sumL.byRound) || []).map(r => {
+            const L = r.langs || {};
+            const k = ['c', 'java', 'python'].find(x => Number(L[x]) === 0);
+            return k ? { round: r.round, lang: k } : null;
+          }).find(Boolean);
+          check(!!zeroRow, 'wronghub: 특정 언어 오답이 0인 회차가 있다 (링크 비활성 검사 대상)',
+            zeroRow ? zeroRow.round + ' / ' + zeroRow.lang + '=0' : '없음 — 검사 대상 없음');
+
+          if (zeroRow) {
+            hbLang.value = zeroRow.lang;
+            hbLang.dispatchEvent(new hb.window.Event('change', { bubbles: true }));
+            await sleep(150);
+            const stillLink = hbDoc.querySelector('#wrongBody a[href*="round=' + zeroRow.round + '"]');
+            check(!stillLink, 'wronghub: 그 언어 오답이 0인 회차는 링크가 아니다',
+              stillLink ? stillLink.getAttribute('href') : '링크 없음 (정상)');
+            const emptyRow = hbDoc.querySelector('#wrongBody .h-name.empty');
+            check(!!emptyRow && emptyRow.tagName === 'SPAN' && !!emptyRow.title,
+              'wronghub: 0문항 회차 행이 .empty span + 사유 title',
+              emptyRow ? emptyRow.tagName + '.' + emptyRow.className + ' / ' + emptyRow.title : '없음');
+
+            // 행마다 적힌 "오답 N" 이 그 언어의 개수와 정확히 같아야 한다.
+            const liRows = [...hbDoc.querySelectorAll('#wrongBody .wn-rounds li')];
+            const mismatch = liRows.map((li, i) => {
+              const meta = sumL.byRound[i] || {};
+              const want = Number((meta.langs || {})[zeroRow.lang]) || 0;
+              const got = Number((/오답\s*(\d+)/.exec(li.textContent) || [])[1]);
+              return got === want ? null : (meta.round + ': ' + got + '≠' + want);
+            }).filter(Boolean);
+            check(liRows.length > 0 && mismatch.length === 0,
+              'wronghub: 각 회차 행의 오답 수가 고른 언어의 개수와 일치',
+              mismatch.length ? mismatch.join(', ') : liRows.length + '행 일치');
+          }
+        }
+      }
+      check(hb.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+        'wronghub: 언어 select JS 오류 없음', hb.errors.slice(0, 2).join(' | '));
+    }
+
+    // 채점 기록에 없는 문항은 403 이 아니라 **응답에서 빠진다**.
+    const bogusRes = await makeFetch()('/api/me/wrong/explain?ids=' + encodeURIComponent('9999-9#1'));
+    const bogus = await bogusRes.json().catch(() => null);
+    check(bogusRes.status === 200 && bogus && bogus.explanations
+      && Object.keys(bogus.explanations).length === 0,
+      'peek: 채점 기록에 없는 id 는 200 + 조용히 생략 (403 아님)',
+      bogusRes.status + ' ' + JSON.stringify(bogus));
+
+    const pk = await load('/study.html?set=wrong');
+    const pkDoc = pk.window.document;
+    const pkCards = await waitFor(() => { const c = pkDoc.querySelectorAll('.q'); return c.length > 0 ? c : null; },
+      '오답노트 문항 카드', 8000).catch(() => null);
+    check(!!pkCards && pkCards.length > 0, 'peek: 오답노트에 문항이 있다', pkCards ? pkCards.length + '문항' : '0');
+
+    const peekBtn = pkDoc.querySelector('.q button[data-peek]');
+    check(!!peekBtn && /정답·해설 보기/.test(peekBtn.textContent),
+      'peek: 채점 전 카드에 "정답·해설 보기" 버튼(data-peek)',
+      peekBtn ? peekBtn.textContent.trim() : '버튼 없음');
+    check(!!pkDoc.getElementById('peekAll'), 'peek: 헤더에 "해설 모두 펼치기" 버튼(#peekAll)',
+      (pkDoc.getElementById('peekAll') || {}).textContent);
+
+    if (peekBtn) {
+      const qid = peekBtn.getAttribute('data-peek');
+      const cardOf = () => pkDoc.querySelector('.q[data-q="' + qid + '"]');
+      check(!cardOf().querySelector('.feedback.peek'), 'peek: 처음에는 정답 줄이 닫혀 있다');
+      peekBtn.click();
+      const line = await waitFor(() => cardOf().querySelector('.feedback.peek'), '정답 줄', 6000).catch(() => null);
+      check(!!line && /정답:/.test(line.textContent), 'peek: 누르면 .feedback.peek 로 정답 한 줄이 열린다',
+        line ? line.textContent.replace(/\s+/g, ' ').slice(0, 60) : '없음');
+      const box = cardOf().querySelector('.explain-box');
+      check(!!box && box.textContent.trim().length > 0,
+        'peek: 정답 줄 아래에 .explain-box 해설이 함께 열린다',
+        box ? box.textContent.replace(/\s+/g, ' ').slice(0, 60) : (cardOf().querySelector('.peek-none') ? '해설 없음 안내' : '상자 없음'));
+      const reBtn = () => cardOf().querySelector('button[data-peek]');
+      check(!!reBtn() && /해설 닫기/.test(reBtn().textContent),
+        'peek: 열린 뒤 버튼 문구가 "해설 닫기"', reBtn() ? reBtn().textContent.trim() : '-');
+      reBtn().click();
+      const closed = await waitFor(() => (cardOf().querySelector('.feedback.peek') ? null : true), '정답 줄 닫힘', 6000).catch(() => null);
+      check(closed === true, 'peek: 다시 누르면 접힌다');
+
+      // 모두 펼치기 — 보이는 문항 전부가 열려야 한다 (≤50 씩 나눠 한 번씩 요청).
+      const all = pkDoc.getElementById('peekAll');
+      all.click();
+      const opened = await waitFor(() => {
+        const n2 = pkDoc.querySelectorAll('.q .feedback.peek').length;
+        return n2 === pkDoc.querySelectorAll('.q').length ? n2 : null;
+      }, '전체 펼침', 10000).catch(() => null);
+      check(opened !== null, 'peek: #peekAll 이 보이는 문항 전부의 정답·해설을 편다',
+        pkDoc.querySelectorAll('.q .feedback.peek').length + ' / ' + pkDoc.querySelectorAll('.q').length);
+      check(/모두 접기/.test((pkDoc.getElementById('peekAll') || {}).textContent || ''),
+        'peek: 전부 펼친 뒤 버튼 문구가 "모두 접기"', (pkDoc.getElementById('peekAll') || {}).textContent);
+      // 생략된 id 를 {display:'',html:''} 로 캐시하면 여기서 "해설이 아직 없습니다" 가 새어 나온다.
+      // 오답노트 문항은 전부 내 채점 기록이므로 빈 상자가 하나도 없어야 한다.
+      const qN = pkDoc.querySelectorAll('.q').length;
+      check(pkDoc.querySelectorAll('.q .peek-none').length === 0,
+        'peek: 권한 있는 문항에 "해설 없음" 빈 상자가 생기지 않는다 (빈 값 캐시 금지)',
+        pkDoc.querySelectorAll('.q .peek-none').length + '개');
+      check(pkDoc.querySelectorAll('.q .explain-box').length === qN,
+        'peek: 펼친 문항 수만큼 해설 상자가 열린다',
+        pkDoc.querySelectorAll('.q .explain-box').length + ' / ' + qN);
+      pkDoc.getElementById('peekAll').click();
+      await sleep(150);
+      check(pkDoc.querySelectorAll('.q .feedback.peek').length === 0,
+        'peek: "모두 접기" 로 전부 접힌다', pkDoc.querySelectorAll('.q .feedback.peek').length + '개 남음');
+    }
+
+    // 채점하면 peek UI 는 사라지고 기존 해설 흐름이 이긴다.
+    const pkSubmit = [...pkDoc.querySelectorAll('button')].find(b => /제출하고 채점/.test(b.textContent));
+    if (pkSubmit) {
+      pkSubmit.click();
+      await waitFor(() => pkDoc.querySelector('.q.correct, .q.wrong'), '오답노트 채점', 10000).catch(() => null);
+      await sleep(200);
+      check(pkDoc.querySelectorAll('.q button[data-peek]').length === 0,
+        'peek: 채점 후에는 peek 버튼이 사라진다', pkDoc.querySelectorAll('.q button[data-peek]').length + '개 남음');
+      const pb = pkDoc.getElementById('peekBar');
+      check(!pb || pb.hidden === true, 'peek: 채점 후에는 #peekAll 줄도 감춘다', pb ? 'hidden=' + pb.hidden : '줄 없음');
+      // .peek-bar 도 display:flex 다 — hidden 이 실제 숨김이어야 빈 줄이 남지 않는다.
+      check(!!pb && pk.window.getComputedStyle(pb).display === 'none',
+        'peek: hidden 인 #peekBar 가 실제로 display:none',
+        pb ? pk.window.getComputedStyle(pb).display : '-');
+    }
+    check(pk.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+      'peek: 오답노트 화면 JS 오류 없음', pk.errors.slice(0, 2).join(' | '));
+  }
+
+  // ---- ⓕ 세션이 끊긴 뒤(401) 의 종결성 — fail() 화면을 무엇도 되살리지 못한다 ----
+  // 늦게 도착한 해설 응답이 render() 를 부르면 로그인 안내 위로 시험지가 다시 깔린다.
+  // 첫 explain 응답의 **해결만** 늦춰서(요청은 쿠키가 살아 있을 때 나간다) 그 경합을 재현한다.
+  {
+    await makeFetch()('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nickname: nick, password: 'pw1234' }),
+    });
+    const fx = await load('/study.html?set=wrong');
+    const fd = fx.window.document;
+    const fCards = await waitFor(() => { const c = fd.querySelectorAll('.q'); return c.length > 1 ? c : null; },
+      '종결성 검사용 오답 문항', 8000).catch(() => null);
+    check(!!fCards && fCards.length > 1, '종결성: 검사 전제 — 오답 카드가 2개 이상', fCards ? fCards.length : 0);
+
+    if (fCards && fCards.length > 1) {
+      // 첫 explain 응답만 1.2초 늦춘다 (요청 자체는 지금 = 로그인 상태에서 나간다).
+      const realFetch = fx.window.fetch;
+      let delayNext = true;
+      fx.window.fetch = function (input, init) {
+        const url = String(typeof input === 'string' ? input : (input && input.url) || '');
+        const out = realFetch(input, init);
+        if (delayNext && /wrong\/explain/.test(url)) {
+          delayNext = false;
+          return out.then(r => sleep(1200).then(() => r));
+        }
+        return out;
+      };
+
+      const btns = [...fd.querySelectorAll('.q button[data-peek]')];
+      btns[0].click();                       // A: 인가된 요청 — 응답만 늦게 온다
+      await sleep(80);
+      await makeFetch()('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+      btns[1].click();                       // B: 쿠키 없이 나간다 → 401 → 로그인 안내 화면
+
+      const gone = await waitFor(() => /로그인이 필요합니다/.test(fd.body.textContent) ? true : null,
+        '401 로그인 안내 화면', 6000).catch(() => null);
+      check(gone === true, '종결성: 해설 요청이 401 이면 최초 로드와 같은 로그인 안내 화면으로 간다',
+        fd.body.textContent.replace(/\s+/g, ' ').slice(0, 70));
+      check(fd.querySelectorAll('.q').length === 0, '종결성: 401 화면에는 문항 카드가 남지 않는다',
+        fd.querySelectorAll('.q').length + '개');
+      check(fd.getElementById('btnbar').hidden === true, '종결성: 제출 버튼 줄도 감춘다');
+      const rn = fd.getElementById('restoreNotice');
+      check(!rn || rn.hidden === true, '종결성: 복원 배너("불러온 답안 지우기")도 남기지 않는다',
+        rn ? 'hidden=' + rn.hidden : '없음');
+      const pbF = fd.getElementById('peekBar');
+      check(!pbF || pbF.hidden === true, '종결성: #peekAll 줄도 감춘다', pbF ? 'hidden=' + pbF.hidden : '없음');
+
+      // 늦게 온 A 의 응답이 도착할 시간을 준다 — 화면이 되살아나면 안 된다.
+      await sleep(1500);
+      check(fd.querySelectorAll('.q').length === 0,
+        '종결성: 401 뒤 늦게 도착한 해설 응답이 문항을 되살리지 않는다',
+        fd.querySelectorAll('.q').length + '개 부활');
+      check(/로그인이 필요합니다/.test(fd.body.textContent),
+        '종결성: 늦은 응답 뒤에도 로그인 안내가 그대로 남는다');
+      check(fd.getElementById('btnbar').hidden === true,
+        '종결성: 늦은 응답이 제출 버튼을 되살리지 않는다');
+    }
+    check(fx.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+      '종결성: JS 오류 없음', fx.errors.slice(0, 2).join(' | '));
   }
 
   console.log('\n' + (failures === 0 ? 'HEADLESS OK' : 'HEADLESS FAIL — ' + failures + ' check(s) failed'));

@@ -124,7 +124,51 @@ function parseType(raw) {
   return rounds.isType(v) ? { ok: true, type: v } : bad;
 }
 
+/**
+ * 언어 파라미터 해석 — parseType 과 같은 규약이다.
+ * 미지정·빈 값·"all" 은 **전체**(lang=null)이고, 그 밖의 값은 `c|java|python` 만 허용한다.
+ * @returns {{ok:true, lang:string|null} | {ok:false, error:string}}
+ */
+function parseLang(raw) {
+  if (raw == null) return { ok: true, lang: null };
+  const bad = { ok: false, error: '언어는 ' + rounds.LANGS.join('/') + ' 중 하나여야 합니다.' };
+  if (typeof raw !== 'string') return bad; // ?lang=a&lang=b 처럼 배열로 들어온 경우
+  const v = raw.trim();
+  if (v === '' || v === 'all') return { ok: true, lang: null };
+  return rounds.isLang(v) ? { ok: true, lang: v } : bad;
+}
+
+const LANG_NEEDS_CODE = 'lang 은 코드 문항에만 쓸 수 있습니다.';
+
+/**
+ * 유형 + 언어를 **함께** 해석한다 (handoff C3). 학습·모의고사·오답노트가 전부 이 한 곳을 쓴다.
+ *   · 언어는 코드 문항에만 있다 → `lang` 이 오면 `type` 은 생략이거나 `code` 여야 한다.
+ *   · `lang` 만 오면 `type=code` 로 간주한다 — 아래 호출부가 유형 필터를 그대로 쓰면 된다.
+ * @param {object} src `req.query` 또는 `req.body`
+ * @returns {{ok:true, type:string|null, lang:string|null} | {ok:false, error:string}}
+ */
+function parseFilters(src) {
+  const q = src || {};
+  const t = parseType(q.type);
+  if (!t.ok) return t;
+  const l = parseLang(q.lang);
+  if (!l.ok) return l;
+  if (l.lang && t.type && t.type !== 'code') return { ok: false, error: LANG_NEEDS_CODE };
+  return { ok: true, type: l.lang ? 'code' : t.type, lang: l.lang };
+}
+
+/** 유형·언어 필터를 순서대로 건다. 둘 다 null 이면 원본 사본 그대로다. */
+function applyFilters(questions, f) {
+  return rounds.filterByLang(rounds.filterByType(questions, f.type), f.lang);
+}
+
 const NO_QUESTIONS_OF_TYPE = '해당 유형의 문항이 없습니다.';
+const NO_QUESTIONS_OF_LANG = '해당 언어의 문항이 없습니다.';
+
+/** 필터 결과가 비었을 때 쓸 사유 — 언어까지 걸었으면 언어 쪽을 말해 준다. */
+function emptyReason(f) {
+  return f.lang ? NO_QUESTIONS_OF_LANG : NO_QUESTIONS_OF_TYPE;
+}
 
 app.get('/api/rounds', function (req, res) {
   res.json(rounds.listRounds());
@@ -134,16 +178,17 @@ app.get('/api/rounds/:id', function (req, res) {
   const round = rounds.getRound(req.params.id); // 인메모리 화이트리스트 — 경로 순회 불가
   if (!round) return res.status(404).json({ error: '없는 회차입니다.' });
 
-  const t = parseType(req.query.type);
-  if (!t.ok) return res.status(400).json({ error: t.error });
-  const questions = rounds.filterByType(round.questions, t.type);
-  if (t.type && questions.length === 0) return res.status(400).json({ error: NO_QUESTIONS_OF_TYPE });
+  const f = parseFilters(req.query);
+  if (!f.ok) return res.status(400).json({ error: f.error });
+  const questions = applyFilters(round.questions, f);
+  if ((f.type || f.lang) && questions.length === 0) return res.status(400).json({ error: emptyReason(f) });
 
   res.json({
     round: round.round,
     title: round.title || round.round,
     sourceUrl: round.sourceUrl || '',
-    type: t.type,
+    type: f.type,
+    lang: f.lang,
     questions: questions.map(rounds.publicQuestion), // 정답 계열 필드 제거
   });
 });
@@ -180,10 +225,11 @@ app.post('/api/rounds/:id/grade', function (req, res) {
 
   // 유형을 지정하면 **그 부분집합만** 채점한다. 아래 questions 를 sanitizeAnswers·gradeSet·
   // study_results.question_ids 가 모두 공유하므로 총점·오답노트가 서로 어긋나지 않는다.
-  const t = parseType((req.body || {}).type);
-  if (!t.ok) return res.status(400).json({ error: t.error });
-  const questions = rounds.filterByType(round.questions, t.type);
-  if (questions.length === 0) return res.status(400).json({ error: NO_QUESTIONS_OF_TYPE });
+  // 언어까지 걸어 풀었다면 채점 집합도 같아야 한다 — 안 보내면 예전과 같은 동작(유형만).
+  const f = parseFilters(req.body || {});
+  if (!f.ok) return res.status(400).json({ error: f.error });
+  const questions = applyFilters(round.questions, f);
+  if (questions.length === 0) return res.status(400).json({ error: emptyReason(f) });
 
   const answers = sanitizeAnswers(questions, (req.body || {}).answers);
   const result = gradeSet(questions, answers);
@@ -208,12 +254,14 @@ app.post('/api/rounds/:id/grade', function (req, res) {
       logErr('study 저장 실패', round.round, req.user.nickname, '-', e.message);
     }
   }
-  log('grade', round.round + (t.type ? '/' + t.type : ''), result.correctCount + '/' + result.totalCount,
+  log('grade', round.round + (f.type ? '/' + f.type : '') + (f.lang ? '/' + f.lang : ''),
+    result.correctCount + '/' + result.totalCount,
     result.score + '점', req.user ? req.user.nickname : '(비로그인)');
 
   res.json({
     round: round.round, // 유형을 걸어도 회차 id 그대로다 (학습 이력 집계 키)
-    type: t.type,
+    type: f.type,
+    lang: f.lang,
     correctCount: result.correctCount,
     totalCount: result.totalCount,
     score: result.score,
@@ -273,6 +321,24 @@ function wrongSetFromRows(rows) {
     }
   }
   return wrong;
+}
+
+/**
+ * 사용자가 **채점 기록을 가진** 문항 id 집합.
+ * `wrongSetFromRows` 의 decided 집합과 **똑같은 규칙**이다(정오는 보지 않고 출제 여부만 본다):
+ * question_ids 가 있는 기록만 세고, 없는 예전 기록은 문항 단위 판정이 불가능하므로 건너뛴다.
+ *
+ * `/api/me/wrong/explain` 의 권한 검사에 쓴다 — "이미 한 번 채점받은 문항"이라는 뜻이므로
+ * 그 문항의 정답·해설을 다시 보여 줘도 채점 전 노출이 아니다(PROTOCOL.md C5 예외).
+ */
+function gradedIdsOf(userId) {
+  const decided = new Set();
+  for (const row of studyRows(userId)) {
+    const qids = parseIdColumn(row.question_ids);
+    if (!qids) continue;
+    for (const qid of qids) decided.add(qid);
+  }
+  return decided;
 }
 
 /**
@@ -424,6 +490,7 @@ app.get('/api/me/wrong/summary', auth.requireAuth, function (req, res) {
       title: round.title || round.round,
       count: mine.length,
       counts: rounds.countTypes(mine),
+      langs: rounds.countLangs(mine), // 허브의 언어 칩이 "0개 언어"를 비활성으로 둘 수 있도록
     });
   }
 
@@ -446,6 +513,7 @@ app.get('/api/me/wrong/summary', auth.requireAuth, function (req, res) {
         num: q.num,
         prompt: q.prompt == null ? '' : q.prompt,
         type: rounds.typeOf(q),
+        lang: rounds.langOf(q),
         stillWrong: stillWrong,
       });
     }
@@ -464,7 +532,7 @@ app.get('/api/me/wrong/summary', auth.requireAuth, function (req, res) {
  * `?match=<id>` — **그 대전에서 틀린 문항 전부**(지금은 맞힌 것도 포함)를 과거 스냅샷 그대로 돌려준다.
  * `?round=` 가 "지금 오답"인 것과 대비된다. 남의 매치·없는 매치는 404 다(존재 여부도 알려주지 않는다).
  */
-function wrongByMatch(req, res, rawMatch, type) {
+function wrongByMatch(req, res, rawMatch, f) {
   if (!/^\d+$/.test(rawMatch)) return res.status(400).json({ error: '대전 id 는 정수여야 합니다.' });
   const matchId = Number(rawMatch);
   if (!Number.isSafeInteger(matchId) || matchId <= 0) {
@@ -485,7 +553,8 @@ function wrongByMatch(req, res, rawMatch, type) {
   for (const qid of parseIdColumn(row.wrong_ids) || []) {
     const q = rounds.getQuestion(qid);
     if (!q) continue;
-    if (type && rounds.typeOf(q) !== type) continue;
+    if (f.type && rounds.typeOf(q) !== f.type) continue;
+    if (f.lang && rounds.langOf(q) !== f.lang) continue;
     questions.push(rounds.publicQuestion(q)); // 정답 계열 필드 제거
     if (!wrong.has(qid)) resolvedIds.push(qid); // 그 뒤에 맞혀서 지금은 오답이 아닌 문항
   }
@@ -493,7 +562,8 @@ function wrongByMatch(req, res, rawMatch, type) {
   res.json({
     setKey: 'wrong',
     title: '오답노트 · 대전 ' + match.room_name,
-    type: type,
+    type: f.type,
+    lang: f.lang,
     match: matchId,
     battle: battleInfo(match, req.user.id, row),
     resolvedIds: resolvedIds,
@@ -501,9 +571,63 @@ function wrongByMatch(req, res, rawMatch, type) {
   });
 }
 
+const EXPLAIN_IDS_MAX = 50; // 한 번에 조회할 수 있는 문항 수 상한
+
+/**
+ * 오답노트 전용 **채점 전 해설 조회** (handoff C5).
+ *
+ * PROTOCOL.md 의 "채점 전 비노출"에 대한 **유일한 예외**다. 오답노트에 뜨는 문항은 정의상
+ * 그 사용자가 이미 채점받은 문항이므로, 정답 표기(display)와 해설(explanationHtml)을 다시
+ * 보여 줘도 새로 새는 정보가 없다. 권한 검사는 클라이언트 말이 아니라 **서버가 가진
+ * 채점 이력**(gradedIdsOf)으로 한다.
+ *
+ *   GET /api/me/wrong/explain?ids=2024-1#1,2024-1#2   (1~50개)
+ *   → { explanations: { [qid]: { display: string, html: string } } }
+ *
+ * 채점 이력에 없는 문항·없는 문항 id 는 **조용히 생략**한다(403 이 아니다 —
+ * 어떤 문항이 존재하는지·남이 뭘 풀었는지 알려주지 않기 위해서다).
+ *
+ * `/api/me/wrong` 보다 **먼저** 등록한다(요약 라우트와 같은 규칙).
+ */
+app.get('/api/me/wrong/explain', auth.requireAuth, function (req, res) {
+  const raw = typeof req.query.ids === 'string' ? req.query.ids : '';
+  const parts = raw.split(',');
+  // 상한 검사를 **중복 제거보다 먼저** 한다. 그러지 않으면 헤더 한계까지 채운 ids 로
+  // 중복 제거 비용을 먼저 치르게 된다 — 여기서 끊으면 거절 비용이 split 한 번으로 끝난다.
+  if (parts.length > EXPLAIN_IDS_MAX) {
+    return res.status(400).json({ error: '한 번에 ' + EXPLAIN_IDS_MAX + '개까지만 조회할 수 있습니다.' });
+  }
+  const seen = new Set();
+  const ids = [];
+  for (const part of parts) {
+    const id = part.trim();
+    if (id === '' || seen.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
+  }
+  if (ids.length === 0) return res.status(400).json({ error: '문항 id 가 필요합니다.' });
+
+  const graded = gradedIdsOf(req.user.id);
+  const explanations = {};
+  let served = 0;
+  for (const qid of ids) {
+    if (!graded.has(qid)) continue;            // 채점 기록 없음 — 조용히 생략
+    const q = rounds.getQuestion(qid);
+    if (!q) continue;                          // 지금 데이터에 없는 문항 — 조용히 생략
+    explanations[qid] = {
+      display: q.display == null ? '' : q.display,
+      html: rounds.explanationOf(qid),
+    };
+    served += 1;
+  }
+
+  log('wrong explain', served + '/' + ids.length + '문항', req.user.nickname);
+  res.json({ explanations: explanations });
+});
+
 app.get('/api/me/wrong', auth.requireAuth, function (req, res) {
-  const t = parseType(req.query.type);
-  if (!t.ok) return res.status(400).json({ error: t.error });
+  const f = parseFilters(req.query);
+  if (!f.ok) return res.status(400).json({ error: f.error });
 
   const rawRound = typeof req.query.round === 'string' ? req.query.round.trim() : '';
   const rawMatch = typeof req.query.match === 'string' ? req.query.match.trim() : '';
@@ -511,7 +635,7 @@ app.get('/api/me/wrong', auth.requireAuth, function (req, res) {
   if (rawRound !== '' && rawMatch !== '') {
     return res.status(400).json({ error: 'round 와 match 는 함께 지정할 수 없습니다.' });
   }
-  if (rawMatch !== '') return wrongByMatch(req, res, rawMatch, t.type);
+  if (rawMatch !== '') return wrongByMatch(req, res, rawMatch, f);
 
   let round = null;
   let inRound = null;
@@ -527,21 +651,23 @@ app.get('/api/me/wrong', auth.requireAuth, function (req, res) {
     const q = rounds.getQuestion(qid);
     if (!q) continue;
     if (inRound && !inRound.has(qid)) continue;
-    if (t.type && rounds.typeOf(q) !== t.type) continue;
+    if (f.type && rounds.typeOf(q) !== f.type) continue;
+    if (f.lang && rounds.langOf(q) !== f.lang) continue;
     questions.push(rounds.publicQuestion(q)); // 정답 계열 필드 제거
   }
   res.json({
     setKey: 'wrong',
     title: round ? '오답노트 · ' + (round.title || round.round) : '오답노트',
-    type: t.type,
+    type: f.type,
+    lang: f.lang,
     round: round ? round.round : null,
     questions: questions,
   });
 });
 
 app.get('/api/practice', function (req, res) {
-  const t = parseType(req.query.type);
-  if (!t.ok) return res.status(400).json({ error: t.error });
+  const f = parseFilters(req.query);
+  if (!f.ok) return res.status(400).json({ error: f.error });
 
   const rawCount = typeof req.query.count === 'string' ? req.query.count.trim() : '';
   const count = /^\d+$/.test(rawCount) ? Number(rawCount) : NaN;
@@ -567,26 +693,27 @@ app.get('/api/practice', function (req, res) {
   if (roundIds.length === 0) return res.status(400).json({ error: '회차를 하나 이상 선택해야 합니다.' });
 
   // 대전의 random 출제와 같은 규칙(회차별 균등 배분 + 나머지 무작위)을 그대로 쓴다.
-  // 유형 필터는 **출제 전에 풀을 좁히는 것**으로 끝난다 — 풀이 count 보다 적으면
+  // 유형·언어 필터는 **출제 전에 풀을 좁히는 것**으로 끝난다 — 풀이 count 보다 적으면
   // buildQuestionSet 이 내는 한국어 사유("유효 문항 총합…")가 그대로 400 이 된다.
   const built = battle.buildQuestionSet({
     mode: 'random',
     rounds: roundIds.map(function (id) {
       const r = rounds.getRound(id);
-      return { round: r.round, questions: rounds.filterByType(r.questions, t.type) };
+      return { round: r.round, questions: applyFilters(r.questions, f) };
     }),
     questionCount: count,
   });
   if (!built.ok) return res.status(400).json({ error: built.error }); // 유효 문항 총합 부족 등
 
   log('practice', roundIds.length + '회차', built.questions.length + '문항',
-    t.type || '전체', req.user ? req.user.nickname : '(비로그인)');
+    f.type || '전체', f.lang || '', req.user ? req.user.nickname : '(비로그인)');
 
   res.json({
     setKey: 'practice',
     title: '랜덤 모의고사 · ' + roundIds.length + '회차 ' + built.questions.length + '문항',
     roundIds: roundIds,
-    type: t.type,
+    type: f.type,
+    lang: f.lang,
     questions: built.questions.map(rounds.publicQuestion), // 정답 계열 필드 제거
   });
 });

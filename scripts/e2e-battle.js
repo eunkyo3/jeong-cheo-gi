@@ -423,6 +423,74 @@ function readStudyResults() {
   check(!/explanationHtml|"explanations"/.test(JSON.stringify(qs4)),
     'type 필터 방의 battle:questions 에도 해설은 없다');
 
+  // ---------------------------------------------- 언어 필터 방 (feat-code-lang, 계약 C4)
+  // lang 은 코드 문항 전용이다 — type 은 생략하거나 'code' 여야 하고, 그 외 조합은 400 이다.
+  // 유형과 마찬가지로 방 생성 시 1회만 적용되고 settings.lang 으로 보존된다.
+  log('lang filter scenario start');
+  // 두 소켓은 아직 유형 필터 방(playing)의 참가자다 — join 은 waiting 에서만 되므로 먼저 끝낸다.
+  const pFin4 = waitFor(sA, 'battle:finished', () => true, 8000);
+  sA.emit('battle:submit', {});
+  sB3.emit('battle:submit', {});
+  await pFin4;
+  log('type filter room finished — sockets free for the lang scenario');
+
+  const badLang = await req('POST', '/api/rooms',
+    { name: 'x', mode: 'round', roundIds: ['2026-2'], type: 'sql', lang: 'java', timeLimitS: 600 }, a.cookie);
+  check(badLang.status === 400,
+    'type=sql + lang=java 조합은 400 (실제 ' + badLang.status + ' ' + JSON.stringify(badLang.json) + ')');
+  const badLangValue = await req('POST', '/api/rooms',
+    { name: 'x', mode: 'round', roundIds: ['2026-2'], type: 'code', lang: 'rust', timeLimitS: 600 }, a.cookie);
+  check(badLangValue.status === 400,
+    '허용값 밖의 lang 은 400 (실제 ' + badLangValue.status + ' ' + JSON.stringify(badLangValue.json) + ')');
+
+  // 한 회차의 python 코드 문항은 5개에 못 미칠 수 있다 — 랜덤 모드로 전 회차를 풀에 넣는다.
+  const LANG_COUNT = 5;
+  const allRoundIds = roundsMeta.json.map(r => r.round);
+  const room5 = await req('POST', '/api/rooms',
+    { name: 'e2e-lang', mode: 'random', roundIds: allRoundIds, questionCount: LANG_COUNT, type: 'code', lang: 'python', timeLimitS: 600 },
+    a.cookie);
+  check(room5.status === 200,
+    'type=code + lang=python 방 생성: ' + room5.status + ' ' + JSON.stringify(room5.json));
+  const rid5 = room5.json.roomId;
+
+  sA.emit('room:join', { roomId: rid5 });
+  const st5 = await waitFor(sA, 'room:state', p => p.settings.roomId === rid5, 5000);
+  check(st5.settings.type === 'code' && st5.settings.lang === 'python',
+    'room:state settings 에 type=code · lang=python 이 실린다: ' +
+    JSON.stringify({ type: st5.settings.type, lang: st5.settings.lang }));
+
+  const list5 = await req('GET', '/api/rooms', null, b.cookie);
+  const row5 = list5.json.find(r => r.roomId === rid5);
+  check(!!row5 && row5.type === 'code' && row5.lang === 'python',
+    'GET /api/rooms 행에 type=code · lang=python 이 실린다: ' + JSON.stringify(row5));
+
+  sB3.emit('room:join', { roomId: rid5 });
+  await waitFor(sA, 'room:state', p => p.players.length === 2, 5000);
+  sA.emit('room:start', {});
+  const qs5 = await waitFor(sA, 'battle:questions', () => true, 10000);
+  check(qs5.questions.length === LANG_COUNT,
+    'battle:questions 가 요청한 ' + LANG_COUNT + '문항을 준다 (실제 ' + qs5.questions.length + ')');
+  check(qs5.questions.every(q => q.type === 'code'),
+    '출제된 전 문항이 type==="code": ' + JSON.stringify([...new Set(qs5.questions.map(q => q.type))]));
+  check(qs5.questions.every(q => q.lang === 'python'),
+    '출제된 전 문항이 lang==="python": ' + JSON.stringify([...new Set(qs5.questions.map(q => q.lang))]));
+  // lang 은 정답 정보가 아니지만(유형과 같은 취급) 정답 계열 필드는 여전히 한 톨도 없어야 한다.
+  // `bodyText` 는 여기서 세지 않는다 — PROTOCOL "치팅 방어" 가 지문 평문을 battle:questions 에
+  // **싣도록** 동결해 두었다(결과 화면 AI 질문 복사용). 정답 정보가 아니다.
+  const ANSWER_FIELD_RE = /"accept"|sampleAnswer|"validator"|"display"|explanationHtml|"explanations"|sourceImages/;
+  check(!ANSWER_FIELD_RE.test(JSON.stringify(qs5)),
+    '언어 필터 방의 battle:questions 에 정답·해설 계열 필드가 없다 (accept/sampleAnswer/validator/display/explanationHtml/explanations/sourceImages)');
+  check(qs5.questions.every(q => q.fields.every(f => Object.keys(f).length === 1 && 'label' in f)),
+    'fields 는 여전히 {label} 만 남는다: ' + JSON.stringify(qs5.questions[0].fields));
+  check(!ANSWER_FIELD_RE.test(JSON.stringify(st5)),
+    '언어 필터 방의 room:state 에도 정답·해설 계열 필드가 없다');
+  check(!ANSWER_FIELD_RE.test(JSON.stringify(list5.json)),
+    'GET /api/rooms 응답에도 정답·해설 계열 필드가 없다');
+  // 종료 전 상대 답안 누출 감시(소켓 생성 시부터 누적)는 이 시나리오까지 통틀어 0건이어야 한다.
+  check(noLeak(sA) && noLeak(sB3),
+    '언어 필터 시나리오까지 종료 전 answersByUser/marksByUser 누출 0건 (A ' +
+    JSON.stringify(sA.__answerLeaks) + ' / B3 ' + JSON.stringify(sB3.__answerLeaks) + ')');
+
   sA.close(); sB2.close(); sB3.close();
   console.log(leak ? 'E2E FAIL (leak)' : 'E2E OK');
   shutdown(leak ? 1 : 0);

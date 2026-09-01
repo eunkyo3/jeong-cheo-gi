@@ -289,6 +289,10 @@
 .q .q-type.sql { background: #efe8f8; color: #59389a; border: 1px solid #d9c9ef; }
 .q .q-type.theory { background: #e6ece9; color: #1e3a2f; border: 1px solid #cfe0d7; }
 
+/* 언어 뱃지(.q-lang)는 app.css 가 단일 소유자다 — 모양·색·3뱃지 제목 여백·620px 리셋까지
+   전부 거기 있고, battle.html 이 app.css 를 함께 읽으므로 여기서 다시 적을 것이 없다.
+   대전 전용으로 덧댈 레이아웃이 생기면 그때만 이 자리에 추가한다. */
+
 /* 제출자끼리만 보이는 상호 정오 현황 카드(요구 2). .card 톤을 그대로 쓴다. */
 .marks-card .muted { margin-top: 8px; }
 .marks-list { display: flex; flex-direction: column; gap: 8px; }

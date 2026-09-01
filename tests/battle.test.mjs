@@ -822,3 +822,102 @@ describe('battle:finished — answersByUser / marksByUser', () => {
     assert.ok(f0.payload.answersByUser && f0.payload.marksByUser);
   });
 });
+
+// ------------------------------------------------- 방 언어 옵션 (lang, C4)
+
+describe('방 언어 옵션 — lang', () => {
+  /** 유형·언어 오버레이가 붙은 코드 문항. 실제 데이터에서는 rounds.js 가 붙여 준다. */
+  function codeQuestion(num, accept, lang) {
+    return Object.assign(makeQuestion('2026-2', num, accept), { type: 'code', lang: lang });
+  }
+
+  const CODE_QUESTIONS = [
+    codeQuestion(1, ['동치분할'], 'java'),
+    codeQuestion(2, ['캡슐화'], 'java'),
+  ];
+
+  test('createRoom 이 lang 을 정규화해 방 상태에 보존한다', () => {
+    assert.equal(newRoom().state.lang, null); // 미지정 = 전체
+    assert.equal(createRoom({ roomId: 'R', hostUserId: 1, timeLimitS: TIME_LIMIT_S, questions: [], lang: 'java', at: T0 }).state.lang, 'java');
+    assert.equal(createRoom({ roomId: 'R', hostUserId: 1, timeLimitS: TIME_LIMIT_S, questions: [], lang: 'ruby', at: T0 }).state.lang, null);
+    assert.equal(createRoom({ roomId: 'R', hostUserId: 1, timeLimitS: TIME_LIMIT_S, questions: [], lang: '', at: T0 }).state.lang, null);
+  });
+
+  test('공개 방 요약(settings)에 lang 이 나간다', () => {
+    const created = createRoom({
+      roomId: 'ROOM1', name: '자바방', hostUserId: 1, mode: 'round', roundIds: ['2026-2'],
+      questionCount: null, type: 'code', lang: 'java', timeLimitS: TIME_LIMIT_S,
+      questions: CODE_QUESTIONS, at: T0,
+    });
+    const r = drive(created.state, [ev.join(1, '가나', T0 + 10)]);
+    const rs = broadcasts(r.effects, 'room:state');
+    assert.ok(rs.length > 0);
+    for (const f of rs) {
+      assert.equal(f.payload.settings.lang, 'java');
+      assert.equal(f.payload.settings.type, 'code');
+    }
+    // 전체 언어 방은 null 로 나간다(키 자체는 있다)
+    const plain = drive(newRoom().state, [ev.join(1, '가나', T0 + 10)]);
+    const ps = broadcasts(plain.effects, 'room:state');
+    assert.equal(ps[0].payload.settings.lang, null);
+    assert.ok(Object.prototype.hasOwnProperty.call(ps[0].payload.settings, 'lang'));
+  });
+
+  test('battle:questions · resync 의 문항에 lang 이 실리고 정답 계열은 없다', () => {
+    const created = createRoom({
+      roomId: 'ROOM1', name: '자바방', hostUserId: 1, mode: 'round', roundIds: ['2026-2'],
+      questionCount: null, type: 'code', lang: 'java', timeLimitS: TIME_LIMIT_S,
+      questions: CODE_QUESTIONS, at: T0,
+    });
+    const started = drive(created.state, [
+      ev.join(1, '가나', T0 + 10),
+      ev.join(2, '다라', T0 + 20),
+      ev.start(1, T0 + 30),
+      ev.timeout('countdown', T0 + 30 + COUNTDOWN_MS),
+    ]);
+    const qs = broadcasts(started.effects, 'battle:questions');
+    assert.equal(qs.length, 1);
+    for (const q of qs[0].payload.questions) {
+      assert.deepEqual(Object.keys(q).sort(),
+        ['answerMode', 'bodyHtml', 'bodyText', 'fields', 'id', 'lang', 'num', 'prompt', 'type']);
+      assert.equal(q.lang, 'java');
+      assert.equal(q.type, 'code');
+      for (const f of q.fields) assert.deepEqual(Object.keys(f), ['label']);
+    }
+    // 정답 계열 흔적이 페이로드 어디에도 없어야 한다
+    assert.equal(/accept|sampleAnswer|validator|display|explanationHtml/.test(JSON.stringify(qs[0].payload)), false);
+
+    const back = drive(started.state, [ev.disconnect(1, T0 + 5000), ev.connect(1, T0 + 6000)]);
+    const rsync = broadcasts(back.effects, 'battle:resync')[0];
+    assert.equal(rsync.payload.settings.lang, 'java');
+    for (const q of rsync.payload.questions) assert.equal(q.lang, 'java');
+  });
+
+  test('publicQuestion 의 lang 은 코드 문항에만 붙는다', () => {
+    assert.equal(battle.publicQuestion(CODE_QUESTIONS[0]).lang, 'java');
+    // 유형이 코드가 아니면 lang 필드가 있어도 무시한다
+    assert.equal(battle.publicQuestion(Object.assign(makeQuestion('2026-2', 3, ['x']), { type: 'sql', lang: 'java' })).lang, null);
+    // 유형 미지정(=theory 기본값)도 마찬가지
+    assert.equal(battle.publicQuestion(makeQuestion('2026-2', 4, ['x'])).lang, null);
+    // 허용값 밖의 언어는 null
+    assert.equal(battle.publicQuestion(Object.assign(makeQuestion('2026-2', 5, ['x']), { type: 'code', lang: 'ruby' })).lang, null);
+  });
+
+  test('lang 은 진행 중에 바뀌지 않는다 (방 생성 시 1회)', () => {
+    const created = createRoom({
+      roomId: 'ROOM1', name: '자바방', hostUserId: 1, mode: 'round', roundIds: ['2026-2'],
+      questionCount: null, type: 'code', lang: 'java', timeLimitS: TIME_LIMIT_S,
+      questions: CODE_QUESTIONS, at: T0,
+    });
+    const r = drive(created.state, [
+      ev.join(1, '가나', T0 + 10),
+      ev.join(2, '다라', T0 + 20),
+      ev.start(1, T0 + 30),
+      ev.timeout('countdown', T0 + 30 + COUNTDOWN_MS),
+      ev.submit(1, T0 + 5000),
+      ev.submit(2, T0 + 6000),
+    ]);
+    assert.equal(r.state.state, 'finished');
+    assert.equal(r.state.lang, 'java');
+  });
+});

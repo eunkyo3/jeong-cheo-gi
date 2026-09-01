@@ -442,9 +442,11 @@ input.ans:disabled { background: #f4f5f6; color: #555; }
   color: var(--deep);
   cursor: pointer;
 }
-.q-actions button:hover { background: var(--deep); color: #fff; }
+.q-actions button:not(:disabled):hover { background: var(--deep); color: #fff; }
 .q-actions button.ghost { border-color: #b0b6bb; color: #555; }
-.q-actions button.ghost:hover { background: #6b7075; border-color: #6b7075; color: #fff; }
+.q-actions button.ghost:not(:disabled):hover { background: #6b7075; border-color: #6b7075; color: #fff; }
+/* 불러오는 중인 버튼 — 눌리지 않는다는 것이 보여야 한다. */
+.q-actions button:disabled { opacity: 0.55; cursor: default; }
 .q-actions .copied { color: var(--ok); font-size: 0.84rem; align-self: center; font-weight: bold; }
 
 /* ----------------------------------------------------------------- 버튼 */
@@ -1032,8 +1034,12 @@ button.linkish {
   margin-top: 12px;
 }
 .type-filter .type-filter-label { font-size: 0.85rem; color: #b7ccc2; }
-#roundTypeFilter { justify-content: flex-start; margin: 0 0 12px; }
-#roundTypeFilter .type-filter-label { color: var(--muted); }
+/* display:flex 가 UA 의 [hidden]{display:none} 을 덮어쓴다 — hidden 을 실제로 숨김으로 돌린다. */
+.type-filter[hidden] { display: none; }
+#roundTypeFilter,
+#roundLangFilter { justify-content: flex-start; margin: 0 0 12px; }
+#roundTypeFilter .type-filter-label,
+#roundLangFilter .type-filter-label { color: var(--muted); }
 
 /* 회차 버튼의 유형 구성 — "코드 8 · SQL 1 · 이론 11" */
 .round-btn .types {
@@ -1128,7 +1134,8 @@ header.page .study-sub {
   /* 필터는 좁은 화면에서 두 줄로 접힌다 (label 이 줄 전체를 차지한다). */
   .type-filter { gap: 6px; }
   .type-filter .type-filter-label { flex-basis: 100%; text-align: center; }
-  #roundTypeFilter .type-filter-label { text-align: left; }
+  #roundTypeFilter .type-filter-label,
+  #roundLangFilter .type-filter-label { text-align: left; }
   .type-filter .chip { flex: 1 1 auto; justify-content: center; padding: 6px 10px; }
   .type-select { width: 100%; }
   .history-list li { flex-wrap: wrap; gap: 2px 10px; }
@@ -1139,3 +1146,89 @@ header.page .study-sub {
   .study-tools { gap: 6px; }
   .timer-out { font-size: 1.2rem; }
 }
+
+/* ------------------------------------------------- 언어 필터 · 언어 뱃지 */
+
+/* 언어 줄은 유형 줄 바로 아래에 붙는 두 번째 칩 줄이다 (.type-filter 의 시각 언어를 그대로 쓴다).
+   같은 필터 묶음으로 읽히도록 위 여백만 줄인다. */
+.lang-filter { margin-top: 6px; }
+
+/* 문항 언어 뱃지 — 유형 뱃지(.q-type)와 같은 알약 모양에 **언어별 은은한 색 변형**을 준다.
+   언어별로 풀 수 있게 하는 것이 이번 요구의 핵심이므로 목록을 훑을 때 한눈에 갈려야 한다.
+   다만 유형(코드/SQL/이론)이 먼저 읽혀야 하므로 채도는 유형 뱃지보다 한 단계 낮게 잡는다
+   (C=청회, Java=주황기, Python=황토). 대비는 세 색 모두 5.2:1 이상 — 유형 뱃지와 같은 급이다.
+
+   **app.css 가 .q-lang 의 단일 소유자다**: battle.html 이 app.css 를 함께 읽으므로
+   같은 문항이 학습과 대전에서 다른 색으로 보이지 않게 여기 한 곳에서만 정의한다.
+   아래 기본값(회색)은 c/java/python 어느 쪽도 아닌 값이 들어왔을 때의 폴백이다. */
+.q-lang {
+  font-size: 0.72rem;
+  font-weight: bold;
+  line-height: 1.5;
+  border-radius: 999px;
+  padding: 1px 9px;
+  white-space: nowrap;
+  background: #eef0f2;
+  color: #45505a;
+  border: 1px solid #d5dade;
+}
+.q-lang.c { background: #eef2f7; color: #3b5570; border-color: #ccd9e6; }
+.q-lang.java { background: #fbeee6; color: #96521f; border-color: #f0d5c1; }
+.q-lang.python { background: #fdf5e0; color: #7a5c14; border-color: #ecdcae; }
+
+/* 뱃지가 유형 + 언어 + 회차로 셋이면 제목 오른쪽을 그만큼 더 비운다. */
+.q:has(.q-badges .q-lang) .qtitle { padding-right: 215px; }
+/* 3뱃지 중 "이후 맞힘" 쪽(유형·회차·이후 맞힘) 은 위쪽 .qtitle 묶음에 이미 250px 로 있다. */
+/* 넷(유형·언어·회차·"이후 맞힘") 이면 한 줄이 250px 를 넘는다 — 언어 뱃지 폭만큼 더 비운다.
+   :has() 두 번이라 위 두 규칙보다 특이도가 높다(선언 순서와 무관하게 이긴다). */
+.q:has(.q-badges .q-lang):has(.q-badges .q-resolved) .qtitle { padding-right: 310px; }
+
+/* --------------------------------------- 오답노트 즉시 해설 (채점 전 peek) */
+
+/* "정답: …" 한 줄. 채점 피드백과 같은 상자지만 아직 채점한 게 아니므로
+   초록(정답)·빨강(오답) 이 아닌 중립·정보 톤이다. .feedback 은 기본이 display:none 이라
+   채점된 카드가 아닌 여기서는 직접 켜 준다. */
+.feedback.peek {
+  display: block;
+  background: #eef3f7;
+  color: #24405a;
+  border: 1px solid #d5e0ea;
+}
+.feedback.peek b { color: #16324a; }
+
+/* 해설이 아직 없는 문항 — 상자 대신 한 줄만. */
+.peek-none { margin-top: 8px; font-size: 0.9rem; }
+
+/* 필터 줄 아래 "해설 모두 펼치기" 한 줄 (오답노트 · 채점 전에만 보인다). */
+.peek-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 10px;
+}
+.peek-bar .peek-hint { font-size: 0.8rem; color: #b7ccc2; }
+/* .type-filter 와 같은 이유 — display:flex 가 [hidden] 을 이긴다. */
+.peek-bar[hidden] { display: none; }
+
+@media (max-width: 620px) {
+  /* 좁은 화면에서는 안내 문구가 버튼 아래 한 줄로 접힌다. */
+  .peek-bar { gap: 6px; }
+  .peek-bar #peekAll { flex: 1 1 auto; justify-content: center; }
+  .peek-bar .peek-hint { flex-basis: 100%; text-align: center; }
+  /* 뱃지가 셋이면 360px 폭에서는 제목 위로 흘려보낸다 (.q-badges 는 이미 static 이다). */
+  .q:has(.q-badges .q-lang) .qtitle { padding-right: 0; }
+  .q:has(.q-badges .q-resolved) .qtitle { padding-right: 0; }
+  .q:has(.q-badges .q-lang):has(.q-badges .q-resolved) .qtitle { padding-right: 0; }
+}
+
+/* 허브 회차 행이 링크가 아닐 때 (고른 유형·언어의 오답이 그 회차에 0개).
+   .round-btn.empty 와 같은 흐림 톤 — 링크처럼 보이지 않아야 한다. */
+.wn-rounds .h-name.empty {
+  color: var(--muted);
+  opacity: 0.55;
+  cursor: default;
+  text-decoration: none;
+}
+.wn-rounds .h-name.empty:hover { text-decoration: none; }

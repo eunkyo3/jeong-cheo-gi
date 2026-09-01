@@ -16,6 +16,7 @@ const path = require('node:path');
 const ROUNDS_DIR = path.join(__dirname, '..', 'data', 'rounds');
 const EXPLAIN_DIR = path.join(__dirname, '..', 'data', 'explanations');
 const TYPES_DIR = path.join(__dirname, '..', 'data', 'types');
+const LANGS_DIR = path.join(__dirname, '..', 'data', 'langs');
 
 /** 문항 유형 동결 집합. scripts/validate-types.mjs 의 TYPES 와 반드시 같아야 한다. */
 const TYPES = ['code', 'sql', 'theory'];
@@ -29,6 +30,23 @@ function isType(v) {
 /** 문항의 유형. 분류가 없거나 깨졌으면 기본값(theory). */
 function typeOf(q) {
   return q && isType(q.type) ? q.type : DEFAULT_TYPE;
+}
+
+/** 코드 문항 언어 동결 집합. scripts/validate-langs.mjs 의 LANGS 와 반드시 같아야 한다. */
+const LANGS = ['c', 'java', 'python'];
+
+/** 값 하나가 계약을 만족하는가. 쿼리 파라미터 검사도 이 함수를 쓴다. */
+function isLang(v) {
+  return typeof v === 'string' && LANGS.indexOf(v) !== -1;
+}
+
+/**
+ * 문항의 프로그래밍 언어. **코드 유형 문항에만** 값이 있다.
+ * 비코드 문항·미분류·깨진 값은 전부 null 이다 — 유형과 달리 기본값이 없다.
+ */
+function langOf(q) {
+  if (!q || typeOf(q) !== 'code') return null;
+  return isLang(q.lang) ? q.lang : null;
 }
 
 /** @type {Array<object>} 연도→회차 오름차순 정렬된 회차 원본 */
@@ -200,6 +218,83 @@ function loadTypes() {
   return { files: ok, attached: attached, defaulted: defaulted };
 }
 
+// ---------------------------------------------------------------- 언어 부착
+
+/**
+ * `data/langs/<round>.json` 을 읽어 **코드 유형 문항**에 `lang`("c"|"java"|"python") 을 붙인다.
+ *
+ * 유형과 마찬가지로 **정답 정보가 아니다** — publicQuestion() 화이트리스트에 올라가 채점 전에도
+ * 클라이언트로 나간다(언어 뱃지·언어 필터용, handoff C2).
+ *
+ * 유형과 다른 점: **기본값이 없다.** 분류가 없으면 그 문항의 lang 은 그냥 null 이고
+ * 언어 필터에서 빠질 뿐이다(비코드 문항은 애초에 대상이 아니다).
+ *
+ * 분류는 부가 자산이므로 파일이 없거나 깨져도 서버는 그냥 뜬다. loadTypes 와 같은 규칙으로
+ * 문항 단위 경고 대신 **회차 단위로 요약**해 한 줄씩 찍는다.
+ *
+ * loadTypes() **뒤에** 불러야 한다 — 코드 유형 판정이 끝나 있어야 비코드 문항을 걸러낼 수 있다.
+ *
+ * @returns {{ files:number, attached:number, unclassified:number }}
+ */
+function loadLangs() {
+  let files = [];
+  try {
+    files = fs.readdirSync(LANGS_DIR).filter(function (f) { return f.toLowerCase().endsWith('.json'); });
+  } catch (e) {
+    if (e.code !== 'ENOENT') console.warn('[rounds] ' + LANGS_DIR + ' 를 읽을 수 없습니다: ' + e.message);
+    files = [];
+  }
+
+  let ok = 0;
+  let attached = 0;
+  for (const file of files.sort()) {
+    const full = path.join(LANGS_DIR, file);
+    let doc;
+    try {
+      doc = JSON.parse(fs.readFileSync(full, 'utf8'));
+    } catch (e) {
+      console.warn('[rounds] 언어 ' + file + ' 건너뜀 — ' + e.message);
+      continue;
+    }
+    if (!doc || typeof doc !== 'object' || !doc.langs || typeof doc.langs !== 'object') {
+      console.warn('[rounds] 언어 ' + file + ' 건너뜀 — langs 객체가 없습니다.');
+      continue;
+    }
+    ok++;
+    let unknownIds = 0;
+    let badValues = 0;
+    let notCode = 0;
+    for (const qid of Object.keys(doc.langs)) {
+      const v = doc.langs[qid];
+      const q = byQuestionId.get(qid);
+      if (!q) { unknownIds++; continue; }
+      if (!isLang(v)) { badValues++; continue; }
+      if (typeOf(q) !== 'code') { notCode++; continue; }
+      q.lang = v;
+      attached++;
+    }
+    if (unknownIds) console.warn('[rounds] 언어 ' + file + ': 알 수 없는 문항 id ' + unknownIds + '건 — 무시합니다.');
+    if (badValues) console.warn('[rounds] 언어 ' + file + ': 허용되지 않은 값 ' + badValues + '건 — 무시합니다.');
+    if (notCode) console.warn('[rounds] 언어 ' + file + ': 코드 유형이 아닌 문항 ' + notCode + '건 — 무시합니다.');
+  }
+
+  // 언어가 닿지 않은 코드 문항은 lang=null 로 남는다(언어 필터에서만 빠진다).
+  let unclassified = 0;
+  const missingByRound = new Map();
+  for (const r of ordered) {
+    for (const q of r.questions) {
+      if (typeOf(q) !== 'code' || isLang(q.lang)) continue;
+      unclassified++;
+      missingByRound.set(r.round, (missingByRound.get(r.round) || 0) + 1);
+    }
+  }
+  for (const entry of missingByRound) {
+    console.warn('[rounds] 언어 미분류 ' + entry[0] + ': 코드 ' + entry[1] + '문항 — lang=null 로 둡니다.');
+  }
+
+  return { files: ok, attached: attached, unclassified: unclassified };
+}
+
 // -------------------------------------------------------------------- 로드
 
 function reload() {
@@ -246,9 +341,10 @@ function reload() {
 
   ordered.sort(compareRounds);
 
-  // 문항 인덱스가 완성된 뒤에 해설·유형을 얹는다.
+  // 문항 인덱스가 완성된 뒤에 해설·유형을 얹는다. 언어는 유형 판정에 기대므로 유형 다음이다.
   const ex = loadExplanations();
   const ty = loadTypes();
+  const lg = loadLangs();
 
   return {
     loaded: ordered.length,
@@ -258,6 +354,9 @@ function reload() {
     typeFiles: ty.files,
     types: ty.attached,
     typesDefaulted: ty.defaulted,
+    langFiles: lg.files,
+    langs: lg.attached,
+    langsUnclassified: lg.unclassified,
   };
 }
 
@@ -272,7 +371,22 @@ function countTypes(questions) {
 }
 
 /**
- * @returns {Array<{round:string,title:string,questionCount:number,counts:{code:number,sql:number,theory:number}}>}
+ * 문항 배열의 언어별 개수 {c, java, python}.
+ * **코드 문항만** 센다 — 합계는 countTypes(...).code 이하다(미분류 코드 문항만큼 모자랄 수 있다).
+ */
+function countLangs(questions) {
+  const counts = {};
+  for (const l of LANGS) counts[l] = 0;
+  for (const q of questions || []) {
+    const l = langOf(q);
+    if (l) counts[l] += 1;
+  }
+  return counts;
+}
+
+/**
+ * @returns {Array<{round:string,title:string,questionCount:number,
+ *   counts:{code:number,sql:number,theory:number},langs:{c:number,java:number,python:number}}>}
  * 연도→회차 오름차순
  */
 function listRounds() {
@@ -282,6 +396,7 @@ function listRounds() {
       title: r.title || r.round,
       questionCount: r.questions.length,
       counts: countTypes(r.questions),
+      langs: countLangs(r.questions),
     };
   });
 }
@@ -294,6 +409,17 @@ function filterByType(questions, type) {
   const list = questions || [];
   if (!isType(type)) return list.slice();
   return list.filter(function (q) { return typeOf(q) === type; });
+}
+
+/**
+ * 언어 필터. lang 이 null/빈 값이면 원본을 그대로(사본으로) 돌려준다 — "전체".
+ * 유효한 언어를 주면 **그 언어의 코드 문항만** 남는다(비코드·미분류는 langOf 가 null 이라 자연히 빠진다).
+ * 문항 객체는 원본 참조 그대로다(불변 데이터).
+ */
+function filterByLang(questions, lang) {
+  const list = questions || [];
+  if (!isLang(lang)) return list.slice();
+  return list.filter(function (q) { return langOf(q) === lang; });
 }
 
 /** 회차 id(또는 회차 객체)의 특정 유형 문항. 없는 회차면 빈 배열. */
@@ -339,12 +465,12 @@ function explanationOf(qid) {
 
 /**
  * 클라이언트 전송용 문항 사본.
- * 남기는 것: id, num, prompt, bodyHtml, type, fields[].label
+ * 남기는 것: id, num, prompt, bodyHtml, type, lang, fields[].label
  * 제거하는 것: accept, sampleAnswer, validator, normalize, display, bodyText, sourceImages,
  *              answerMode, explanationHtml
  * (SCHEMA.md "클라이언트에 절대 전송 금지")
  *
- * `type` 은 **정답 정보가 아니다** — 문항 카드의 유형 뱃지와 유형 필터에 필요하므로 채점 전에도 나간다.
+ * `type`·`lang` 은 **정답 정보가 아니다** — 문항 카드의 유형·언어 뱃지와 필터에 필요하므로 채점 전에도 나간다.
  *
  * **화이트리스트 방식**이라 문항 객체에 무슨 필드가 새로 붙든 자동으로 걸러진다 —
  * explanationHtml 도 여기서는 절대 나가지 않는다(채점 응답에서만 나간다).
@@ -356,6 +482,7 @@ function publicQuestion(q) {
     prompt: q.prompt == null ? '' : q.prompt,
     bodyHtml: q.bodyHtml == null ? '' : q.bodyHtml,
     type: typeOf(q),
+    lang: langOf(q), // 코드 문항의 언어(c|java|python) 또는 null — 유형과 같은 이유로 채점 전에도 나간다
     fields: (q.fields || []).map(function (f) {
       return { label: f.label == null ? null : f.label };
     }),
@@ -369,6 +496,9 @@ if (stats.loaded === 0) {
 if (stats.explanationFiles === 0) {
   console.warn('[rounds] 해설 파일이 없습니다. data/explanations/*.json (해설 없이도 동작합니다).');
 }
+if (stats.langFiles === 0) {
+  console.warn('[rounds] 언어 분류 파일이 없습니다. data/langs/*.json (코드 문항 lang 이 전부 null 로 동작합니다).');
+}
 if (stats.typeFiles === 0) {
   console.warn('[rounds] 유형 분류 파일이 없습니다. data/types/*.json (전 문항이 ' + DEFAULT_TYPE + ' 로 동작합니다).');
 }
@@ -376,12 +506,18 @@ if (stats.typeFiles === 0) {
 module.exports = {
   ROUNDS_DIR: ROUNDS_DIR,
   TYPES_DIR: TYPES_DIR,
+  LANGS_DIR: LANGS_DIR,
   TYPES: TYPES,
   DEFAULT_TYPE: DEFAULT_TYPE,
+  LANGS: LANGS,
   isType: isType,
   typeOf: typeOf,
+  isLang: isLang,
+  langOf: langOf,
   countTypes: countTypes,
+  countLangs: countLangs,
   filterByType: filterByType,
+  filterByLang: filterByLang,
   questionsOfType: questionsOfType,
   listRounds: listRounds,
   getRound: getRound,
