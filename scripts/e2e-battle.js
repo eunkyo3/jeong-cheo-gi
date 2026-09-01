@@ -270,6 +270,49 @@ function readStudyResults() {
   check(wrongNote.json.questions.every(q => !q.accept && !q.display && q.fields.every(f => !f.accept && !f.validator)),
     '오답노트 문항에도 정답 계열 필드는 없다');
 
+  // ---- 오답노트 허브: 방금 끝난 대전이 방 이름과 함께 byBattle 에 잡히는가 (B = 두 번째 방의 패자/이탈자)
+  const bStudy = readStudyResults().filter(r => r.round === 'battle' && r.user_id === bid);
+  check(bStudy.every(r => r.match_id != null),
+    'saveMatch 가 모든 battle 학습 기록에 match_id 를 남긴다: ' + JSON.stringify(bStudy.map(r => [r.id, r.match_id])));
+  const summary = await req('GET', '/api/me/wrong/summary', null, b.cookie);
+  check(summary.status === 200, 'GET /api/me/wrong/summary 200 (실제 ' + summary.status + ')');
+  log('summary:', JSON.stringify({
+    total: summary.json.total,
+    byRound: summary.json.byRound.length,
+    byBattle: summary.json.byBattle.map(x => [x.matchId, x.roomName, x.result, x.wrongCount, x.stillWrongCount]),
+  }));
+  check(summary.json.byBattle.length === 2, 'byBattle 에 참가한 대전 2건이 실린다 (실제 ' + summary.json.byBattle.length + '건)');
+  const leaveCard = summary.json.byBattle.find(x => x.roomName === 'e2e-leave');
+  check(!!leaveCard, 'byBattle 에 방금 끝난 방 이름 e2e-leave 가 있다: ' +
+    JSON.stringify(summary.json.byBattle.map(x => x.roomName)));
+  const bLeaveRow = bStudy.find(r => Number(r.match_id) === leaveCard.matchId);
+  check(!!bLeaveRow,
+    'byBattle 의 matchId 로 study_results 행을 되짚을 수 있다: ' + leaveCard.matchId +
+    ' (있는 값 ' + JSON.stringify(bStudy.map(r => r.match_id)) + ')');
+  check(leaveCard.wrongCount === JSON.parse(bLeaveRow.wrong_ids).length,
+    'B 의 wrongCount 가 그 대전 행의 wrong_ids 수와 같다 (' + leaveCard.wrongCount + '문항)');
+  check(leaveCard.wrongQuestions.length === leaveCard.wrongCount &&
+    leaveCard.wrongQuestions.every(q => q.stillWrong === true),
+    '틀린 문항이 전부 "지금도 오답"으로 실린다 (stillWrong ' + leaveCard.stillWrongCount + '/' + leaveCard.wrongCount + ')');
+  check(!/accept|sampleAnswer|"display"|explanationHtml/.test(JSON.stringify(summary.json)),
+    '요약 응답 어디에도 정답 계열 필드·해설은 없다');
+  check(leaveCard.opponents.length === 1 && leaveCard.opponents[0].nickname === uA,
+    'opponents 에 상대 닉네임이 실린다: ' + JSON.stringify(leaveCard.opponents));
+
+  // 그 대전만 다시 풀기 — 남의 매치 id 는 404 여야 한다
+  const byMatch = await req('GET', '/api/me/wrong?match=' + leaveCard.matchId, null, b.cookie);
+  check(byMatch.status === 200 && byMatch.json.questions.length === leaveCard.wrongCount,
+    'GET /api/me/wrong?match= 이 그 대전의 오답 ' + leaveCard.wrongCount + '문항을 돌려준다 (' + byMatch.status + ')');
+  check(byMatch.json.title === '오답노트 · 대전 e2e-leave', 'title 에 방 이름이 들어간다: ' + byMatch.json.title);
+  const notMine = await req('GET', '/api/me/wrong?match=999999', null, b.cookie);
+  check(notMine.status === 404, '내 대전이 아닌 id 는 404 (실제 ' + notMine.status + ')');
+  const badMatch = await req('GET', '/api/me/wrong?match=abc', null, b.cookie);
+  check(badMatch.status === 400, '정수가 아닌 match 값은 400 (실제 ' + badMatch.status + ')');
+  const histB = await req('GET', '/api/me/history', null, b.cookie);
+  check(histB.json.recent.some(r => r.round === 'battle' && r.roomName === 'e2e-leave'),
+    '/api/me/history recent 의 대전 행에 roomName 이 실린다: ' +
+    JSON.stringify(histB.json.recent.filter(r => r.round === 'battle').map(r => [r.matchId, r.roomName])));
+
   // B 가 새 소켓으로 돌아와도 재입장은 없다 — 멤버십이 없으니 resync 도 없고, 방은 이미 파기됐다
   const sB3 = await sock(b.cookie, 'B3');
   await sleep(800);

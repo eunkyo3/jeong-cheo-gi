@@ -2,7 +2,7 @@
 // headless-study.js — 학습 모드 프런트를 jsdom 으로 실서버에 붙여 종단 검증한다 (브라우저 없이).
 // 격리 임시 DATA_DIR + 임의 포트. 검증 항목: 메인 회차 버튼 수 / 풀이→채점 점수 / 오답 카드의 AI 복사 버튼 →
 // 클립보드 3단 폴백의 최종 단계(모달) 진입 + 프롬프트 4요소 / 인라인 이의 제기 → reports.json 적재 /
-// 답안 자동 저장·복원 / Enter→다음 칸 / 학습 이력 카드·회차 뱃지 / 오답노트 / 랜덤 모의고사 / favicon /
+// 답안 자동 저장·복원 / Enter→다음 칸 / 학습 이력 카드·회차 뱃지 / 오답노트 + 허브(wrong.html) / 랜덤 모의고사 / favicon /
 // 가입→me→로그아웃 / 문항 유형 필터(코드·SQL·이론) — 유형 뱃지·필터 칩·부분집합 채점·메인 유형 구성.
 //   npm run headless
 'use strict';
@@ -105,6 +105,17 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   const pStart = await waitFor(() => idx.window.document.querySelector('#practiceStart'), '랜덤 모의고사 시작 링크', 4000).catch(() => null);
   check(!!pStart && /set=practice/.test(pStart.getAttribute('href') || ''), 'index: 랜덤 모의고사 카드 + 시작 링크', pStart ? pStart.getAttribute('href') : '없음');
   check(/로그인하면 점수 이력과 오답노트가 저장됩니다/.test(idx.window.document.body.textContent), 'index: 비로그인 시 학습 이력 안내 한 줄');
+
+  // 오답노트 허브 — 비로그인 상태 (서버 없이도 최소 렌더가 되어야 한다)
+  const wnOut = await load('/wrong.html');
+  await waitFor(() => /로그인이 필요합니다/.test(wnOut.window.document.body.textContent) ? true : null, '허브 로그인 안내', 5000).catch(() => null);
+  check(/로그인이 필요합니다/.test(wnOut.window.document.body.textContent),
+    'wronghub: 비로그인 접근 시 "로그인이 필요합니다" 안내',
+    (wnOut.window.document.getElementById('wrongBody') || {}).textContent);
+  check(!!wnOut.window.document.querySelector('#wrongBody a[href="/"]'),
+    'wronghub: 비로그인 화면에 메인 링크');
+  check(wnOut.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+    'wronghub: 비로그인 화면 JS 오류 없음', wnOut.errors.slice(0, 2).join(' | '));
 
   // 가입 → me → 로그아웃 (index 의 폼을 통해)
   const nick = 'hl' + (T0 % 100000);
@@ -387,9 +398,9 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   const sBox = idx2.window.document.getElementById('studyBox');
   check(!!sBox && !sBox.hidden && /오답노트\s*\(\d+문항\)/.test(sBox.textContent),
     'index: 로그인 시 "내 학습" 카드 + 오답노트 버튼(문항 수)', sBox ? sBox.textContent.replace(/\s+/g, ' ').slice(0, 90) : '없음');
-  const wrongLink = idx2.window.document.querySelector('#studyBox a[href="/study.html?set=wrong"]');
+  const wrongLink = idx2.window.document.querySelector('#studyBox a[href="/wrong.html"]');
   check(!!wrongLink && /오답노트 \(16문항\)/.test(wrongLink.textContent),
-    'index: 오답노트 링크가 오답 16문항을 가리킨다', wrongLink ? wrongLink.textContent : '링크 없음');
+    'index: 오답노트 버튼이 허브(/wrong.html)를 가리키고 오답 16문항을 표시', wrongLink ? wrongLink.textContent : '링크 없음');
   check(/2026년 2회|2026-2/.test(sBox ? sBox.textContent : ''), 'index: 최근 결과 목록에 방금 푼 회차 표시',
     sBox ? (sBox.querySelector('.history-list') || {}).textContent : '없음');
 
@@ -410,6 +421,56 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   const wrBadgeCount = wrCards ? [...wrCards].filter(c => !!c.querySelector('.q-origin') && c.querySelector('.q-origin').textContent.trim() !== '').length : 0;
   check(!!wrCards && wrCards.length > 0 && wrBadgeCount === wrCards.length,
     'wrong: 모든 오답 카드에 회차 뱃지 표시', wrBadgeCount + ' / ' + (wrCards ? wrCards.length : 0));
+
+  // ---------- 6b. 오답노트 허브 (/wrong.html) ----------
+  const sum = await (await makeFetch()('/api/me/wrong/summary')).json().catch(() => null);
+  check(!!sum && typeof sum.total === 'number' && Array.isArray(sum.byRound) && Array.isArray(sum.byBattle),
+    'wronghub: GET /api/me/wrong/summary 계약 형태',
+    sum ? JSON.stringify({ total: sum.total, byRound: (sum.byRound || []).length, byBattle: (sum.byBattle || []).length }) : '응답 없음');
+
+  const wn = await load('/wrong.html');
+  const wnDoc = wn.window.document;
+  const wnTabs = await waitFor(() => { const t = [...wnDoc.querySelectorAll('#wrongTabs button')]; return t.length ? t : null; }, '오답노트 허브 탭', 8000).catch(() => null);
+  check(!!wnTabs && wnTabs.length === 2 && /회차별/.test(wnTabs[0].textContent) && /대전별/.test(wnTabs[1].textContent),
+    'wronghub: 회차별 / 대전별 탭 2개', wnTabs ? wnTabs.map(b => b.textContent.trim()).join(' / ') : '탭 없음');
+  const wnOnTab = wnTabs ? wnTabs.find(b => b.classList.contains('on')) : null;
+  check(!!wnOnTab && /회차별/.test(wnOnTab.textContent), 'wronghub: 기본 탭이 회차별',
+    wnOnTab ? wnOnTab.textContent.trim() : '.on 탭 없음');
+  check(/총\s*\d+문항/.test((wnDoc.getElementById('wrongSummary') || {}).textContent || ''),
+    'wronghub: 상단 요약에 "총 N문항"', (wnDoc.getElementById('wrongSummary') || {}).textContent);
+  const wnAll = wnDoc.querySelector('#wrongSummary a.btn-link');
+  check(!!wnAll && wnAll.getAttribute('href') === '/study.html?set=wrong',
+    'wronghub: "전체 풀기" 링크', wnAll ? wnAll.getAttribute('href') : '링크 없음');
+
+  const wnRow = wnDoc.querySelector('#wrongBody a[href="/study.html?set=wrong&round=2026-2"]');
+  check(!!wnRow && /2026년 2회/.test(wnRow.textContent),
+    'wronghub: 회차별 목록에 2026-2 행 → study.html?set=wrong&round=2026-2',
+    wnRow ? wnRow.textContent.trim() : (wnDoc.getElementById('wrongBody') || {}).textContent.replace(/\s+/g, ' ').slice(0, 120));
+  check(wn.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+    'wronghub: JS 오류 없음', wn.errors.slice(0, 2).join(' | '));
+
+  // 대전별 탭도 눌러 본다 (대전 기록이 없으면 안내 문구가 나와야 한다 — 빈 화면은 실패다)
+  if (wnTabs && wnTabs.length === 2) {
+    wnTabs[1].click();
+    await sleep(150);
+    const bodyText = (wnDoc.getElementById('wrongBody') || {}).textContent.replace(/\s+/g, ' ').trim();
+    check(bodyText.length > 0, 'wronghub: 대전별 탭에도 내용이 있다 (기록이 없으면 안내 문구)', bodyText.slice(0, 90));
+  }
+
+  // 회차별 행이 가리키는 학습 화면 — 서버 title 과 문항 수가 그대로 와야 한다
+  const roundWrongApi = await (await makeFetch()('/api/me/wrong?round=2026-2')).json().catch(() => null);
+  const wnRoundHref = wnRow ? wnRow.getAttribute('href') : '/study.html?set=wrong&round=2026-2';
+  const wrR = await load(wnRoundHref);
+  const wrRCards = await waitFor(() => { const c = wrR.window.document.querySelectorAll('.q'); return c.length > 0 ? c : null; }, '회차별 오답 문항', 8000).catch(() => null);
+  const expectN = roundWrongApi && Array.isArray(roundWrongApi.questions) ? roundWrongApi.questions.length : -1;
+  check(!!wrRCards && wrRCards.length === expectN,
+    'wronghub: 회차별 링크가 그 회차의 오답만 낸다 (GET /api/me/wrong?round=2026-2 와 같은 수)',
+    (wrRCards ? wrRCards.length : 0) + ' / ' + expectN);
+  const wrRTitle = wrR.window.document.getElementById('roundTitle').textContent.trim();
+  check(!!roundWrongApi && wrRTitle === String(roundWrongApi.title || ''),
+    'wronghub: 학습 화면 제목이 서버 title 그대로', wrRTitle + ' / ' + (roundWrongApi ? roundWrongApi.title : '응답 없음'));
+  check(wrR.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+    'wronghub: 회차별 오답 학습 화면 JS 오류 없음', wrR.errors.slice(0, 2).join(' | '));
 
   // ---------- 7. 랜덤 모의고사 (B1) ----------
   const pr = await load('/study.html?set=practice&rounds=all&count=10');
@@ -486,7 +547,7 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   check(!!sBox0 && /오답노트\s*\(0문항\)/.test(sBox0.textContent) && /아직 채점 기록이 없습니다/.test(sBox0.textContent),
     'index: 기록 없는 계정 — 빈 이력 안내 + 오답노트 (0문항)',
     sBox0 ? sBox0.textContent.replace(/\s+/g, ' ').slice(0, 90) : '없음');
-  check(!idx3.window.document.querySelector('#studyBox a[href="/study.html?set=wrong"]')
+  check(!idx3.window.document.querySelector('#studyBox a[href="/wrong.html"]')
     && !!idx3.window.document.querySelector('#studyBox .btn-link.disabled'),
     'index: 오답노트가 비면 링크 대신 비활성 버튼');
   check(!idx3.window.document.querySelector('.round-btn .badge'), 'index: 기록 없는 계정에는 회차 뱃지 없음');

@@ -13,21 +13,43 @@
 | POST | `/api/rounds/:id/grade` | `{answers:{qid:[string]}, type?:"code"\|"sql"\|"theory"}` | `{round,type,correctCount,totalCount,score,details[],bodyTexts{},explanations{}}` (로그인 시 `study_results` 적재) |
 | GET | `/api/practice` | `?rounds=all\|<id,id,…>&count=<5..60>&type=` (선택) | `{setKey:"practice", title, roundIds[], type, questions:[…공개 문항]}` / 400 |
 | POST | `/api/practice/grade` | `{setKey:"practice"\|"wrong", answers:{qid:[string]}}` | 회차 채점과 동일 형태(`round`=setKey) / 400 |
-| GET | `/api/me/history` | – (로그인 필수) | `{rounds:{setKey:{count,best,last,lastAt}}, recent:[{round,score,takenAt,total,correct}](≤20, 최신 먼저), wrongCount}` |
-| GET | `/api/me/wrong` | `?type=` (선택, 로그인 필수) | `{setKey:"wrong", title:"오답노트", type, questions:[…공개 문항]}` |
+| GET | `/api/me/history` | – (로그인 필수) | `{rounds:{setKey:{count,best,last,lastAt}}, recent:[{round,score,takenAt,total,correct}](≤20, 최신 먼저), wrongCount}` — `round==="battle"` 인 recent 항목에는 `matchId, roomName` 이 더 붙는다(`match_id` 가 없는 예전 기록은 안 붙는다) |
+| GET | `/api/me/wrong` | `?type=` (선택, 로그인 필수) | `{setKey:"wrong", title:"오답노트", type, round:null, questions:[…공개 문항]}` |
+| GET | `/api/me/wrong` | `?round=<회차 id>[&type=]` | 그 회차의 **현재 오답**만. `title:"오답노트 · 2024년 1회"`, `round` 는 회차 id / 없는 회차는 400 |
+| GET | `/api/me/wrong` | `?match=<매치 id>[&type=]` | **그 대전에서 틀린 문항 전부**(지금은 맞힌 것 포함, 과거 스냅샷). `{…, title:"오답노트 · 대전 <방이름>", match, battle:{…아래 대전 머리말}, resolvedIds:[지금은 오답이 아닌 id], questions}` / 정수가 아닌 값 400 / 내 대전이 아니거나 없는 id 404 |
+| GET | `/api/me/wrong/summary` | – (로그인 필수) | `{total, byRound:[{round,title,count,counts:{code,sql,theory}}], byBattle:[{…대전 머리말, wrongCount, stillWrongCount, wrongQuestions:[{id,num,prompt,type,stillWrong}]}]}` — byRound 는 회차 순·오답 0 인 회차 제외, byBattle 은 최신 먼저 |
 | POST | `/api/reports` | `{questionId, myAnswer, comment}` | `{ok:true}` → `data/reports.json` 적재 |
 | POST | `/api/rooms` | `{name, mode:"round"\|"random", roundIds[], questionCount(5\|10\|20, random만), type?:"code"\|"sql"\|"theory", timeLimitS(600\|1200\|1800), inviteUserIds?:number[](최대 8, 생성자·정수 아닌 값 무시)}` | `{roomId}` |
 | GET | `/api/rooms` | – | `[{roomId,name,host,playerCount,mode,state,questionCount,type,timeLimitS}]` (waiting 이면서 참가자 1명 이상인 방만 — 전원 퇴장 후 GC 유예 중인 빈 방은 제외) |
 | GET | `/api/ranking` | – | `[{rank,userId,nickname,wins,draws,losses,points}]` |
 
 **에러 규약**: REST 는 400 `{error:"사유"}` (잘못된 설정값, **선택 회차의 유효 문항 총합 < questionCount**),
-401(미로그인), 404(없는 방/회차). 소켓은 `error` 이벤트 `{code, message}`.
+401(미로그인), 404(없는 방/회차, **내 것이 아니거나 없는 매치 id**). 소켓은 `error` 이벤트 `{code, message}`.
 
 **모의고사·오답노트**: `/api/practice` 는 `battle.js` 의 `buildQuestionSet({mode:'random'})` 을 그대로 쓴다(회차별 균등 배분).
 `/api/practice/grade` 는 회차가 고정돼 있지 않으므로 **제출한 `answers` 의 키**로 문항 집합을 복원한다 —
 모르는 문항 id 는 무시하고, 실존 문항이 0개면 400, 한 번에 최대 200문항까지 채점한다.
 오답노트 판정은 **문항별 가장 최근 채점 결과**를 따른다: `wrong_ids` 에 있으면 오답, `question_ids` 에만 있으면 해제.
 `question_ids` 가 없는 예전 기록은 문항 단위 판정이 불가능하므로 건너뛴다.
+
+**오답노트 허브 — 회차별 / 대전별 (동결)**
+
+같은 오답을 두 관점으로 본다. 둘은 성격이 달라 **섞어 쓸 수 없다**(`?round=` 와 `?match=` 동시 지정은 400).
+
+| 관점 | 뜻 | 경로 |
+|---|---|---|
+| 회차별 | **지금 오답**(현재 상태). 다시 맞히면 목록에서 빠진다 | `GET /api/me/wrong?round=` |
+| 대전별 | **그 대전에서 틀린 문항**(과거 스냅샷). 다시 맞혀도 목록에 남고 `resolvedIds`·`stillWrong` 으로만 표시된다 | `GET /api/me/wrong?match=` |
+
+대전 머리말(`byBattle` 항목 / `?match=` 의 `battle`)은 한 모양이다 —
+`{matchId, roomName, finishedAt, mode, roundIds, questionCount, me:{correctCount,score}, opponents:[{nickname,correctCount}], result:"win"|"lose"|"draw"}`.
+`result` 는 `matches.winner_user_id` 기준이고 상대의 **보관 답안은 어떤 조회에도 실리지 않는다**(닉네임·정답 수만).
+
+대전을 오답노트에 묶는 연결고리는 `study_results.match_id` 다(SCHEMA.md). 이 값이 NULL 인 예전 기록은
+`byBattle` 에서만 빠지고 **회차별 집계·`wrongCount` 에는 그대로 든다** — `scripts/backfill-battle-notes.mjs` 가 소급해 채운다.
+소유권 검사는 "내가 참가한 매치만 조회"로 끝난다 — 남의 매치 id 는 존재 여부조차 알리지 않고 404 다.
+`stillWrong`·`resolvedIds` 는 **정오 이력**이지 정답 정보가 아니며, 문항은 여전히 `publicQuestion()` 화이트리스트로만 나간다
+(`/api/me/wrong/summary` 의 `wrongQuestions` 는 `id`·`num`·`prompt`·`type` 만 싣는 더 좁은 목록이다).
 
 **치팅 방어**: `/api/rounds/:id` 와 `battle:questions` 페이로드에서 `accept`·`sampleAnswer`·`validator`·`display`
 를 **반드시 제거**한다. `fields` 는 `{label}` 만 남긴다. 채점은 서버에서만 한다.
@@ -51,7 +73,7 @@
 | `GET /api/rounds/:id` | 쿼리 `?type=` | 그 유형 문항만 |
 | `POST /api/rounds/:id/grade` | 본문 `type` | **그 부분집합만 채점** — `totalCount`·`score`·`details`·`bodyTexts`·`explanations`·`study_results.question_ids` 가 전부 부분집합 기준. 응답의 `round` 는 회차 id 그대로다(이력 집계 키) |
 | `GET /api/practice` | 쿼리 `?type=` | 출제 **풀을 먼저 좁힌 뒤** `buildQuestionSet` |
-| `GET /api/me/wrong` | 쿼리 `?type=` | 오답노트 문항 필터 |
+| `GET /api/me/wrong` | 쿼리 `?type=` | 오답노트 문항 필터. `?round=`·`?match=` 위에 겹쳐 걸린다 |
 | `POST /api/rooms` | 본문 `type` | 출제 풀 필터. **방 생성 시 1회만** 적용되고 `settings.type` 으로 보존된다 |
 
 - **미지정·빈 값·`"all"` = 전체**(응답의 `type` 은 `null`). 값 주위 공백은 무시한다.
@@ -70,9 +92,9 @@
 문항 해설(`data/explanations/*.json`, SCHEMA.md)은 정답을 그대로 서술한다. 서버는 기동 시 이를 읽어
 문항 객체에 `explanationHtml` 로 붙이지만 **이 필드는 내부 전용**이다.
 
-- **나가지 않는 곳**: `GET /api/rounds/:id`, `GET /api/practice`, `GET /api/me/wrong`,
-  `battle:questions`, `battle:resync`, `battle:marks` — 전부 `publicQuestion()` 화이트리스트를 거치므로
-  `explanationHtml` 은 구조적으로 실리지 않는다.
+- **나가지 않는 곳**: `GET /api/rounds/:id`, `GET /api/practice`, `GET /api/me/wrong`(`?round=`·`?match=` 포함),
+  `GET /api/me/wrong/summary`, `battle:questions`, `battle:resync`, `battle:marks` — 전부 `publicQuestion()`
+  화이트리스트(요약은 `id`·`num`·`prompt`·`type` 만 싣는 더 좁은 목록)를 거치므로 `explanationHtml` 은 구조적으로 실리지 않는다.
 - **나가는 곳(채점 후에만)**:
   - `POST /api/rounds/:id/grade` · `POST /api/practice/grade` → 최상위 `explanations: {qid: html}`
     (`bodyTexts` 와 같은 패턴. 해설이 없는 문항은 **빈 문자열**이므로 키는 언제나 전 문항을 덮는다)

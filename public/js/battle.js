@@ -193,6 +193,37 @@
     return t ? h('span', { class: 'q-type ' + t, text: TYPE_LABEL[t] }) : null;
   }
 
+  /**
+   * 문항 id("2026-2#3")에서 출처 회차·번호를 사람이 읽는 표기로 뽑는다.
+   * study.js 의 questionOrigin 과 같은 규칙이다 — 두 화면의 뱃지 문구가 어긋나면 안 된다.
+   * "YYYY-N#num" 형태만 "YYYY년 N회 · num번" 으로 바꾸고, 그 외 형태는 '#' 앞부분을 그대로 보여준다.
+   */
+  function questionOrigin(qid) {
+    var s = String(qid == null ? '' : qid);
+    var hashIdx = s.indexOf('#');
+    var prefix = hashIdx >= 0 ? s.slice(0, hashIdx) : s;
+    var num = hashIdx >= 0 ? s.slice(hashIdx + 1) : '';
+    var m = /^(\d{4})-(\d+)$/.exec(prefix);
+    if (!m) return prefix;
+    var label = m[1] + '년 ' + m[2] + '회';
+    return num ? label + ' · ' + num + '번' : label;
+  }
+
+  /** 출처 회차 뱃지 (id 에서 아무것도 못 뽑으면 null → 뱃지 생략). */
+  function originBadge(qid) {
+    var text = questionOrigin(qid);
+    return text ? h('span', { class: 'q-origin', text: text }) : null;
+  }
+
+  /**
+   * 문항 카드 우상단 뱃지 줄 — 유형 + 출처 회차. 둘 다 없으면 줄 자체를 만들지 않는다.
+   * 뱃지는 문항이 정해지면 변하지 않는다 — 패널 key 에 새로 넣을 값이 없다.
+   */
+  function badgeRow(type, qid) {
+    var kids = [typeBadge(type), originBadge(qid)].filter(Boolean);
+    return kids.length ? h('div', { class: 'q-badges' }, kids) : null;
+  }
+
   function roundIdsOfYear(y) {
     var out = [];
     for (var i = 0; i < state.roundList.length; i++) {
@@ -968,9 +999,8 @@
       ]);
     });
 
-    var badge = typeBadge(q.type);
     return h('div', { class: 'q' + (readOnly ? ' readonly' : '') }, [
-      badge ? h('div', { class: 'q-badges' }, [badge]) : null,
+      badgeRow(q.type, q.id),
       h('div', { class: 'qtitle' }, [
         h('span', { class: 'num', text: String(q.num == null ? '' : q.num) }),
         h('span', { html: q.prompt || '' }), // 서버 자산의 신뢰 마크업
@@ -1204,9 +1234,8 @@
       ]);
     });
 
-    var typeChip = typeBadge(q && q.type);
     var kids = [
-      typeChip ? h('div', { class: 'q-badges' }, [typeChip]) : null,
+      badgeRow(q && q.type, qid),
       h('div', { class: 'qtitle' }, [
         h('span', { class: 'num', text: q ? String(q.num) : '?' }),
         h('span', { html: q ? (q.prompt || '') : qid }),

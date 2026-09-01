@@ -254,8 +254,9 @@
 
 .q.readonly input.ans { background: #f2f4f3; color: #55645c; }
 
-/* 문항 유형 뱃지 — 대전 문항 카드 / 결과 카드 우상단.
-   자리·크기는 app.css 의 .q-badges / .q-type 을 그대로 쓴다 (battle.html 은 두 파일을 모두 읽는다).
+/* 문항 뱃지 줄 — 대전 문항 카드 / 결과 카드 우상단. 유형 뱃지 + 출처 회차 뱃지 두 개가 선다.
+   자리·크기·줄바꿈은 app.css 의 .q-badges / .q-type / .q-origin 을 그대로 쓴다
+   (battle.html 은 두 파일을 모두 읽는다. 좁은 화면에서 static 으로 눕는 것도 app.css 가 한다).
    여기서는 대전 카드 톤에 맞춘 색만 다시 못 박는다. */
 .q .q-badges { top: 14px; }
 .q .q-type.code { background: #e7eefb; color: #1f4f96; border: 1px solid #c6d8f3; }

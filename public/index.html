@@ -73,7 +73,6 @@
   var TYPE_ORDER = ['code', 'sql', 'theory'];
   var TYPE_LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
   var roundType = '';   // 회차 목록 위 유형 칩에서 고른 값 ('' = 전체)
-  var wrongType = '';   // 오답노트 옆 유형 선택
   var practiceType = ''; // 랜덤 모의고사 유형 선택
 
   // 회차 목록과 학습 이력은 따로 도착한다. 둘 다 여기에 모아 두고,
@@ -341,6 +340,16 @@
     return setKey;
   }
 
+  /**
+   * 최근 목록 한 줄의 이름. 대전 기록은 방 이름까지 붙여 "대전 · 저녁 한 판" 으로 보여 준다
+   * (roomName 이 없는 옛 기록은 그냥 "대전").
+   */
+  function historyLabel(r) {
+    var base = setKeyLabel(r.round);
+    if (r.round === 'battle' && r.roomName) return base + ' · ' + r.roomName;
+    return base;
+  }
+
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
 
   function formatDate(value) {
@@ -379,7 +388,7 @@
       var list = el('ul', 'history-list');
       recent.forEach(function (r) {
         var li = document.createElement('li');
-        li.appendChild(el('span', 'h-name', setKeyLabel(r.round)));
+        li.appendChild(el('span', 'h-name', historyLabel(r)));
         li.appendChild(el('span', 'h-score', r.score + '점'));
         // correct/total 은 컬럼이 생기기 전 기록에서 null 이다 — 둘 다 숫자일 때만 붙인다.
         if (typeof r.correct === 'number' && typeof r.total === 'number' && r.total > 0) {
@@ -394,16 +403,10 @@
     var wrongCount = Number(historyData.wrongCount) || 0;
     var actions = el('div', 'form-actions');
     if (wrongCount > 0) {
+      // 허브(wrong.html)로 보낸다 — 유형 선택·회차별·대전별 보기가 전부 그쪽에 있다.
       var link = el('a', 'btn-link', '오답노트 (' + wrongCount + '문항)');
-      link.href = '/study.html?set=wrong' + typeTail(wrongType);
+      link.href = '/wrong.html';
       actions.appendChild(link);
-      // 유형 선택 — 고르면 오답노트도 그 유형만 낸다. counts 를 주는 서버에서만 보인다.
-      if (hasCounts(roundsData)) {
-        actions.appendChild(typeSelect('wrongType', wrongType, function (v) {
-          wrongType = v;
-          link.href = '/study.html?set=wrong' + typeTail(wrongType);
-        }));
-      }
     } else {
       actions.appendChild(el('span', 'btn-link disabled', '오답노트 (0문항)'));
     }

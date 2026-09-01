@@ -11,8 +11,12 @@
  * 그때의 답안에 대해 지금 규칙으로 다시 채점한 결과가 나온다(문항 데이터가 그 사이 수정됐다면 그 수정이 반영된다).
  *
  * 멱등성: 적재 행의 `taken_at` 은 **매치 종료 시각**(`matches.finished_at`)이다. 이미
- * (user, round='battle', taken_at=finished_at, question_ids 동일) 행이 있으면 건너뛴다.
+ * (user, round='battle', taken_at=finished_at, question_ids 동일) 행이 있으면 새로 넣지 않는다.
  * `db.saveMatch` 도 같은 규약으로 쓰므로 신규 기록과도 겹치지 않는다. 몇 번 돌려도 안전하다.
+ *
+ * match_id: 신규 적재 행은 처음부터 매치 id 를 갖는다. 이미 있는 행 중 `match_id` 가 NULL 인 것은
+ * 위와 같은 키로 매치를 찾아 UPDATE 로 채운다(오답노트를 대전 단위로 묶는 연결고리).
+ * 이미 값이 있는 행은 건드리지 않으므로 이 단계도 몇 번 돌려도 안전하다.
  *
  * 실행:
  *   node scripts/backfill-battle-notes.mjs --dry-run     # 미리보기(쓰기 없음)
@@ -84,7 +88,8 @@ function main() {
     matchesSkipped: 0,   // question_ids 로 문항을 하나도 복원하지 못한 매치
     players: 0,
     inserted: 0,
-    duplicates: 0,       // 이미 같은 기록이 있어 건너뜀
+    linked: 0,           // 이미 있던 행에 match_id 만 채움
+    duplicates: 0,       // 이미 같은 기록이 있고 match_id 도 있어 건너뜀
   };
 
   try {
@@ -92,16 +97,18 @@ function main() {
     // 유저별 기존 기록 캐시 — 같은 유저를 여러 매치에서 다시 조회하지 않는다.
     const seenByUser = new Map();
 
-    function existingKeys(userId) {
-      let set = seenByUser.get(userId);
-      if (set) return set;
-      set = new Set();
+    /** (taken_at|question_ids) → 기존 battle 학습 기록 행. 같은 키가 여럿이면 최신 1건만 본다. */
+    function existingRows(userId) {
+      let map = seenByUser.get(userId);
+      if (map) return map;
+      map = new Map();
       for (const row of db.listStudyResults(userId, STUDY_SCAN_LIMIT)) {
         if (row.round !== BATTLE_ROUND) continue;
-        set.add(String(row.taken_at) + '|' + String(row.question_ids));
+        const key = String(row.taken_at) + '|' + String(row.question_ids);
+        if (!map.has(key)) map.set(key, row);
       }
-      seenByUser.set(userId, set);
-      return set;
+      seenByUser.set(userId, map);
+      return map;
     }
 
     for (const match of matches) {
@@ -129,10 +136,20 @@ function main() {
 
       for (const player of db.listMatchPlayers(match.id)) {
         summary.players++;
-        const keys = existingKeys(player.user_id);
+        const rowsByKey = existingRows(player.user_id);
         const key = String(takenAt) + '|' + idsJson;
-        if (keys.has(key)) {
-          summary.duplicates++;
+        const existing = rowsByKey.get(key);
+        if (existing) {
+          // 이미 있는 행 — 내용은 그대로 두고 비어 있는 match_id 만 채운다.
+          if (existing.match_id != null) {
+            summary.duplicates++;
+            continue;
+          }
+          console.log('[backfill] 매치 #' + match.id + ' user#' + player.user_id +
+            ' → 기존 기록 #' + existing.id + ' 에 match_id 연결' + (DRY_RUN ? ' [미적용]' : ''));
+          if (!DRY_RUN) db.updateStudyMatchId(existing.id, match.id);
+          existing.match_id = match.id; // 같은 실행 안에서 두 번 세지 않도록
+          summary.linked++;
           continue;
         }
 
@@ -142,9 +159,10 @@ function main() {
           ' → ' + g.correctCount + '/' + g.totalCount + ' (' + g.score + '점), 오답 ' + wrongIds.length + '문항' +
           (DRY_RUN ? ' [미적용]' : ''));
         if (!DRY_RUN) {
-          db.saveStudyResult(player.user_id, BATTLE_ROUND, g.score, resolvedIds, wrongIds, takenAt);
+          db.saveStudyResult(player.user_id, BATTLE_ROUND, g.score, resolvedIds, wrongIds, takenAt, match.id);
         }
-        keys.add(key); // 같은 실행 안에서의 중복 삽입까지 막는다
+        // 같은 실행 안에서의 중복 삽입까지 막는다 (id 는 아직 모르지만 match_id 는 채워진 상태다)
+        rowsByKey.set(key, { id: null, match_id: match.id });
         summary.inserted++;
       }
     }
@@ -157,6 +175,7 @@ function main() {
   console.log('  매치            : ' + summary.matches + '건 (문항 복원 실패로 건너뜀 ' + summary.matchesSkipped + '건)');
   console.log('  참가자 행       : ' + summary.players + '건');
   console.log('  이미 있어 건너뜀: ' + summary.duplicates + '건');
+  console.log('  ' + (DRY_RUN ? 'match_id 연결 예정' : 'match_id 연결 완료') + ': ' + summary.linked + '건');
   console.log('  ' + (DRY_RUN ? '적재 예정      ' : '적재 완료      ') + ': ' + summary.inserted + '건 (round=' + BATTLE_ROUND + ')');
   if (DRY_RUN) console.log('  * --dry-run 이라 아무것도 쓰지 않았습니다.');
 }

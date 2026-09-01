@@ -1,0 +1,443 @@
+/**
+ * wrong.js — 오답노트 허브 (public/wrong.html).
+ *
+ * 한 번의 GET /api/me/wrong/summary 로 전부 그린다.
+ *   { total, byRound:[{round,count,counts}], byBattle:[{matchId,roomName,finishedAt,…,wrongQuestions[]}] }
+ *
+ * 두 가지 보기를 탭으로 나눈다 — 어느 쪽이든 실제 풀이는 study.html 로 넘긴다.
+ *   회차별 → /study.html?set=wrong&round=<회차id>   (지금 오답)
+ *   대전별 → /study.html?set=wrong&match=<matchId>  (그 대전에서 틀렸던 문항 = 과거 스냅샷)
+ *
+ * 렌더는 study.js·battle.js 와 같은 규약이다: 이벤트 → state → render() 전체 재작성.
+ * 부분 DOM 패치는 하지 않는다.
+ */
+(function () {
+  'use strict';
+
+  var TAB_KEY = 'jpk-wrong:tab';
+
+  // 문항 유형 — 서버 계약(data/types/*.json)의 값 셋과 화면 표기.
+  var TYPE_ORDER = ['code', 'sql', 'theory'];
+  var TYPE_LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
+  var RESULT_LABEL = { win: '승', lose: '패', draw: '무' };
+
+  var state = {
+    data: null,        // /api/me/wrong/summary 응답
+    error: null,       // {kind:'auth'|'missing'|'other', message}
+    tab: 'round',      // 'round' | 'battle'
+    typeFilter: '',    // '' | 'code' | 'sql' | 'theory'
+    expanded: {},      // matchId -> true (틀린 문항 목록 펼침)
+  };
+
+  var elTitle = document.getElementById('wrongTitle');
+  var elMeta = document.getElementById('wrongMeta');
+  var elSummary = document.getElementById('wrongSummary');
+  var elTabs = document.getElementById('wrongTabs');
+  var elBody = document.getElementById('wrongBody');
+  var elToastWrap = document.getElementById('toastWrap');
+  var elNavWho = document.getElementById('navWho');
+  var elNavLogout = document.getElementById('navLogout');
+
+  // ------------------------------------------------------------- 작은 도구
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+
+  function toast(message, kind) {
+    if (!elToastWrap) return;
+    var t = el('div', 'toast' + (kind ? ' ' + kind : ''), message);
+    elToastWrap.appendChild(t);
+    setTimeout(function () {
+      t.classList.add('leaving');
+      setTimeout(function () {
+        if (t.parentNode) t.parentNode.removeChild(t);
+      }, 300);
+    }, 2600);
+  }
+
+  /** jsdom·사파리 프라이빗 모드에서 던질 수 있다 — 탭 기억은 항상 최선 노력. */
+  function storeGet(key) {
+    try {
+      return window.localStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
+  }
+  function storeSet(key, value) {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch (e) { /* 무시 */ }
+  }
+
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  /** epoch ms · 숫자 문자열 · ISO 문자열을 모두 받아 준다 (서버 표기가 바뀌어도 깨지지 않게). */
+  function toDate(value) {
+    if (value == null || value === '') return null;
+    var d;
+    if (typeof value === 'number') d = new Date(value);
+    else if (/^\d+$/.test(String(value))) d = new Date(Number(value));
+    else d = new Date(String(value));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function formatDateTime(value) {
+    var d = toDate(value);
+    if (!d) return '';
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate())
+      + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+
+  /** "2024-1" → "2024년 1회". 형식이 다르면 그대로 보여 준다. */
+  function roundLabel(id) {
+    var m = /^(\d{4})-(\d+)$/.exec(String(id == null ? '' : id));
+    return m ? m[1] + '년 ' + m[2] + '회' : String(id == null ? '' : id);
+  }
+
+  /**
+   * 문항 id("2026-2#3") → "2026년 2회 · 3번". study.js questionOrigin 과 같은 규칙이다.
+   */
+  function questionOrigin(qid) {
+    var s = String(qid == null ? '' : qid);
+    var hashIdx = s.indexOf('#');
+    var prefix = hashIdx >= 0 ? s.slice(0, hashIdx) : s;
+    var num = hashIdx >= 0 ? s.slice(hashIdx + 1) : '';
+    var m = /^(\d{4})-(\d+)$/.exec(prefix);
+    if (!m) return prefix;
+    var label = m[1] + '년 ' + m[2] + '회';
+    return num ? label + ' · ' + num + '번' : label;
+  }
+
+  /** {code:2,sql:1,theory:2} → "코드 2 · SQL 1 · 이론 2" (0인 유형은 생략). */
+  function countsText(counts) {
+    if (!counts || typeof counts !== 'object') return '';
+    var parts = [];
+    TYPE_ORDER.forEach(function (t) {
+      var n = Number(counts[t]) || 0;
+      if (n > 0) parts.push(TYPE_LABEL[t] + ' ' + n);
+    });
+    return parts.join(' · ');
+  }
+
+  /** 문항 prompt 는 HTML 자산이다 — 목록에서는 태그를 걷어내고 텍스트만 보여 준다. */
+  function htmlToText(html) {
+    var div = document.createElement('div');
+    div.innerHTML = html == null ? '' : html;
+    return (div.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function normalizeType(value) {
+    var t = String(value == null ? '' : value).trim().toLowerCase();
+    return TYPE_ORDER.indexOf(t) === -1 ? '' : t;
+  }
+
+  function typeTail() {
+    return state.typeFilter ? '&type=' + encodeURIComponent(state.typeFilter) : '';
+  }
+
+  function allUrl() { return '/study.html?set=wrong' + typeTail(); }
+  function roundUrl(id) { return '/study.html?set=wrong&round=' + encodeURIComponent(id) + typeTail(); }
+  // 대전별은 "그 대전에서 틀린 문항" 전부가 대상이다 — 유형으로 다시 자르지 않는다.
+  function matchUrl(id) { return '/study.html?set=wrong&match=' + encodeURIComponent(id); }
+
+  /** index.html 과 같은 전체/코드/SQL/이론 <select>. */
+  function typeSelect(current, onPick) {
+    var sel = document.createElement('select');
+    sel.id = 'wrongType';
+    sel.className = 'type-select';
+    [{ v: '', label: '전체 유형' }].concat(TYPE_ORDER.map(function (t) {
+      return { v: t, label: TYPE_LABEL[t] };
+    })).forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o.v;
+      opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
+    sel.value = current || '';
+    sel.addEventListener('change', function () { onPick(normalizeType(sel.value)); });
+    return sel;
+  }
+
+  // ---------------------------------------------------------------- 내비
+
+  function renderNav(user) {
+    if (!elNavWho || !elNavLogout) return;
+    elNavWho.textContent = '';
+    if (!user) {
+      elNavLogout.hidden = true;
+      return;
+    }
+    elNavWho.appendChild(el('b', null, user.nickname));
+    elNavWho.appendChild(document.createTextNode(' 님'));
+    elNavLogout.hidden = false;
+  }
+
+  if (elNavLogout) {
+    elNavLogout.addEventListener('click', function () {
+      elNavLogout.disabled = true;
+      api.logout().then(function () {
+        elNavLogout.disabled = false;
+        renderNav(null);
+        toast('로그아웃했습니다.');
+        // 오답노트는 로그인 사용자의 기록이다 — 로그아웃하면 화면도 안내로 되돌린다.
+        state.data = null;
+        state.error = { kind: 'auth', message: '로그인이 필요합니다.' };
+        render();
+      }).catch(function (e) {
+        elNavLogout.disabled = false;
+        toast(e.message, 'bad');
+      });
+    });
+  }
+
+  // ---------------------------------------------------------------- 렌더
+
+  function clear(node) {
+    if (node) node.textContent = '';
+  }
+
+  function backLink(href, text) {
+    var p = el('p', 'hint');
+    var a = document.createElement('a');
+    a.href = href;
+    a.textContent = text;
+    p.appendChild(a);
+    return p;
+  }
+
+  function renderError() {
+    var e = state.error;
+    elTitle.textContent = '오답노트';
+    elMeta.textContent = '';
+    elSummary.hidden = true;
+    elTabs.hidden = true;
+    clear(elBody);
+
+    var card = el('div', 'card empty-state');
+    if (e.kind === 'auth') {
+      card.appendChild(el('p', null, '로그인이 필요합니다.'));
+      card.appendChild(el('p', 'hint', '오답노트는 로그인한 사용자의 채점 기록으로 만들어집니다.'));
+      card.appendChild(backLink('/', '메인으로 가서 로그인하기'));
+    } else if (e.kind === 'missing') {
+      card.appendChild(el('p', null, '이 서버는 아직 오답노트 허브를 지원하지 않습니다.'));
+      card.appendChild(el('p', 'hint', '서버를 최신 버전으로 올리면 회차별·대전별로 나눠 볼 수 있습니다. 지금은 전체 오답을 한 번에 풀 수 있습니다.'));
+      card.appendChild(backLink('/study.html?set=wrong', '오답 전체 풀기'));
+      card.appendChild(backLink('/', '메인으로 돌아가기'));
+    } else {
+      card.appendChild(el('p', null, '오답노트를 불러오지 못했습니다.'));
+      card.appendChild(el('p', 'hint', e.message || ''));
+      card.appendChild(backLink('/', '메인으로 돌아가기'));
+    }
+    elBody.appendChild(card);
+  }
+
+  function renderEmpty() {
+    elMeta.textContent = '지금은 다시 풀 오답이 없습니다.';
+    elSummary.hidden = true;
+    elTabs.hidden = true;
+    clear(elBody);
+
+    var card = el('div', 'card empty-state');
+    card.appendChild(el('p', null, '🎉 틀린 문항이 없습니다.'));
+    card.appendChild(el('p', 'hint',
+      '회차를 풀거나 대전을 하고 채점하면 틀린 문항이 여기에 모입니다. 나중에 맞히면 자동으로 빠집니다.'));
+    card.appendChild(backLink('/', '회차 목록으로 돌아가기'));
+    elBody.appendChild(card);
+  }
+
+  function renderSummary() {
+    var total = Number(state.data.total) || 0;
+    clear(elSummary);
+    elSummary.hidden = false;
+
+    elSummary.appendChild(el('span', 'wn-total', '총 ' + total + '문항'));
+
+    var actions = el('div', 'form-actions');
+    var link = el('a', 'btn-link', '전체 풀기');
+    link.id = 'wrongAll';
+    link.href = allUrl();
+    actions.appendChild(link);
+    actions.appendChild(typeSelect(state.typeFilter, function (v) {
+      state.typeFilter = v;
+      render();
+    }));
+    elSummary.appendChild(actions);
+  }
+
+  function renderTabs() {
+    clear(elTabs);
+    elTabs.hidden = false;
+
+    var byBattle = state.data.byBattle || [];
+    [
+      { key: 'round', label: '회차별' },
+      { key: 'battle', label: '대전별 (' + byBattle.length + ')' },
+    ].forEach(function (t) {
+      var on = state.tab === t.key;
+      var btn = el('button', 'chip' + (on ? ' on' : ''), t.label);
+      btn.type = 'button';
+      btn.setAttribute('data-tab', t.key);
+      btn.addEventListener('click', function () {
+        if (state.tab === t.key) return;
+        state.tab = t.key;
+        storeSet(TAB_KEY, t.key);
+        render();
+      });
+      elTabs.appendChild(btn);
+    });
+  }
+
+  function renderRoundTab() {
+    var rows = state.data.byRound || [];
+    if (rows.length === 0) {
+      elBody.appendChild(el('p', 'muted', '회차로 묶을 오답이 없습니다.'));
+      return;
+    }
+    var card = el('div', 'card');
+    var list = el('ul', 'history-list wn-rounds');
+    rows.forEach(function (r) {
+      var li = document.createElement('li');
+      var a = el('a', 'h-name', roundLabel(r.round));
+      a.href = roundUrl(r.round);
+      li.appendChild(a);
+      li.appendChild(el('span', 'h-score', '오답 ' + (Number(r.count) || 0)));
+      var types = countsText(r.counts);
+      if (types) li.appendChild(el('span', 'h-detail', types));
+      list.appendChild(li);
+    });
+    card.appendChild(list);
+    card.appendChild(el('p', 'hint', '회차를 누르면 그 회차의 현재 오답만 다시 풉니다.'));
+    elBody.appendChild(card);
+  }
+
+  /** 대전 카드에서 펼쳐지는 "틀린 문항" 목록. prompt 는 텍스트로만 보여 준다. */
+  function buildWrongList(questions) {
+    var list = el('ul', 'wn-qlist');
+    (questions || []).forEach(function (q) {
+      var li = el('li', 'wn-q');
+
+      var head = el('div', 'wn-qhead');
+      head.appendChild(el('span', 'num', String(q.num == null ? '?' : q.num)));
+      var origin = questionOrigin(q.id);
+      if (origin) head.appendChild(el('span', 'q-origin', origin));
+      var qType = normalizeType(q.type);
+      if (qType) head.appendChild(el('span', 'q-type ' + qType, TYPE_LABEL[qType]));
+      if (q.stillWrong === false) head.appendChild(el('span', 'q-resolved', '이후 맞힘'));
+      li.appendChild(head);
+
+      li.appendChild(el('div', 'wn-qtext', htmlToText(q.prompt)));
+      list.appendChild(li);
+    });
+    return list;
+  }
+
+  function buildBattleCard(b) {
+    var card = el('div', 'card wn-battle');
+    var matchId = b.matchId;
+
+    var head = el('div', 'wn-bhead');
+    head.appendChild(el('h3', 'wn-bname', b.roomName || '이름 없는 방'));
+    var when = formatDateTime(b.finishedAt);
+    if (when) head.appendChild(el('span', 'wn-bdate', when));
+    card.appendChild(head);
+
+    // vs 상대 · 내 정답 x/총 · 승/패/무
+    var bits = [];
+    var opponents = (b.opponents || []).map(function (o) { return o && o.nickname; })
+      .filter(function (n) { return !!n; });
+    if (opponents.length) bits.push('vs ' + opponents.join(', '));
+    var total = Number(b.questionCount) || 0;
+    if (b.me && typeof b.me.correctCount === 'number') {
+      bits.push('내 정답 ' + b.me.correctCount + '/' + (total || '?'));
+    }
+    if (RESULT_LABEL[b.result]) bits.push(RESULT_LABEL[b.result]);
+    if (bits.length) card.appendChild(el('p', 'wn-bmeta', bits.join(' · ')));
+
+    var wrongCount = Number(b.wrongCount) || 0;
+    var stillWrong = Number(b.stillWrongCount) || 0;
+    card.appendChild(el('p', 'wn-bwrong',
+      '틀린 ' + wrongCount + '문항 (지금도 오답 ' + stillWrong + ')'));
+
+    var open = !!state.expanded[matchId];
+    var actions = el('div', 'form-actions wn-bactions');
+    if (wrongCount > 0) {
+      var toggle = el('button', 'chip', open ? '틀린 문항 접기' : '틀린 문항 보기');
+      toggle.type = 'button';
+      toggle.setAttribute('data-expand', String(matchId));
+      toggle.addEventListener('click', function () {
+        state.expanded[matchId] = !state.expanded[matchId];
+        render();
+      });
+      actions.appendChild(toggle);
+
+      var again = el('a', 'btn-link', '이 대전 오답 다시 풀기');
+      again.href = matchUrl(matchId);
+      actions.appendChild(again);
+    } else {
+      actions.appendChild(el('span', 'btn-link disabled', '틀린 문항 없음'));
+    }
+    card.appendChild(actions);
+
+    if (open) card.appendChild(buildWrongList(b.wrongQuestions));
+    return card;
+  }
+
+  function renderBattleTab() {
+    var rows = state.data.byBattle || [];
+    if (rows.length === 0) {
+      var card = el('div', 'card');
+      card.appendChild(el('p', 'hint',
+        '대전으로 묶을 오답이 없습니다. 대전을 하고 결과가 나오면 방 이름으로 모아 보여 줍니다.'));
+      card.appendChild(backLink('/battle.html', '대전하러 가기'));
+      elBody.appendChild(card);
+      return;
+    }
+    rows.forEach(function (b) { elBody.appendChild(buildBattleCard(b)); });
+  }
+
+  function render() {
+    if (state.error) {
+      renderError();
+      return;
+    }
+    if (!state.data) return;
+
+    var total = Number(state.data.total) || 0;
+    elTitle.textContent = '오답노트';
+    if (total === 0) {
+      renderEmpty();
+      return;
+    }
+
+    elMeta.textContent = '틀린 문항을 회차별·대전별로 모아 둡니다. 나중에 맞히면 자동으로 빠집니다.';
+    renderSummary();
+    renderTabs();
+
+    clear(elBody);
+    if (state.tab === 'battle') renderBattleTab();
+    else renderRoundTab();
+  }
+
+  // ------------------------------------------------------------------ 시작
+
+  var savedTab = storeGet(TAB_KEY);
+  if (savedTab === 'round' || savedTab === 'battle') state.tab = savedTab;
+
+  api.get('/api/me/wrong/summary')
+    .then(function (data) {
+      state.data = data && typeof data === 'object' ? data : { total: 0, byRound: [], byBattle: [] };
+      render();
+    })
+    .catch(function (e) {
+      if (e.status === 401) state.error = { kind: 'auth', message: e.message };
+      else if (e.status === 404) state.error = { kind: 'missing', message: e.message };
+      else state.error = { kind: 'other', message: e.message };
+      render();
+    });
+
+  api.me().then(renderNav).catch(function () { renderNav(null); });
+})();

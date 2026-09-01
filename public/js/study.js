@@ -5,6 +5,10 @@
  *   ?round=2026-2                       → GET  /api/rounds/:id        → POST /api/rounds/:id/grade
  *   ?set=practice&rounds=all&count=20   → GET  /api/practice?…        → POST /api/practice/grade
  *   ?set=wrong                          → GET  /api/me/wrong (로그인) → POST /api/practice/grade
+ * 오답노트는 허브(wrong.html)에서 넘어오는 두 가지 부분 보기를 더 받는다 — 쿼리를 그대로 API 로 넘긴다.
+ *   ?set=wrong&round=2024-1             → GET  /api/me/wrong?round=…  (그 회차의 *지금* 오답)
+ *   ?set=wrong&match=12                 → GET  /api/me/wrong?match=…  (그 대전에서 틀렸던 문항 = 과거 스냅샷,
+ *                                         지금은 맞힌 문항도 들어 있고 그 id 는 resolvedIds 로 온다)
  * 어느 출처든 state.round = {round:<setKey>, title, questions[]} 하나로 정규화한다.
  *
  * 렌더는 항상 `state` 로부터 전체를 다시 그린다 (부분 DOM 패치 없음).
@@ -14,6 +18,8 @@
  *
  * 자동 저장: localStorage['jpk-study:<setKey>'] = {answers, savedAt}.
  * 회차/오답노트만 저장한다 — 랜덤 모의고사는 문항 집합이 매번 달라 복원이 무의미하다.
+ * 오답노트의 부분 보기는 키에 한정자를 덧붙인다('jpk-study:wrong:round:2024-1') — 전체 오답 풀이의
+ * 저장분과 섞이면 없는 문항의 답이 되살아난다.
  */
 (function () {
   'use strict';
@@ -27,11 +33,17 @@
   // 문항 유형 — 서버 계약(data/types/*.json)의 값 셋과 화면 표기.
   var TYPE_ORDER = ['code', 'sql', 'theory'];
   var TYPE_LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
+  // 대전 오답 보기의 부제에 쓰는 승패 표기 (battle.js 결과 화면과 같은 말).
+  var RESULT_LABEL = { win: '승', lose: '패', draw: '무' };
 
   var state = {
     mode: 'round',    // 'round' | 'practice' | 'wrong'
     setKey: '',       // 저장 키이자 채점 응답의 round 값
     roundId: '',      // mode==='round' 일 때만 의미 있다
+    wrongRound: '',   // mode==='wrong' + ?round= — 그 회차의 오답만
+    wrongMatch: '',   // mode==='wrong' + ?match= — 그 대전에서 틀렸던 문항 (match 가 round 보다 우선)
+    battle: null,     // match 보기에서 서버가 주는 {roomName,finishedAt,opponents,me,questionCount,result}
+    resolvedIds: {},  // qid -> true (그 대전에서는 틀렸지만 지금은 오답이 아닌 문항)
     typeFilter: '',   // '' | 'code' | 'sql' | 'theory' — 쿼리스트링 ?type= 에서 온다
     roundCounts: null, // {code,sql,theory} — 회차 모드에서만. 0문항 유형 칩을 비활성화하는 데 쓴다
     practiceRounds: 'all', // mode==='practice' 일 때 필터 링크를 다시 만들기 위해 보관
@@ -220,13 +232,27 @@
   var saveTimer = null;
 
   /**
+   * 오답노트 부분 보기의 저장 키 한정자. 'round:2024-1' / 'match:12' / '' (전체).
+   * 세 가지가 같은 setKey('wrong')를 쓰므로 이것이 없으면 저장분이 서로 섞인다.
+   */
+  function wrongScope() {
+    if (state.mode !== 'wrong') return '';
+    if (state.wrongMatch) return 'match:' + state.wrongMatch;
+    if (state.wrongRound) return 'round:' + state.wrongRound;
+    return '';
+  }
+
+  /**
    * 저장 키. 랜덤 모의고사는 매번 문항이 달라 저장하지 않는다 → null.
    * 유형 필터가 걸리면 문항 묶음 자체가 달라지므로 키도 분리한다 (전체 풀이의 저장분과 섞이지 않게).
    */
   function saveKey() {
     if (state.mode === 'practice') return null;
     if (!state.setKey) return null;
-    return STORE_PREFIX + state.setKey + (state.typeFilter ? ':' + state.typeFilter : '');
+    var scope = wrongScope();
+    return STORE_PREFIX + state.setKey
+      + (scope ? ':' + scope : '')
+      + (state.typeFilter ? ':' + state.typeFilter : '');
   }
 
   function hasAnswers() {
@@ -583,21 +609,75 @@
    * 채점 후에는 전부 비활성 — "다시 풀기" 로 state.result 가 지워지면 다시 활성이 된다.
    */
   var elTypeFilter = null;
+  var elBattleSub = null;
   var hasSource = false;
+
+  /**
+   * 대전 오답 보기(?set=wrong&match=)의 부제 한 줄. study.html 에는 자리가 없으므로
+   * 메타 줄 바로 아래(유형 필터 위)에 만들어 붙인다.
+   */
+  function ensureBattleSubNode() {
+    if (elBattleSub) return elBattleSub;
+    if (!elMeta || !elMeta.parentNode) return null;
+    elBattleSub = el('p', 'study-sub');
+    elBattleSub.id = 'battleSub';
+    elMeta.parentNode.insertBefore(elBattleSub, elTypeFilter || elMeta.nextSibling);
+    return elBattleSub;
+  }
+
+  /** "2026-08-30 · vs 상대 · 내 정답 3/10 · 승" — 없는 조각은 조용히 뺀다. */
+  function battleSubText(b) {
+    var bits = [];
+    var d = b.finishedAt == null ? null : new Date(
+      typeof b.finishedAt === 'number' || /^\d+$/.test(String(b.finishedAt))
+        ? Number(b.finishedAt) : String(b.finishedAt));
+    if (d && !isNaN(d.getTime())) {
+      bits.push(d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()));
+    }
+    var names = (b.opponents || []).map(function (o) { return o && o.nickname; })
+      .filter(function (n) { return !!n; });
+    if (names.length) bits.push('vs ' + names.join(', '));
+    if (b.me && typeof b.me.correctCount === 'number') {
+      bits.push('내 정답 ' + b.me.correctCount + '/' + (Number(b.questionCount) || '?'));
+    }
+    if (RESULT_LABEL[b.result]) bits.push(RESULT_LABEL[b.result]);
+    return bits.join(' · ');
+  }
+
+  function renderBattleSub() {
+    var b = state.battle;
+    if (!b) {
+      if (elBattleSub) {
+        elBattleSub.textContent = '';
+        elBattleSub.hidden = true;
+      }
+      return;
+    }
+    var node = ensureBattleSubNode();
+    if (!node) return;
+    node.textContent = '대전 “' + (b.roomName || '이름 없는 방') + '” · ' + battleSubText(b);
+    node.hidden = false;
+  }
 
   function ensureTypeFilterNode() {
     if (elTypeFilter) return elTypeFilter;
     if (!elMeta || !elMeta.parentNode) return null;
     elTypeFilter = el('div', 'type-filter');
     elTypeFilter.id = 'typeFilter';
-    elMeta.parentNode.insertBefore(elTypeFilter, elMeta.nextSibling);
+    var after = elBattleSub || elMeta;   // 부제가 있으면 그 아래로
+    elMeta.parentNode.insertBefore(elTypeFilter, after.nextSibling);
     return elTypeFilter;
   }
 
-  /** 지금 출처를 그대로 두고 type 만 바꾼 학습 URL. */
+  /** 지금 출처를 그대로 두고 type 만 바꾼 학습 URL. 오답노트의 회차·대전 한정도 그대로 이어간다. */
   function studyUrlForType(type) {
     var tail = type ? '&type=' + encodeURIComponent(type) : '';
-    if (state.mode === 'wrong') return '/study.html?set=wrong' + tail;
+    if (state.mode === 'wrong') {
+      var base = '/study.html?set=wrong';
+      if (state.wrongMatch) base += '&match=' + encodeURIComponent(state.wrongMatch);
+      else if (state.wrongRound) base += '&round=' + encodeURIComponent(state.wrongRound);
+      return base + tail;
+    }
     if (state.mode === 'practice') {
       return '/study.html?set=practice&rounds=' + encodeURIComponent(state.practiceRounds)
         + '&count=' + encodeURIComponent(state.practiceCount) + tail;
@@ -689,6 +769,8 @@
     var qType = normalizeType(question.type);
     if (qType) badges.appendChild(el('span', 'q-type ' + qType, TYPE_LABEL[qType]));
     badges.appendChild(el('span', 'q-origin', questionOrigin(question.id)));
+    // 대전 오답 보기에서 "그때는 틀렸지만 지금은 오답이 아닌" 문항 (서버 resolvedIds).
+    if (state.resolvedIds[question.id]) badges.appendChild(el('span', 'q-resolved', '이후 맞힘'));
     card.appendChild(badges);
 
     // 제목: 번호 + prompt(HTML 자산이므로 HTML 로 삽입)
@@ -801,25 +883,43 @@
       if (state.mode === 'wrong') line += ' 맞힌 문항은 오답노트에서 빠집니다.';
       return line;
     }
-    return '총 ' + state.round.questions.length + '문항 · 100점 만점 ('
+    var n = state.round.questions.length;
+    // ?match= 는 과거 스냅샷, ?round= 는 현재 오답이다 — 안내에서 분명히 구분한다.
+    var head = '총 ' + n + '문항';
+    if (state.wrongMatch) head = '이 대전에서 틀린 ' + n + '문항 (지금은 맞힌 문항도 포함)';
+    else if (state.wrongRound) head = '이 회차의 현재 오답 ' + n + '문항';
+    return head + ' · 100점 만점 ('
       + PASS_SCORE + '점 이상 합격) — 답을 입력하고 맨 아래 제출 버튼을 누르세요'
       + (state.typeFilter ? ' · ' + TYPE_LABEL[state.typeFilter] + ' 유형만' : '');
   }
 
-  /** 오답노트가 비었을 때 — 실패가 아니므로 fail() 이 아니라 축하하는 빈 화면을 준다. */
+  /**
+   * 오답노트가 비었을 때 — 실패가 아니므로 fail() 이 아니라 축하하는 빈 화면을 준다.
+   * 회차·대전 부분 보기는 문구도 돌아갈 곳도 허브(wrong.html)를 가리킨다.
+   */
   function renderEmptyWrong() {
-    elTitle.textContent = '오답노트';
+    var scoped = !!(state.wrongMatch || state.wrongRound);
+    elTitle.textContent = (state.round && state.round.title) || '오답노트';
     elMeta.textContent = '지금은 다시 풀 오답이 없습니다.';
+    renderBattleSub();
     renderTypeFilter();
     elQuestions.textContent = '';
     var box = el('div', 'card empty-state');
-    box.appendChild(el('p', null, '🎉 틀린 문항이 없습니다.'));
-    box.appendChild(el('p', 'hint',
-      '회차를 풀고 채점하면 틀린 문항이 여기에 모입니다. 나중에 맞히면 자동으로 빠집니다.'));
+    if (state.wrongMatch) {
+      box.appendChild(el('p', null, '🎉 이 대전에서 틀린 문항이 없습니다.'));
+      box.appendChild(el('p', 'hint', '다른 대전이나 회차의 오답을 오답노트에서 골라 보세요.'));
+    } else if (state.wrongRound) {
+      box.appendChild(el('p', null, '🎉 이 회차의 오답은 모두 정리했습니다.'));
+      box.appendChild(el('p', 'hint', '다른 회차의 오답을 오답노트에서 골라 보세요.'));
+    } else {
+      box.appendChild(el('p', null, '🎉 틀린 문항이 없습니다.'));
+      box.appendChild(el('p', 'hint',
+        '회차를 풀고 채점하면 틀린 문항이 여기에 모입니다. 나중에 맞히면 자동으로 빠집니다.'));
+    }
     var back = el('p', 'hint');
     var a = document.createElement('a');
-    a.href = '/';
-    a.textContent = '회차 목록으로 돌아가기';
+    a.href = scoped ? '/wrong.html' : '/';
+    a.textContent = scoped ? '오답노트로 돌아가기' : '회차 목록으로 돌아가기';
     back.appendChild(a);
     box.appendChild(back);
     elQuestions.appendChild(box);
@@ -833,6 +933,7 @@
 
     elTitle.textContent = round.title || round.round;
     elMeta.textContent = metaText();
+    renderBattleSub();
     renderTypeFilter();
 
     elQuestions.textContent = '';
@@ -931,7 +1032,7 @@
 
   // ------------------------------------------------------------------ 시작
 
-  function fail(message, extraLink) {
+  function fail(message, extraLink, linkText) {
     elTitle.textContent = '학습 모드';
     elMeta.textContent = '';
     // 유형 필터로 문항이 0개면 서버가 400 을 준다 — 문구는 그대로 띄우되 필터는 남겨 둔다
@@ -942,7 +1043,7 @@
     var back = el('p', 'hint');
     var a = document.createElement('a');
     a.href = extraLink || '/';
-    a.textContent = '회차 목록으로 돌아가기';
+    a.textContent = linkText || '회차 목록으로 돌아가기';
     back.appendChild(a);
     elQuestions.appendChild(back);
     elBtnbar.hidden = true;
@@ -958,11 +1059,20 @@
     var typeQ = type ? '&type=' + encodeURIComponent(type) : '';
     var set = queryParam('set');
     if (set === 'wrong') {
+      // 허브에서 넘어오는 한정자. 둘 다 오면 match 가 이긴다 (더 좁은 보기다).
+      var wrongMatch = queryParam('match');
+      var wrongRound = wrongMatch ? '' : queryParam('round');
+      var parts = [];
+      if (wrongMatch) parts.push('match=' + encodeURIComponent(wrongMatch));
+      else if (wrongRound) parts.push('round=' + encodeURIComponent(wrongRound));
+      if (type) parts.push('type=' + encodeURIComponent(type));
       return {
         mode: 'wrong',
         setKey: 'wrong',
         type: type,
-        url: '/api/me/wrong' + (type ? '?type=' + encodeURIComponent(type) : ''),
+        wrongRound: wrongRound,
+        wrongMatch: wrongMatch,
+        url: '/api/me/wrong' + (parts.length ? '?' + parts.join('&') : ''),
       };
     }
     if (set === 'practice') {
@@ -999,6 +1109,8 @@
     state.mode = source.mode;
     state.setKey = source.setKey;
     state.roundId = source.roundId || '';
+    state.wrongRound = source.wrongRound || '';
+    state.wrongMatch = source.wrongMatch || '';
     state.typeFilter = source.type || '';
     if (source.practiceRounds) state.practiceRounds = source.practiceRounds;
     if (source.practiceCount) state.practiceCount = source.practiceCount;
@@ -1016,6 +1128,13 @@
         };
         document.title = state.round.title + ' 학습 — 정처기 배틀';
 
+        // 대전 오답 보기의 부가 정보. 없는 서버·다른 보기에서는 그냥 비어 있다.
+        state.battle = data.battle && typeof data.battle === 'object' ? data.battle : null;
+        state.resolvedIds = {};
+        (Array.isArray(data.resolvedIds) ? data.resolvedIds : []).forEach(function (qid) {
+          state.resolvedIds[qid] = true;
+        });
+
         if (state.mode === 'wrong' && state.round.questions.length === 0) {
           renderEmptyWrong();
           return;
@@ -1027,6 +1146,11 @@
       .catch(function (e) {
         if (state.mode === 'wrong' && e.status === 401) {
           fail('로그인이 필요합니다. 오답노트는 로그인한 사용자의 채점 기록으로 만들어집니다.');
+          return;
+        }
+        // 회차·대전 한정 보기의 실패(없는 대전 404, 잘못된 값 400)는 허브로 되돌려 준다.
+        if (state.mode === 'wrong' && (state.wrongMatch || state.wrongRound)) {
+          fail(e.message, '/wrong.html', '오답노트로 돌아가기');
           return;
         }
         fail(e.message);

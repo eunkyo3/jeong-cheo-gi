@@ -207,7 +207,24 @@ h2.section {
 .q-type.sql { background: #efe8f8; color: #59389a; border-color: #d9c9ef; }
 .q-type.theory { background: #e7f1ec; color: var(--deep); border-color: #cfe0d7; }
 
-.qtitle { font-weight: bold; margin-bottom: 10px; font-size: 1.02rem; padding-right: 130px; }
+/* "이후 맞힘" — 대전 오답 보기에서 그때는 틀렸지만 지금은 오답이 아닌 문항.
+   유형 뱃지와 같은 알약 모양, 정답 색 계열. */
+.q-resolved {
+  font-size: 0.72rem;
+  font-weight: bold;
+  line-height: 1.5;
+  border-radius: 999px;
+  padding: 1px 9px;
+  white-space: nowrap;
+  background: #e8f6ee;
+  color: #1f7a45;
+  border: 1px solid #bfe3cd;
+}
+
+/* 뱃지 줄에 유형 + 회차(+ "이후 맞힘") 가 함께 서므로 제목 오른쪽을 그만큼 비워 둔다. */
+.qtitle { font-weight: bold; margin-bottom: 10px; font-size: 1.02rem; padding-right: 165px; }
+/* 뱃지가 셋(유형·회차·"이후 맞힘")이면 우상단 줄이 165px 를 넘으므로 제목 오른쪽을 더 비운다. */
+.q:has(.q-badges .q-resolved) .qtitle { padding-right: 250px; }
 .qtitle .num {
   display: inline-block;
   background: var(--deep);
@@ -817,7 +834,72 @@ button.linkish {
 }
 .type-select:focus { outline: none; border-color: var(--deep); }
 
+/* --------------------------------------------------------- 오답노트 허브 */
+
+/* 학습 헤더의 부제 한 줄 (대전 오답 보기: 날짜 · vs 상대 · 내 정답 · 승패). */
+header.page .study-sub {
+  color: #cfe3d8;
+  font-size: 0.88rem;
+  font-weight: bold;
+  margin-top: 4px;
+}
+
+/* 총 N문항 · 전체 풀기 · 유형 선택 한 줄 (.card 위에 얹는다). */
+.wn-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+.wn-summary .wn-total { font-weight: bold; font-size: 1.05rem; color: var(--deep); }
+
+/* 회차별 / 대전별 탭 — 유형 필터와 같은 .chip 시각 언어를 쓴다. */
+.wn-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+
+/* 회차별 목록 — .history-list 를 그대로 쓰되 이름 칸이 링크다. */
+.wn-rounds .h-name { color: var(--deep); font-weight: bold; text-decoration: none; }
+.wn-rounds .h-name:hover { text-decoration: underline; }
+
+/* 대전별 카드 */
+.wn-battle .wn-bhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-bottom: 6px;
+}
+.wn-battle .wn-bname { font-size: 1.08rem; color: var(--deep); margin-bottom: 0; }
+.wn-battle .wn-bdate { color: var(--muted); font-size: 0.84rem; white-space: nowrap; }
+.wn-battle .wn-bmeta { font-size: 0.9rem; }
+.wn-battle .wn-bwrong { font-size: 0.9rem; font-weight: bold; color: var(--bad); margin-top: 2px; }
+.wn-battle .wn-bactions { margin-top: 12px; }
+
+/* 펼친 "틀린 문항" 목록 — 문항 카드가 아니라 요약 줄이다 (답안 입력은 study.html 에서 한다). */
+.wn-qlist { list-style: none; margin-top: 12px; border-top: 1px solid var(--line); }
+.wn-q { padding: 10px 2px; border-bottom: 1px solid var(--line); }
+.wn-q:last-child { border-bottom: none; }
+.wn-qhead { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.wn-qhead .num {
+  display: inline-block;
+  background: var(--deep);
+  color: #fff;
+  border-radius: 6px;
+  padding: 0 7px;
+  min-width: 24px;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: bold;
+}
+/* .q-origin 의 기본값은 문항 카드 우상단 절대 배치다 — 여기서는 줄 안에 흘려 놓는다. */
+.wn-qhead .q-origin { position: static; top: auto; right: auto; }
+.wn-qtext { margin-top: 4px; font-size: 0.92rem; line-height: 1.55; overflow-wrap: anywhere; }
+
 @media (max-width: 620px) {
+  .wn-summary { flex-direction: column; align-items: stretch; }
+  .wn-tabs .chip { flex: 1 1 auto; justify-content: center; }
+  .wn-battle .wn-bhead { gap: 2px; }
   .round-btn .badge { font-size: 0.68rem; padding: 1px 6px; }
   .round-btn .types { font-size: 0.68rem; }
   /* 필터는 좁은 화면에서 두 줄로 접힌다 (label 이 줄 전체를 차지한다). */

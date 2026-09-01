@@ -106,18 +106,22 @@ matches(id PK, room_name, mode, round_ids TEXT, question_ids TEXT,
         time_limit_s, started_at, finished_at, winner_user_id)
 match_players(match_id FK, user_id FK, correct_count, submitted_at, answers JSON)
 study_results(id PK, user_id FK, round, score, taken_at,
-              question_ids TEXT NULL, wrong_ids TEXT NULL)
+              question_ids TEXT NULL, wrong_ids TEXT NULL, match_id INTEGER NULL)
 ```
 
 `study_results.round` 는 다음 넷 중 하나다 — **회차 id**(`2026-2` 등), `practice`(랜덤 모의고사),
 `wrong`(오답노트), `battle`(대전). 집계 경로(`/api/me/history`, `/api/me/wrong`)는 이 값을 해석하지 않고
 그대로 집합 키로 쓰므로 네 종류가 같은 규칙으로 합류한다.
 `battle` 행은 `db.saveMatch` 가 매치·참가자와 **같은 트랜잭션(json 어댑터는 같은 flush)** 에서
-참가자 1명당 1행씩 쓰며, `taken_at` 은 기록 시각이 아니라 **매치 종료 시각(`matches.finished_at`)** 이다
+참가자 1명당 1행씩 쓰며(`match_id` 도 그 자리에서 박는다), `taken_at` 은 기록 시각이 아니라 **매치 종료 시각(`matches.finished_at`)** 이다
 (소급 스크립트 `scripts/backfill-battle-notes.mjs` 가 같은 값으로 중복을 판별해 멱등성을 얻는다).
 `question_ids`(출제 문항 전체) / `wrong_ids`(그중 틀린 문항)는 **JSON 배열 문자열이며 NULL 을 허용**한다 —
 컬럼 도입 이전 기록은 NULL 로 남고, 그런 행은 문항 단위 판정(오답노트)에서 제외된다.
-sqlite 어댑터는 기동 시 `PRAGMA table_info` 로 두 컬럼이 없으면 `ALTER TABLE ADD COLUMN` 한다(기존 DB 무중단 마이그레이션).
+`match_id` 는 **`battle` 행에서만** 값이 있는 `matches.id` 참조다(그 밖의 행은 NULL). 오답노트를 **대전 단위**로 묶는
+유일한 연결고리이며(`GET /api/me/wrong/summary` 의 `byBattle`, `GET /api/me/wrong?match=`), 값이 NULL 인 예전
+대전 행은 대전별 보기에서만 빠지고 회차별 집계에는 그대로 든다 — `scripts/backfill-battle-notes.mjs` 가
+(user, taken_at=finished_at, question_ids 동일) 로 매치를 찾아 UPDATE 로 소급해 채운다(멱등).
+sqlite 어댑터는 기동 시 `PRAGMA table_info` 로 세 컬럼 중 없는 것을 `ALTER TABLE ADD COLUMN` 한다(기존 DB 무중단 마이그레이션).
 
 승자 판정 체인: ① 정답 수 → ② 제출 시각(이탈자는 이탈 시각 = 즉시 제출 간주, 끊긴 채 미제출인 유저는 deadline) → ③ 마지막 `battle:answer` 시각
 (입력 전무 시 deadline) → ④ 전부 동률이면 **무승부**(`winner_user_id` NULL).

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오답노트 — 정처기 배틀</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="wrap">
+    <a class="brand" href="/">정처기 배틀</a>
+    <a href="/">학습</a>
+    <a href="/battle.html">대전</a>
+    <a href="/ranking.html">랭킹</a>
+    <span class="spacer"></span>
+    <span class="who" id="navWho"></span>
+    <button type="button" id="navLogout" hidden>로그아웃</button>
+  </div>
+</nav>
+
+<!--
+  오답노트 허브. 화면 내용은 전부 public/js/wrong.js 가 그린다.
+  study.html 과 같은 규약으로 빈 그릇만 둔다 (부분 DOM 패치를 하지 않기 위해).
+    #wrongMeta    헤더 아래 한 줄 안내
+    #wrongSummary 총 N문항 · 전체 풀기 · 유형 선택
+    #wrongTabs    회차별 / 대전별 탭
+    #wrongBody    고른 탭의 목록 (통째로 다시 그린다)
+-->
+
+<div class="wrap">
+
+  <header class="page">
+    <h1 id="wrongTitle">오답노트</h1>
+    <p id="wrongMeta">오답노트를 불러오는 중&hellip;</p>
+  </header>
+
+  <div class="card wn-summary" id="wrongSummary" hidden></div>
+
+  <div class="wn-tabs" id="wrongTabs" hidden></div>
+
+  <div id="wrongBody">
+    <p class="muted">오답노트를 불러오는 중&hellip;</p>
+  </div>
+
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="/js/api.js"></script>
+<script src="/js/wrong.js"></script>
+</body>
+</html>

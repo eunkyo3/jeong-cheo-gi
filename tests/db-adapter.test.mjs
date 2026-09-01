@@ -128,12 +128,80 @@ for (const adapter of ADAPTERS) {
         assert.deepEqual(JSON.parse(ra[0].wrong_ids), ['2026-2#2']);
         // taken_at 은 매치 종료 시각 — 소급 스크립트가 이 값으로 중복을 판별한다
         assert.equal(ra[0].taken_at, '2026-08-31T00:10:00.000Z');
+        // match_id 는 같은 쓰기에서 박힌다 — 오답노트를 대전 단위로 묶는 연결고리
+        assert.equal(ra[0].match_id, id);
 
         const rb = d.listStudyResults(b.id, 10);
         assert.equal(rb.length, 1);
         assert.equal(rb[0].round, 'battle');
         assert.equal(rb[0].score, 0);
         assert.deepEqual(JSON.parse(rb[0].wrong_ids), qids); // 전 문항 오답
+        assert.equal(rb[0].match_id, id);
+      } finally {
+        d.close();
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    test('listMatchesByUser 는 내가 참가한 매치만, 참가자 닉네임과 함께 돌려준다', () => {
+      const dir = tmpDir();
+      const d = db.open({ dir, adapter });
+      try {
+        const a = d.createUser('참가A', 'h');
+        const b = d.createUser('참가B', 'h');
+        const c = d.createUser('제3자', 'h');
+        const qids = ['2026-2#1', '2026-2#2'];
+        const mine = d.saveMatch({
+          roomName: '내방', mode: 'round', roundIds: ['2026-2'], questionIds: qids,
+          timeLimitS: 600, startedAt: 't0', finishedAt: 't1', winnerUserId: b.id,
+        }, [
+          { userId: a.id, correctCount: 1, score: 50, submittedAt: 't1', answers: { '2026-2#1': ['비밀'] }, questionIds: qids, wrongIds: ['2026-2#2'] },
+          { userId: b.id, correctCount: 2, score: 100, submittedAt: 't1', answers: {}, questionIds: qids, wrongIds: [] },
+        ]);
+        const theirs = d.saveMatch({
+          roomName: '남의방', mode: 'round', roundIds: ['2026-2'], questionIds: qids,
+          timeLimitS: 600, startedAt: 't0', finishedAt: 't2', winnerUserId: c.id,
+        }, [
+          { userId: b.id, correctCount: 0, score: 0, submittedAt: 't2', answers: {}, questionIds: qids, wrongIds: qids },
+          { userId: c.id, correctCount: 2, score: 100, submittedAt: 't2', answers: {}, questionIds: qids, wrongIds: [] },
+        ]);
+
+        const list = d.listMatchesByUser(a.id);
+        assert.equal(list.length, 1); // 남의 매치는 애초에 나오지 않는다
+        assert.equal(list[0].id, mine);
+        assert.equal(list[0].room_name, '내방');
+        assert.equal(list[0].winner_user_id, b.id);
+        assert.equal(list[0].players.length, 2);
+        const rowB = list[0].players.find(p => p.user_id === b.id);
+        assert.equal(rowB.nickname, '참가B');
+        assert.equal(rowB.correct_count, 2);
+        // 상대의 보관 답안은 어떤 조회로도 나가지 않는다
+        assert.ok(!('answers' in rowB), Object.keys(rowB).join(','));
+
+        assert.equal(d.listMatchesByUser(b.id).length, 2);
+        assert.deepEqual(d.listMatchesByUser(c.id).map(m => m.id), [theirs]);
+        assert.equal(d.listMatchesByUser(9999).length, 0);
+      } finally {
+        d.close();
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    test('updateStudyMatchId 는 기존 행의 match_id 만 채운다 (소급용)', () => {
+      const dir = tmpDir();
+      const d = db.open({ dir, adapter });
+      try {
+        const u = d.createUser('소급연결', 'h');
+        d.saveStudyResult(u.id, 'battle', 40, ['2026-2#1'], ['2026-2#1'], '2020-01-01T00:00:00.000Z');
+        const before = d.listStudyResults(u.id, 10)[0];
+        assert.equal(before.match_id, null); // match_id 없이 적재된 예전 모양
+
+        d.updateStudyMatchId(before.id, 77);
+        const after = d.listStudyResults(u.id, 10)[0];
+        assert.equal(after.match_id, 77);
+        assert.equal(after.score, 40);                              // 나머지는 그대로
+        assert.equal(after.taken_at, '2020-01-01T00:00:00.000Z');
+        assert.deepEqual(JSON.parse(after.wrong_ids), ['2026-2#1']);
       } finally {
         d.close();
         fs.rmSync(dir, { recursive: true, force: true });
@@ -300,7 +368,7 @@ for (const adapter of ADAPTERS) {
 // sqlite 전용 — CREATE TABLE IF NOT EXISTS 는 기존 파일을 바꾸지 않으므로
 // 예전 스키마로 만들어진 DB 가 재기동만으로 새 컬럼을 얻는지 따로 못박는다.
 describe('db adapter: sqlite 스키마 마이그레이션', () => {
-  test('question_ids / wrong_ids 없는 예전 DB 를 열면 컬럼이 생기고 데이터는 남는다', () => {
+  test('question_ids / wrong_ids / match_id 없는 예전 DB 를 열면 컬럼이 생기고 데이터는 남는다', () => {
     const dir = tmpDir();
     const file = path.join(dir, 'app.db');
     const Database = require('better-sqlite3');
@@ -326,21 +394,27 @@ describe('db adapter: sqlite 스키마 마이그레이션', () => {
       assert.equal(rows[0].score, 60);            // 기존 데이터 보존
       assert.equal(rows[0].question_ids, null);   // 새 컬럼은 NULL 로 채워진다
       assert.equal(rows[0].wrong_ids, null);
+      assert.equal(rows[0].match_id, null);
 
       // ③ 마이그레이션 후 새 저장도 정상 동작
       d.saveStudyResult(7, '2026-1', 90, ['2026-1#1'], []);
       const after = d.listStudyResults(7, 10);
       assert.deepEqual(JSON.parse(after[0].question_ids), ['2026-1#1']);
+
+      // ④ 새로 생긴 match_id 컬럼도 곧바로 쓸 수 있다(소급 스크립트 경로)
+      d.updateStudyMatchId(rows[0].id, 3);
+      assert.equal(d.listStudyResults(7, 10).find(r => r.id === rows[0].id).match_id, 3);
     } finally {
       d.close();
     }
 
-    // ④ 파일 자체의 스키마를 직접 확인
+    // ⑤ 파일 자체의 스키마를 직접 확인
     const check = new Database(file);
     const cols = check.prepare('PRAGMA table_info(study_results)').all().map(c => c.name);
     check.close();
     assert.ok(cols.includes('question_ids'), cols.join(','));
     assert.ok(cols.includes('wrong_ids'), cols.join(','));
+    assert.ok(cols.includes('match_id'), cols.join(','));
 
     fs.rmSync(dir, { recursive: true, force: true });
   });

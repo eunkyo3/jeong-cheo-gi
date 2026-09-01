@@ -111,7 +111,8 @@ function createSqliteAdapter(dbFile) {
       score INTEGER NOT NULL,
       taken_at TEXT NOT NULL,
       question_ids TEXT,
-      wrong_ids TEXT
+      wrong_ids TEXT,
+      match_id INTEGER
     );
     CREATE INDEX IF NOT EXISTS idx_mp_user ON match_players(user_id);
     CREATE INDEX IF NOT EXISTS idx_mp_match ON match_players(match_id);
@@ -121,9 +122,9 @@ function createSqliteAdapter(dbFile) {
   // 마이그레이션: 위 CREATE TABLE 은 기존 DB 를 바꾸지 않는다.
   // 예전 스키마로 만들어진 파일도 재기동만으로 새 컬럼을 갖도록 없는 것만 덧붙인다(무중단, 데이터 보존).
   const studyCols = db.prepare('PRAGMA table_info(study_results)').all().map(function (c) { return c.name; });
-  for (const col of ['question_ids', 'wrong_ids']) {
-    if (studyCols.indexOf(col) !== -1) continue;
-    db.exec('ALTER TABLE study_results ADD COLUMN ' + col + ' TEXT'); // 기존 행은 NULL 로 채워진다
+  for (const col of [['question_ids', 'TEXT'], ['wrong_ids', 'TEXT'], ['match_id', 'INTEGER']]) {
+    if (studyCols.indexOf(col[0]) !== -1) continue;
+    db.exec('ALTER TABLE study_results ADD COLUMN ' + col[0] + ' ' + col[1]); // 기존 행은 NULL 로 채워진다
   }
 
   const stmt = {
@@ -139,9 +140,18 @@ function createSqliteAdapter(dbFile) {
     playersByMatch: db.prepare('SELECT * FROM match_players WHERE match_id = ?'),
     allPlayers: db.prepare('SELECT * FROM match_players'),
     insertStudy: db.prepare(`INSERT INTO study_results
-      (user_id, round, score, taken_at, question_ids, wrong_ids) VALUES (?, ?, ?, ?, ?, ?)`),
+      (user_id, round, score, taken_at, question_ids, wrong_ids, match_id) VALUES (?, ?, ?, ?, ?, ?, ?)`),
     studyByUser: db.prepare('SELECT * FROM study_results WHERE user_id = ? ORDER BY id DESC LIMIT ?'),
+    updateStudyMatch: db.prepare('UPDATE study_results SET match_id = ? WHERE id = ?'),
     allUsers: db.prepare('SELECT * FROM users'),
+    // 내가 참가한 매치만 — match_players 로 소유권을 거른다(남의 대전은 애초에 나오지 않는다)
+    matchesByUser: db.prepare(`SELECT m.* FROM matches m
+      JOIN match_players mp ON mp.match_id = m.id
+      WHERE mp.user_id = ? ORDER BY m.id`),
+    // 답안 본문은 싣지 않는다 — 상대의 입력 내용은 어떤 조회로도 나가면 안 된다
+    playersWithNick: db.prepare(`SELECT mp.match_id, mp.user_id, mp.correct_count, mp.submitted_at, u.nickname
+      FROM match_players mp LEFT JOIN users u ON u.id = mp.user_id
+      WHERE mp.match_id = ? ORDER BY mp.user_id`),
   };
 
   const saveMatchTx = db.transaction((match, players) => {
@@ -157,9 +167,10 @@ function createSqliteAdapter(dbFile) {
       stmt.insertPlayer.run(matchId, p.userId, p.correctCount,
         p.submittedAt == null ? null : p.submittedAt, JSON.stringify(p.answers || {}));
       // 같은 트랜잭션에서 학습 기록도 남긴다 — 매치만 남고 오답노트가 비는 일이 없도록.
+      // match_id 도 여기서 박아 둔다: 오답노트를 대전 단위로 묶는 유일한 연결고리다.
       if (!hasStudyPayload(p)) continue;
       stmt.insertStudy.run(p.userId, BATTLE_ROUND, p.score == null ? 0 : p.score, takenAt,
-        idsColumn(p.questionIds), idsColumn(p.wrongIds));
+        idsColumn(p.questionIds), idsColumn(p.wrongIds), matchId);
     }
     return matchId;
   });
@@ -179,12 +190,27 @@ function createSqliteAdapter(dbFile) {
       return matchId == null ? stmt.allPlayers.all() : stmt.playersByMatch.all(matchId);
     },
     /**
+     * 내가 참가한 매치 목록(오래된 것 먼저). 각 행에 참가자 전원을 `players` 로 붙인다
+     * — 상대 닉네임·정답 수까지 한 번에 필요하기 때문이다(오답노트 대전별 보기).
+     * 보관 답안(`answers`)은 일부러 뺐다. 정렬은 호출자 몫이다(어댑터는 raw row 규약).
+     */
+    listMatchesByUser(userId) {
+      return stmt.matchesByUser.all(userId).map(function (m) {
+        return Object.assign({}, m, { players: stmt.playersWithNick.all(m.id) });
+      });
+    },
+    /** 소급 적재용 — 이미 있는 학습 기록 행에 match_id 만 채운다. */
+    updateStudyMatchId(id, matchId) {
+      stmt.updateStudyMatch.run(matchId == null ? null : Number(matchId), id);
+    },
+    /**
      * questionIds/wrongIds 는 선택 — 없으면 NULL(예전 기록과 같은 모양)로 남는다.
      * takenAt 도 선택 — 소급 적재(backfill)만 과거 시각을 명시하고, 평소에는 지금 시각이다.
+     * matchId 도 선택 — 대전(round='battle') 행에서만 값이 있다.
      */
-    saveStudyResult(userId, round, score, questionIds, wrongIds, takenAt) {
+    saveStudyResult(userId, round, score, questionIds, wrongIds, takenAt, matchId) {
       stmt.insertStudy.run(userId, round, score, takenAt == null ? nowIso() : String(takenAt),
-        idsColumn(questionIds), idsColumn(wrongIds));
+        idsColumn(questionIds), idsColumn(wrongIds), matchId == null ? null : Number(matchId));
     },
     listStudyResults(userId, limit) { return stmt.studyByUser.all(userId, limit || 50); },
     close() { db.close(); },
@@ -252,7 +278,7 @@ function createJsonAdapter(dbFile) {
           submitted_at: p.submittedAt == null ? null : p.submittedAt,
           answers: JSON.stringify(p.answers || {}),
         });
-        // sqlite 트랜잭션과 같은 규약 — 학습 기록도 같은 flush 안에서 함께 쓴다.
+        // sqlite 트랜잭션과 같은 규약 — 학습 기록도 같은 flush 안에서 함께 쓴다(match_id 포함).
         if (!hasStudyPayload(p)) continue;
         data.study_results.push({
           id: ++data.seq.study_results,
@@ -262,6 +288,7 @@ function createJsonAdapter(dbFile) {
           taken_at: takenAt,
           question_ids: idsColumn(p.questionIds),
           wrong_ids: idsColumn(p.wrongIds),
+          match_id: matchId,
         });
       }
       flush(); // 매치+참가자+학습 기록을 한 번에 교체 → 원자성 확보
@@ -272,11 +299,37 @@ function createJsonAdapter(dbFile) {
       const rows = matchId == null ? data.match_players : data.match_players.filter(p => p.match_id === matchId);
       return clone(rows);
     },
+    /** sqlite 어댑터와 같은 계약 — 보관 답안은 빼고 참가자 전원을 닉네임과 함께 붙인다. */
+    listMatchesByUser(userId) {
+      const mine = new Set(data.match_players.filter(p => p.user_id === userId).map(p => p.match_id));
+      const nickOf = new Map(data.users.map(u => [u.id, u.nickname]));
+      return data.matches.filter(m => mine.has(m.id)).sort((a, b) => a.id - b.id).map(function (m) {
+        const players = data.match_players
+          .filter(p => p.match_id === m.id)
+          .sort((a, b) => a.user_id - b.user_id)
+          .map(p => ({
+            match_id: p.match_id,
+            user_id: p.user_id,
+            correct_count: p.correct_count,
+            submitted_at: p.submitted_at == null ? null : p.submitted_at,
+            nickname: nickOf.has(p.user_id) ? nickOf.get(p.user_id) : null,
+          }));
+        return Object.assign(clone(m), { players: players });
+      });
+    },
+    /** 소급 적재용 — 이미 있는 학습 기록 행에 match_id 만 채운다. */
+    updateStudyMatchId(id, matchId) {
+      const row = data.study_results.find(s => s.id === id);
+      if (!row) return;
+      row.match_id = matchId == null ? null : Number(matchId);
+      flush();
+    },
     /**
      * questionIds/wrongIds 는 선택 — 없으면 null(sqlite 의 NULL 과 같은 모양)로 저장한다.
      * takenAt 도 선택 — 소급 적재(backfill)만 과거 시각을 명시한다.
+     * matchId 도 선택 — 대전(round='battle') 행에서만 값이 있다.
      */
-    saveStudyResult(userId, round, score, questionIds, wrongIds, takenAt) {
+    saveStudyResult(userId, round, score, questionIds, wrongIds, takenAt, matchId) {
       data.study_results.push({
         id: ++data.seq.study_results,
         user_id: userId,
@@ -285,11 +338,14 @@ function createJsonAdapter(dbFile) {
         taken_at: takenAt == null ? nowIso() : String(takenAt),
         question_ids: idsColumn(questionIds),
         wrong_ids: idsColumn(wrongIds),
+        match_id: matchId == null ? null : Number(matchId),
       });
       flush();
     },
     listStudyResults(userId, limit) {
-      return clone(data.study_results.filter(s => s.user_id === userId).reverse().slice(0, limit || 50));
+      // match_id 도입 이전에 쓰인 파일에는 키 자체가 없다 — sqlite 의 NULL 과 같은 모양으로 맞춘다.
+      return clone(data.study_results.filter(s => s.user_id === userId).reverse().slice(0, limit || 50))
+        .map(r => (r.match_id === undefined ? Object.assign(r, { match_id: null }) : r));
     },
     close() { flush(); },
   };

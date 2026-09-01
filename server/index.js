@@ -253,16 +253,16 @@ function studyRows(userId) {
 }
 
 /**
- * 현재 오답 문항 id 목록.
+ * 현재 오답 문항 id 집합.
  * 문항별로 **가장 최근 판정**만 본다: 최신 기록부터 훑다가 그 문항을 처음 만나는 순간 결론이 나고
  * (wrong_ids 에 있으면 오답, question_ids 에만 있으면 해제) 그보다 오래된 기록은 무시한다.
  * question_ids 가 없는 예전 기록은 문항 단위 판정이 불가능하므로 건너뛴다.
- * 반환 순서는 회차 순(rounds 정렬) → 문항 순이고, 지금 데이터에 없는 문항 id 는 빠진다.
+ * 이미 읽어 둔 기록(최신 먼저)을 그대로 받는다 — 한 요청 안에서 이력을 여러 번 읽지 않기 위해서다.
  */
-function currentWrongIds(userId) {
+function wrongSetFromRows(rows) {
   const decided = new Set();
   const wrong = new Set();
-  for (const row of studyRows(userId)) {
+  for (const row of rows) {
     const qids = parseIdColumn(row.question_ids);
     if (!qids) continue;
     const wrongSet = new Set(parseIdColumn(row.wrong_ids) || []);
@@ -272,6 +272,14 @@ function currentWrongIds(userId) {
       if (wrongSet.has(qid)) wrong.add(qid);
     }
   }
+  return wrong;
+}
+
+/**
+ * 오답 집합 → 회차 순(rounds 정렬) → 문항 순으로 정렬된 id 배열.
+ * 지금 데이터에 없는 문항 id 는 빠진다(회차 파일이 바뀌어도 오답노트가 깨지지 않는다).
+ */
+function orderedWrongIds(wrong) {
   const ordered = [];
   for (const meta of rounds.listRounds()) {
     const round = rounds.getRound(meta.round);
@@ -279,6 +287,72 @@ function currentWrongIds(userId) {
     for (const q of round.questions) if (wrong.has(q.id)) ordered.push(q.id);
   }
   return ordered;
+}
+
+/** 현재 오답 문항 id 목록(회차 순). */
+function currentWrongIds(userId) {
+  return orderedWrongIds(wrongSetFromRows(studyRows(userId)));
+}
+
+/** 내가 참가한 매치 목록. 조회 실패는 빈 목록으로 다룬다(이력과 같은 규칙 — 500 을 내지 않는다). */
+function matchRows(userId) {
+  try {
+    return db.listMatchesByUser(userId);
+  } catch (e) {
+    logErr('대전 목록 조회 실패', '#' + userId, '-', e.message);
+    return [];
+  }
+}
+
+/**
+ * 대전 학습 기록을 match_id 로 색인한다(매치 1건당 1행).
+ * match_id 가 NULL 인 예전 행은 어느 대전인지 알 수 없으므로 빠진다 —
+ * `scripts/backfill-battle-notes.mjs` 가 그런 행을 소급해 채운다.
+ */
+function battleStudyByMatch(rows) {
+  const map = new Map();
+  for (const row of rows) {
+    if (row.round !== dbModule.BATTLE_ROUND) continue;
+    if (row.match_id == null) continue;
+    const mid = Number(row.match_id);
+    if (map.has(mid)) continue; // 최신 먼저 — 처음 만난 행이 그 매치의 기록이다
+    map.set(mid, row);
+  }
+  return map;
+}
+
+/** 나(userId) 기준 승/패/무. winner_user_id 가 NULL 이면 무승부다(SCHEMA "승자 판정 체인"). */
+function matchResultOf(match, userId) {
+  if (match.winner_user_id == null) return 'draw';
+  return Number(match.winner_user_id) === Number(userId) ? 'win' : 'lose';
+}
+
+/**
+ * 대전 한 건의 머리말 정보(문항 내용 없이).
+ * `/api/me/wrong/summary` 의 byBattle 항목과 `/api/me/wrong?match=` 의 battle 블록이
+ * 같은 모양을 쓰도록 한 곳에서 만든다. 상대의 보관 답안은 애초에 조회하지 않는다.
+ */
+function battleInfo(match, userId, studyRow) {
+  const players = match.players || [];
+  const me = players.find(function (p) { return Number(p.user_id) === Number(userId); }) || null;
+  return {
+    matchId: Number(match.id),
+    roomName: match.room_name,
+    finishedAt: match.finished_at,
+    mode: match.mode,
+    roundIds: parseIdColumn(match.round_ids) || [],
+    questionCount: (parseIdColumn(match.question_ids) || []).length,
+    me: {
+      correctCount: me ? me.correct_count : null,
+      score: studyRow ? studyRow.score : null,
+    },
+    opponents: players
+      .filter(function (p) { return Number(p.user_id) !== Number(userId); })
+      .map(function (p) {
+        return { nickname: p.nickname == null ? '(알 수 없음)' : p.nickname, correctCount: p.correct_count };
+      }),
+    result: matchResultOf(match, userId),
+  };
 }
 
 app.get('/api/me/history', auth.requireAuth, function (req, res) {
@@ -302,28 +376,167 @@ app.get('/api/me/history', auth.requireAuth, function (req, res) {
     if (row.score > agg.best) agg.best = row.score;
 
     if (recent.length < HISTORY_RECENT_MAX) {
-      recent.push({
+      const entry = {
         round: row.round, score: row.score, takenAt: row.taken_at, total: total, correct: correct,
-      });
+      };
+      // 대전 행은 어느 방이었는지까지 실어 준다 — 목록에서 "대전 · <방이름>" 으로 보이게.
+      if (row.round === dbModule.BATTLE_ROUND && row.match_id != null) {
+        entry.matchId = Number(row.match_id);
+        entry.roomName = null; // 아래에서 방 이름을 채운다
+      }
+      recent.push(entry);
     }
   }
 
-  res.json({ rounds: bySet, recent: recent, wrongCount: currentWrongIds(req.user.id).length });
+  if (recent.some(function (r) { return r.matchId != null; })) {
+    const nameById = new Map(matchRows(req.user.id).map(function (m) { return [Number(m.id), m.room_name]; }));
+    for (const r of recent) {
+      if (r.matchId == null) continue;
+      r.roomName = nameById.has(r.matchId) ? nameById.get(r.matchId) : null;
+    }
+  }
+
+  res.json({ rounds: bySet, recent: recent, wrongCount: orderedWrongIds(wrongSetFromRows(rows)).length });
 });
+
+/**
+ * 오답노트 허브 요약 — 지금 오답을 **회차별**로, 지난 대전을 **대전별**로 묶어 한 번에 준다.
+ *
+ * `/api/me/wrong` 보다 **먼저** 등록한다(경로가 가려지지 않도록).
+ * 문항 내용은 공개 필드(id/num/prompt/type)만 나간다 — 정답 계열 필드는 여기서도 절대 나가지 않는다.
+ * `stillWrong`/`stillWrongCount` 는 "지금도 오답인가"라는 **정오 이력**이지 정답 정보가 아니다.
+ */
+app.get('/api/me/wrong/summary', auth.requireAuth, function (req, res) {
+  const rows = studyRows(req.user.id); // 최신 먼저
+  const wrong = wrongSetFromRows(rows);
+
+  // ── 회차별: rounds 정렬 그대로, 오답이 있는 회차만
+  const byRound = [];
+  let total = 0;
+  for (const meta of rounds.listRounds()) {
+    const round = rounds.getRound(meta.round);
+    if (!round) continue;
+    const mine = round.questions.filter(function (q) { return wrong.has(q.id); });
+    if (mine.length === 0) continue;
+    total += mine.length;
+    byRound.push({
+      round: round.round,
+      title: round.title || round.round,
+      count: mine.length,
+      counts: rounds.countTypes(mine),
+    });
+  }
+
+  // ── 대전별: 최신 먼저. match_id 로 이어지지 않는 예전 기록은 여기서만 빠지고 회차별 집계에는 그대로 든다.
+  const byMatch = battleStudyByMatch(rows);
+  const byBattle = [];
+  for (const match of matchRows(req.user.id)) {
+    const row = byMatch.get(Number(match.id));
+    if (!row) continue;
+    const wrongIds = parseIdColumn(row.wrong_ids) || [];
+    let stillWrongCount = 0;
+    const wrongQuestions = [];
+    for (const qid of wrongIds) {
+      const stillWrong = wrong.has(qid);
+      if (stillWrong) stillWrongCount += 1;
+      const q = rounds.getQuestion(qid);
+      if (!q) continue; // 지금 데이터에 없는 문항은 보여줄 수 없다
+      wrongQuestions.push({
+        id: q.id,
+        num: q.num,
+        prompt: q.prompt == null ? '' : q.prompt,
+        type: rounds.typeOf(q),
+        stillWrong: stillWrong,
+      });
+    }
+    byBattle.push(Object.assign(battleInfo(match, req.user.id, row), {
+      wrongCount: wrongIds.length,
+      stillWrongCount: stillWrongCount,
+      wrongQuestions: wrongQuestions,
+    }));
+  }
+  byBattle.reverse(); // listMatchesByUser 는 오래된 것 먼저 — 응답은 최신 먼저다
+
+  res.json({ total: total, byRound: byRound, byBattle: byBattle });
+});
+
+/**
+ * `?match=<id>` — **그 대전에서 틀린 문항 전부**(지금은 맞힌 것도 포함)를 과거 스냅샷 그대로 돌려준다.
+ * `?round=` 가 "지금 오답"인 것과 대비된다. 남의 매치·없는 매치는 404 다(존재 여부도 알려주지 않는다).
+ */
+function wrongByMatch(req, res, rawMatch, type) {
+  if (!/^\d+$/.test(rawMatch)) return res.status(400).json({ error: '대전 id 는 정수여야 합니다.' });
+  const matchId = Number(rawMatch);
+  if (!Number.isSafeInteger(matchId) || matchId <= 0) {
+    return res.status(400).json({ error: '대전 id 는 정수여야 합니다.' });
+  }
+
+  // 내가 참가한 매치만 조회하므로 남의 매치 id 는 자연히 404 가 된다.
+  const match = matchRows(req.user.id).find(function (m) { return Number(m.id) === matchId; });
+  if (!match) return res.status(404).json({ error: '없는 대전입니다.' });
+
+  const rows = studyRows(req.user.id);
+  const row = battleStudyByMatch(rows).get(matchId);
+  if (!row) return res.status(404).json({ error: '이 대전의 문항 기록이 없습니다.' });
+
+  const wrong = wrongSetFromRows(rows);
+  const questions = [];
+  const resolvedIds = [];
+  for (const qid of parseIdColumn(row.wrong_ids) || []) {
+    const q = rounds.getQuestion(qid);
+    if (!q) continue;
+    if (type && rounds.typeOf(q) !== type) continue;
+    questions.push(rounds.publicQuestion(q)); // 정답 계열 필드 제거
+    if (!wrong.has(qid)) resolvedIds.push(qid); // 그 뒤에 맞혀서 지금은 오답이 아닌 문항
+  }
+
+  res.json({
+    setKey: 'wrong',
+    title: '오답노트 · 대전 ' + match.room_name,
+    type: type,
+    match: matchId,
+    battle: battleInfo(match, req.user.id, row),
+    resolvedIds: resolvedIds,
+    questions: questions,
+  });
+}
 
 app.get('/api/me/wrong', auth.requireAuth, function (req, res) {
   const t = parseType(req.query.type);
   if (!t.ok) return res.status(400).json({ error: t.error });
 
-  // 오답이 하나도 없는 상태가 정상이므로 빈 목록은 400 이 아니다(유형 필터도 마찬가지).
+  const rawRound = typeof req.query.round === 'string' ? req.query.round.trim() : '';
+  const rawMatch = typeof req.query.match === 'string' ? req.query.match.trim() : '';
+  // 둘은 서로 다른 관점(현재 상태 / 과거 스냅샷)이라 섞을 수 없다.
+  if (rawRound !== '' && rawMatch !== '') {
+    return res.status(400).json({ error: 'round 와 match 는 함께 지정할 수 없습니다.' });
+  }
+  if (rawMatch !== '') return wrongByMatch(req, res, rawMatch, t.type);
+
+  let round = null;
+  let inRound = null;
+  if (rawRound !== '') {
+    round = rounds.getRound(rawRound); // 인메모리 화이트리스트 — 경로 순회 불가
+    if (!round) return res.status(400).json({ error: '없는 회차입니다: ' + rawRound });
+    inRound = new Set(round.questions.map(function (q) { return q.id; }));
+  }
+
+  // 오답이 하나도 없는 상태가 정상이므로 빈 목록은 400 이 아니다(유형·회차 필터도 마찬가지).
   const questions = [];
   for (const qid of currentWrongIds(req.user.id)) {
     const q = rounds.getQuestion(qid);
     if (!q) continue;
+    if (inRound && !inRound.has(qid)) continue;
     if (t.type && rounds.typeOf(q) !== t.type) continue;
     questions.push(rounds.publicQuestion(q)); // 정답 계열 필드 제거
   }
-  res.json({ setKey: 'wrong', title: '오답노트', type: t.type, questions: questions });
+  res.json({
+    setKey: 'wrong',
+    title: round ? '오답노트 · ' + (round.title || round.round) : '오답노트',
+    type: t.type,
+    round: round ? round.round : null,
+    questions: questions,
+  });
 });
 
 app.get('/api/practice', function (req, res) {
