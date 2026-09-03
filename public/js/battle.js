@@ -28,6 +28,7 @@
  *   window.api        : api.get / api.post / api.me      (js/api.js)
  *   window.copyText   : 3단 폴백 클립보드                (js/clipboard.js)
  *   window.io         : socket.io 클라이언트             (/socket.io/socket.io.js)
+ *   JPK.dom / qmeta / focus / qbody / nav                (js/shared/*.js)
  */
 
 (function () {
@@ -43,13 +44,25 @@
   // 값(round/random)·API 는 그대로다 — 라벨만 무엇을 고르는지 바로 읽히게 바꿨다(⑧).
   var MODE_LABEL = { round: '한 회차 통째로', random: '여러 회차 섞어서' };
   var RECENT_PRESET_N = 3; // "최근 3회차" 프리셋이 고르는 개수
-  // 문항 유형 — 서버 계약(data/types/*.json)의 값 셋과 화면 표기.
-  var TYPE_ORDER = ['code', 'sql', 'theory'];
-  var TYPE_LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
-  // 코드 문항 언어 — 서버 계약(data/langs/*.json)의 값 셋과 화면 표기.
+  // 문항 유형·언어 표는 공용 모듈(js/shared/qmeta.js)이 소유한다 — 학습 화면과 같은 말을 쓴다.
   // `lang` 은 **코드 문항에만** 붙는다(비코드·미분류는 null). 정답 정보가 아니라 채점 전에도 나온다.
-  var LANGS = ['c', 'java', 'python'];
-  var LANG_LABEL = { c: 'C', java: 'Java', python: 'Python' };
+  var TYPE_ORDER = JPK.qmeta.TYPE_ORDER;
+  var TYPE_LABEL = JPK.qmeta.TYPE_LABEL;
+  var LANGS = JPK.qmeta.LANGS;
+  var LANG_LABEL = JPK.qmeta.LANG_LABEL;
+  var normalizeType = JPK.qmeta.normalizeType;
+  var normalizeLang = JPK.qmeta.normalizeLang;
+  var questionOrigin = JPK.qmeta.questionOrigin;
+  var typeLangText = JPK.qmeta.typeLangText;
+
+  // 네 화면(로비·대기실·대전·결과)의 문서 제목. 화면에는 보이지 않고 문서 구조에만 선다 —
+  // battle.html 은 h2 부터 시작하는 유일한 화면이었다.
+  var VIEW_TITLE = {
+    lobby: '대전 로비',
+    room: '대기실',
+    battle: '대전 진행 중',
+    result: '대전 결과',
+  };
   var TIME_CHOICES = [
     { v: 600, label: '10분' },
     { v: 1200, label: '20분' },
@@ -85,6 +98,7 @@
 
     // 방 (대기실 · 대전 · 결과 공통)
     room: null,           // room:state 페이로드 {state, players[], settings}
+    starting: false,      // 방장이 "시작" 을 눌러 room:start 를 쏘고 서버 응답을 기다리는 중
     ignoreRoomId: null,   // 나간 방의 뒤늦은 room:state 를 무시하기 위한 표식
     countdownEndsAt: null,// 서버가 보내지 않는 값 — 클라이언트에서 근사한다(아래 주석 참조)
 
@@ -122,45 +136,12 @@
 
   // ------------------------------------------------------------ DOM 헬퍼
 
-  function append(parent, kids) {
-    if (kids == null || kids === false || kids === true) return;
-    if (Array.isArray(kids)) {
-      for (var i = 0; i < kids.length; i++) append(parent, kids[i]);
-      return;
-    }
-    parent.appendChild(kids.nodeType ? kids : document.createTextNode(String(kids)));
-  }
-
-  /** h('div', {class:'x', onclick:fn, text:'…'}, [children]) */
-  function h(tag, attrs, kids) {
-    var e = document.createElement(tag);
-    if (attrs) {
-      for (var k in attrs) {
-        if (!Object.prototype.hasOwnProperty.call(attrs, k)) continue;
-        var v = attrs[k];
-        if (v == null || v === false) continue;
-        if (k === 'text') e.textContent = String(v);
-        else if (k === 'html') e.innerHTML = String(v); // 서버가 만든 문항 마크업 전용
-        else if (k === 'class') e.className = v;
-        else if (k === 'value') e.value = v;
-        else if (k === 'disabled' || k === 'readOnly' || k === 'checked') e[k] = !!v;
-        else if (k.slice(0, 2) === 'on') e.addEventListener(k.slice(2), v);
-        else e.setAttribute(k, String(v));
-      }
-    }
-    append(e, kids);
-    return e;
-  }
-
-  function frag(kids) {
-    var f = document.createDocumentFragment();
-    append(f, kids);
-    return f;
-  }
+  // h/append/frag/pad2 는 공용 모듈(js/shared/dom.js)이 소유한다 — ranking.js 와 같은 한 벌이다.
+  var h = JPK.dom.h;
+  var frag = JPK.dom.frag;
+  var pad2 = JPK.dom.pad2;
 
   // ------------------------------------------------------------ 포맷터
-
-  function pad2(n) { return n < 10 ? '0' + n : String(n); }
 
   /**
    * 남은 시간 mm:ss. 음수는 00:00.
@@ -200,18 +181,6 @@
     return years;
   }
 
-  /** 알 수 없는 값은 '' (= 전체) 로 떨어뜨린다 — 서버에 이상한 type 을 보내지 않는다. */
-  function normalizeType(value) {
-    var t = String(value == null ? '' : value).trim().toLowerCase();
-    return TYPE_ORDER.indexOf(t) === -1 ? '' : t;
-  }
-
-  /** 알 수 없는 값은 '' (= 전체) 로 떨어뜨린다 — normalizeType 과 같은 규칙이다. */
-  function normalizeLang(value) {
-    var l = String(value == null ? '' : value).trim().toLowerCase();
-    return LANGS.indexOf(l) === -1 ? '' : l;
-  }
-
   /** 유형 뱃지 (없는 유형이면 null → 뱃지 생략). */
   function typeBadge(type) {
     var t = normalizeType(type);
@@ -225,42 +194,15 @@
   }
 
   /**
-   * "코드 · Python" 처럼 유형 옆에 언어를 붙인 한 줄 표기(방 목록·대기실 요약).
-   * 유형이 없으면 '' 를 돌려준다 — 부르는 쪽이 '전체' 등으로 대체한다.
-   */
-  function typeLangText(type, lang) {
-    var t = normalizeType(type);
-    if (!t) return '';
-    var l = normalizeLang(lang);
-    return TYPE_LABEL[t] + (l ? ' · ' + LANG_LABEL[l] : '');
-  }
-
-  /**
-   * 문항 본문 노드의 `pre.code` 들여쓰기를 표시 시점에 정규화한다(요구 1).
-   * 원본 데이터(data/rounds/*.json)는 건드리지 않는다 — 화면에 넣기 직전에만 손본다.
-   * codefmt.js 가 없거나 던져도 조용히 원본 그대로 둔다(표시 실패는 무해하다).
+   * 문항 본문·해설 노드를 화면에 넣기 직전에 손질한다 — 표는 가로 스크롤 상자로 감싸고
+   * `pre.code` 들여쓰기를 정규화한다. 원본 데이터(data/rounds/*.json)는 건드리지 않는다.
    * **카드를 만드는 시점에만** 부른다 — 입력 이벤트에서 카드를 다시 만들지 않는다는 규칙(IME 보호)은 그대로다.
+   *
+   * 예전에는 여기서 코드 들여쓰기만 손봤고 표 감싸기는 학습 화면에만 있었다. 그래서 표가 든 문항이
+   * 대전 풀이·결과 화면에서만 좁은 폭을 밀어냈다. 두 손질을 한 함수로 묶어 그 갈라짐을 없앤다.
    */
-  function applyCodeFmt(node, lang) {
-    if (!node || !window.CodeFmt || typeof window.CodeFmt.applyTo !== 'function') return node;
-    try { window.CodeFmt.applyTo(node, normalizeLang(lang) || null); } catch (e) { /* 원본 유지 */ }
-    return node;
-  }
-
-  /**
-   * 문항 id("2026-2#3")에서 출처 회차·번호를 사람이 읽는 표기로 뽑는다.
-   * study.js 의 questionOrigin 과 같은 규칙이다 — 두 화면의 뱃지 문구가 어긋나면 안 된다.
-   * "YYYY-N#num" 형태만 "YYYY년 N회 · num번" 으로 바꾸고, 그 외 형태는 '#' 앞부분을 그대로 보여준다.
-   */
-  function questionOrigin(qid) {
-    var s = String(qid == null ? '' : qid);
-    var hashIdx = s.indexOf('#');
-    var prefix = hashIdx >= 0 ? s.slice(0, hashIdx) : s;
-    var num = hashIdx >= 0 ? s.slice(hashIdx + 1) : '';
-    var m = /^(\d{4})-(\d+)$/.exec(prefix);
-    if (!m) return prefix;
-    var label = m[1] + '년 ' + m[2] + '회';
-    return num ? label + ' · ' + num + '번' : label;
+  function decorateBody(node, lang) {
+    return JPK.qbody.decorate(node, lang);
   }
 
   /** 출처 회차 뱃지 (id 에서 아무것도 못 뽑으면 null → 뱃지 생략). */
@@ -335,12 +277,7 @@
   }
 
   /** 신뢰 마크업에서 텍스트만 — 보기 칩이 채울 값을 고를 때 prompt 를 텍스트로 본다(⑥). */
-  function stripHtml(html) {
-    if (!html) return '';
-    var d = document.createElement('div');
-    d.innerHTML = String(html);
-    return d.textContent || '';
-  }
+  var stripHtml = JPK.dom.htmlToText;
 
   // ------------------------------------------------------------ 상태 조회기
 
@@ -556,27 +493,31 @@
     result: planResult,
   };
 
-  function captureFocus(root) {
-    var a = document.activeElement;
-    if (!a || !root.contains(a) || !a.getAttribute) return null;
-    var key = a.getAttribute('data-fkey');
-    if (!key) return null;
-    var out = { key: key, start: null, end: null };
-    try { out.start = a.selectionStart; out.end = a.selectionEnd; } catch (e) { /* number 등 미지원 */ }
-    return out;
+  // 재렌더를 가로지르는 포커스·캐럿 보존은 공용 모듈(js/shared/focus.js)이 소유한다.
+  // 학습 화면도 같은 `data-fkey` 규약을 쓴다.
+  var captureFocus = JPK.focus.capture;
+  var restoreFocus = JPK.focus.restore;
+
+  /**
+   * 지금 화면의 문서 제목. 대기실만 방 이름을 앞세운다 — 여러 방을 오가는 화면이라
+   * "무슨 방의 대기실인지" 가 제목에 있어야 한다.
+   */
+  function viewTitleText(view) {
+    if (view !== 'room') return VIEW_TITLE[view] || '대전';
+    var s = settings();
+    var name = s && s.name ? String(s.name) : '';
+    return name ? name + ' 대기실' : VIEW_TITLE.room;
   }
 
-  function restoreFocus(root, f) {
-    if (!f) return;
-    var list = root.querySelectorAll('[data-fkey]');
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].getAttribute('data-fkey') !== f.key) continue;
-      try {
-        list[i].focus();
-        if (f.start != null && list[i].setSelectionRange) list[i].setSelectionRange(f.start, f.end);
-      } catch (e) { /* 무시 */ }
-      return;
-    }
+  /**
+   * 네 화면의 `<h1>`. 눈에는 보이지 않는다 — 화면 디자인은 그대로 두고 문서 구조만 바로잡는다
+   * (예전에는 대전 화면에 h1 이 없어 h2 일곱 개부터 시작했다).
+   * 화면을 갈아탈 때 포커스를 여기로 옮겨, 키보드·스크린 리더 사용자가 새 화면의 처음부터 읽게 한다.
+   */
+  function mountViewTitle(root, view) {
+    var title = JPK.dom.srOnly(h('h1', { id: 'viewTitle', tabindex: '-1', text: viewTitleText(view) }));
+    root.appendChild(title);
+    return title;
   }
 
   function render() {
@@ -588,8 +529,11 @@
     if (!root) return;
 
     if (mounted.view !== view) {
+      // 첫 진입(로비)에서는 포커스를 빼앗지 않는다 — 사람이 화면을 바꾼 게 아니다.
+      var isSwitch = mounted.view !== null;
       root.replaceChildren();
       mounted = { view: view, panels: {} };
+      var title = mountViewTitle(root, view);
       for (var i = 0; i < plan.length; i++) {
         var p = plan[i];
         var wrap = h('div', { class: 'panel panel-' + p.name });
@@ -597,7 +541,20 @@
         root.appendChild(wrap);
         mounted.panels[p.name] = { wrap: wrap, key: p.key };
       }
+      // 화면이 통째로 갈렸으므로 포커스는 <body> 로 떨어져 있다. 새 화면의 제목으로 옮긴다.
+      // preventScroll 로 스크롤 위치는 건드리지 않는다(미지원 브라우저는 인자 없는 호출).
+      if (isSwitch) {
+        try { title.focus({ preventScroll: true }); } catch (e) {
+          try { title.focus(); } catch (e2) { /* 무시 */ }
+        }
+      }
     } else {
+      // 방 이름은 room:state 로 늦게 도착할 수 있다 — 제목 한 줄만 맞춰 둔다(패널은 건드리지 않는다).
+      var head = root.firstChild;
+      if (head && head.id === 'viewTitle') {
+        var want = viewTitleText(view);
+        if (head.textContent !== want) head.textContent = want;
+      }
       for (var j = 0; j < plan.length; j++) {
         var q = plan[j];
         var m = mounted.panels[q.name];
@@ -1011,6 +968,7 @@
         JSON.stringify(state.room.settings),
         state.online,
         state.copied.roomcode || '',
+        state.starting ? 1 : 0,        // 시작 이중 클릭 가드 — 버튼 문구·잠금이 이 값으로 바뀐다
         state.roundsExpanded ? 1 : 0,  // 회차 요약 펼침(⑨)
         state.roundList.length,        // 회차 목록이 늦게 도착하면 제목이 id → 정식 명칭으로 바뀐다
       ].join('|'),
@@ -1087,8 +1045,8 @@
         isHost()
           ? h('button', {
             class: 'btn',
-            disabled: counting || list.length < 2 || !state.online,
-            text: counting ? '시작 중…' : '시작',
+            disabled: counting || state.starting || list.length < 2 || !state.online,
+            text: counting || state.starting ? '시작 중…' : '시작',
             onclick: startBattle,
           })
           : h('span', { class: 'muted', text: counting ? '곧 시작합니다.' : '방장이 시작하기를 기다리는 중입니다.' }),
@@ -1271,11 +1229,13 @@
 
     // 본문을 만든 **직후** 코드 들여쓰기를 정규화한다(요구 1). 카드 생성 시점 1회뿐이라
     // 입력 이벤트로 재렌더가 일어나지 않는 규칙(IME 보호)에 영향을 주지 않는다.
-    var body = q.bodyHtml ? applyCodeFmt(h('div', { html: q.bodyHtml }), q.lang) : null;
+    var body = q.bodyHtml ? decorateBody(h('div', { html: q.bodyHtml }), q.lang) : null;
 
     return h('div', { class: 'q' + (readOnly ? ' readonly' : '') }, [
       badgeRow(q.type, q.id, q.lang),
-      h('div', { class: 'qtitle' }, [
+      // 카드 제목은 문서 구조상 진짜 제목이다 (h1 화면 이름 → h3 문항). 클래스는 그대로 `.qtitle` 이고
+      // 그 규칙이 h3 의 기본 위쪽 여백까지 눌러 주므로 모양은 변하지 않는다.
+      h('h3', { class: 'qtitle' }, [
         h('span', { class: 'num', text: String(displayNum(q, idx)) }),
         h('span', { html: q.prompt || '' }), // 서버 자산의 신뢰 마크업
       ]),
@@ -1598,11 +1558,11 @@
     });
 
     // 결과 상세 카드의 본문도 문항 카드와 같은 규칙으로 들여쓰기를 정규화한다(요구 1).
-    var body = q && q.bodyHtml ? applyCodeFmt(h('div', { html: q.bodyHtml }), q.lang) : null;
+    var body = q && q.bodyHtml ? decorateBody(h('div', { html: q.bodyHtml }), q.lang) : null;
 
     var kids = [
       badgeRow(q && q.type, qid, q && q.lang),
-      h('div', { class: 'qtitle' }, [
+      h('h3', { class: 'qtitle' }, [
         h('span', { class: 'num', text: q && qIdx >= 0 ? String(displayNum(q, qIdx)) : '?' }),
         h('span', { html: q ? (q.prompt || '') : qid }),
       ]),
@@ -1620,7 +1580,7 @@
     if (explainHtml && state.showExplain[qid]) {
       // 서버가 검증(validate:explain)해서 내려주는 신뢰 마크업이다 — 화이트리스트 태그만 들어 있다.
       // 해설도 본문과 같은 코드 블록(pre.code)을 품을 수 있으므로 같은 규칙으로 들여쓰기를 정규화한다(요구 1).
-      kids.push(applyCodeFmt(h('div', { class: 'explain-box', html: explainHtml }), q && q.lang));
+      kids.push(decorateBody(h('div', { class: 'explain-box', html: explainHtml }), q && q.lang));
     }
 
     var actions = [];
@@ -1788,6 +1748,7 @@
     state.reportStatus = {};
     state.copied = {};
     state.rematching = false;
+    state.starting = false;
     state.marks = [];
     state.floatVisible = false;
     setTimer(null);
@@ -1899,8 +1860,15 @@
     backToLobby();
   }
 
+  /**
+   * 방장의 "시작". 두 번 누르면 서버가 두 번째를 ALREADY_STARTED 로 되받아 빨간 토스트가 뜬다 —
+   * 눌린 순간 잠그고, 카운트다운(room:state)이 오거나 방을 떠날 때 풀린다.
+   */
   function startBattle() {
-    emit('room:start', {});
+    if (state.starting) return;
+    if (!emit('room:start', {})) return;
+    state.starting = true;
+    render();
   }
 
   /** 처음으로 빈 칸이 남은 곳으로 스크롤 + 포커스(③ — confirm 을 취소했을 때). */
@@ -1979,6 +1947,7 @@
     socket.on('error', function (p) {
       var msg = p && p.message ? p.message : '오류가 발생했습니다.';
       state.joiningRoomId = null;
+      state.starting = false;   // 시작이 거부됐다 — 방장이 다시 누를 수 있어야 한다
       toast('err', msg);
     });
 
@@ -1997,6 +1966,9 @@
 
       var prev = state.room ? state.room.state : null;
       state.room = p;
+      // 서버가 방 상태를 돌려줬다 = room:start 왕복이 끝났다. 시작 잠금을 푼다
+      // (countdown 이면 그 상태 자체가 버튼을 잠근다).
+      state.starting = false;
       // 서버 room:state 는 countdownEndsAt 을 싣지 않는다. countdown 진입을 처음 본 시점에서
       // COUNTDOWN_MS(3초) 를 더해 근사한다 — 표시 전용이며 실제 시작은 서버 timeout 이 결정한다.
       if (p.state === 'countdown' && prev !== 'countdown') state.countdownEndsAt = Date.now() + COUNTDOWN_MS;
@@ -2104,40 +2076,13 @@
   // ================================================================== 부팅
 
   /**
-   * 상단 내비 — 5개 화면이 같은 DOM 구조를 쓴다(⑫). 정적 nav(index/study/wrong)·ranking.js 와
-   * 태그·클래스·순서가 같아야 app.css 의 `.topnav` 한 벌로 전부 같은 모양이 된다.
+   * 상단 내비 — 5개 화면이 같은 DOM 구조를 쓴다(⑫). 뼈대 조립과 로그인 표시는 공용 모듈이 맡는다
+   * (js/shared/nav.js). 정적 nav(index/study/wrong)와 태그·클래스·순서가 같아야
+   * app.css 의 `.topnav` 한 벌로 전부 같은 모양이 된다.
+   * 로그아웃하면 대전은 쓸 수 없으므로 메인으로 돌려보낸다(기본 동작).
    */
   function buildNav() {
-    var nav = document.getElementById('nav');
-    if (!nav) return;
-    nav.replaceChildren(frag(h('div', { class: 'wrap' }, [
-      h('a', { class: 'brand', href: '/', text: '정처기 배틀' }),
-      h('a', { href: '/', 'data-nav': 'study', text: '학습' }),
-      h('a', { href: '/battle.html', 'data-nav': 'battle', 'aria-current': 'page', text: '대전' }),
-      h('a', { href: '/ranking.html', 'data-nav': 'ranking', text: '랭킹' }),
-      h('span', { class: 'spacer' }),
-      // 비로그인이면 닉네임 칸은 비우고 로그아웃을 감춘 채 로그인 링크를 보인다.
-      // 대전 화면은 비로그인이면 메인으로 되돌리므로 그 상태가 보일 일은 거의 없다 — 구조만 맞춘다.
-      h('span', { class: 'who', id: 'navWho' }, state.me
-        ? [h('b', { text: state.me.nickname }), ' 님']
-        : null),
-      h('button', {
-        type: 'button',
-        class: 'nav-logout',
-        id: 'navLogout',
-        hidden: state.me ? null : 'hidden',
-        text: '로그아웃',
-        onclick: function () {
-          window.api.post('/api/auth/logout', {})
-            .then(function () { window.location.href = '/'; })
-            .catch(function () { window.location.href = '/'; });
-        },
-      }),
-      h('a', {
-        class: 'nav-login', id: 'navLogin', href: '/#account', text: '로그인',
-        hidden: state.me ? 'hidden' : null,
-      }),
-    ])));
+    JPK.nav.render(state.me, { current: 'battle' });
   }
 
   function boot() {

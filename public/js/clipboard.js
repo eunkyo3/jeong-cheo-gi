@@ -91,7 +91,14 @@
 
   // --------------------------------------------------------------- 3단계
 
+  // 제목 id 는 문서에서 유일해야 한다 — 모달이 두 번 열려도 겹치지 않게 번호를 매긴다.
+  var modalSeq = 0;
+
   function showManualModal(text, opts) {
+    // 모달을 연 요소. 닫을 때 여기로 포커스를 돌려주지 않으면 키보드 사용자는
+    // 문서 맨 위부터 다시 탭해야 한다.
+    var opener = doc.activeElement;
+
     var backdrop = doc.createElement('div');
     backdrop.className = 'modal-backdrop';
 
@@ -100,7 +107,12 @@
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
 
+    modalSeq += 1;
+    var titleId = 'modal-title-' + modalSeq;
     var h3 = doc.createElement('h3');
+    h3.id = titleId;
+    // `aria-modal` 만으로는 대화상자의 이름이 없다 — 제목을 그 이름으로 준다.
+    modal.setAttribute('aria-labelledby', titleId);
     h3.textContent = (opts && opts.title) || '복사할 내용';
 
     var guide = doc.createElement('p');
@@ -144,10 +156,46 @@
     function dismiss() {
       if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
       doc.removeEventListener('keydown', onKey);
+      // 열었던 자리로 포커스를 돌려준다. 그 요소가 그새 사라졌으면(재렌더) 아무것도 하지 않는다.
+      if (opener && doc.contains(opener) && typeof opener.focus === 'function') {
+        try { opener.focus(); } catch (e) { /* 무시 */ }
+      }
+    }
+
+    /** 모달 안에서 탭으로 갈 수 있는 요소들 — 순서는 DOM 순서 그대로다. */
+    function tabbables() {
+      return [ta, again, close].filter(function (n) { return n && !n.disabled; });
+    }
+
+    /**
+     * 포커스 트랩. `aria-modal` 은 보조 기술에만 "뒤는 없는 셈 쳐라" 고 말할 뿐,
+     * 실제 Tab 키는 뒤쪽 페이지로 빠져나간다 — 그러면 보이지 않는 곳을 탭하게 된다.
+     * 마지막에서 Tab 은 처음으로, 처음에서 Shift+Tab 은 마지막으로 돌린다.
+     */
+    function trap(ev) {
+      var list = tabbables();
+      if (!list.length) return;
+      var first = list[0];
+      var last = list[list.length - 1];
+      var here = doc.activeElement;
+      // 포커스가 모달 밖에 있으면(바깥을 클릭한 뒤 Tab 등) 무조건 안으로 데려온다.
+      if (list.indexOf(here) === -1) {
+        ev.preventDefault();
+        (ev.shiftKey ? last : first).focus();
+        return;
+      }
+      if (!ev.shiftKey && here === last) {
+        ev.preventDefault();
+        first.focus();
+      } else if (ev.shiftKey && here === first) {
+        ev.preventDefault();
+        last.focus();
+      }
     }
 
     function onKey(ev) {
-      if (ev.key === 'Escape') dismiss();
+      if (ev.key === 'Escape') { dismiss(); return; }
+      if (ev.key === 'Tab') trap(ev);
     }
 
     close.addEventListener('click', dismiss);

@@ -1,0 +1,283 @@
+/* admin.css — 관리자 페이지(/admin.html) 전용 스타일.
+
+   app.css 를 먼저 읽고 그 위에 얹는다. 색은 **하나도 새로 정하지 않는다** — app.css :root 의
+   토큰만 참조하므로 다크 팔레트(prefers-color-scheme)가 그대로 따라온다.
+   전역 클래스(.card / .form-row / table.list / .tbl-scroll / .error-text)는 app.css 것을 쓰고,
+   여기서 새로 만드는 이름은 전부 `admin-` 접두로 격리한다(다른 화면과 충돌하지 않게). */
+
+/* ------------------------------------------------------------------ 헤더 */
+
+.admin-top {
+  background: var(--deep);
+  color: var(--on-deep);
+  box-shadow: 0 1px 4px var(--shadow-2);
+  margin-bottom: 16px;
+}
+
+.admin-top-in {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.admin-top h1 {
+  font-size: 1.05rem;
+  color: var(--on-deep);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.admin-spacer { flex: 1 1 auto; min-width: 0; }
+
+.admin-top button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--deep-line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--on-deep-2);
+  font: inherit;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.admin-top button:hover:not(:disabled) { background: var(--deep-2); color: var(--on-deep); }
+.admin-top button:disabled { color: var(--on-deep-dim); cursor: default; }
+.admin-top :focus-visible { outline: 2px solid var(--on-deep); outline-offset: 2px; }
+
+/* --------------------------------------------------------------- 안내글 */
+
+.admin-note {
+  background: var(--note-bg);
+  color: var(--note-fg);
+  border: 1px solid var(--warn-line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 0.9rem;
+}
+
+.admin-hint { font-size: 0.84rem; color: var(--muted); margin-top: 8px; }
+
+/* --------------------------------------------------------------- 로그인 */
+
+.admin-login { max-width: 420px; margin: 24px auto; }
+.admin-login h2 { font-size: 1.15rem; margin-bottom: 14px; }
+.admin-login .form-row label { min-width: 72px; }
+.admin-login .form-row input { flex: 1 1 180px; min-width: 0; }
+.admin-login .form-actions button { min-height: 44px; }
+
+/* ------------------------------------------------------------------- 탭 */
+
+.admin-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.admin-tab {
+  min-height: 44px;             /* 터치 타깃 */
+  padding: 0 14px;
+  border: 1px solid var(--border-input);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.admin-tab:hover { border-color: var(--brand-line); }
+
+.admin-tab[aria-selected="true"] {
+  background: var(--tint);
+  border-color: var(--brand-line);
+  color: var(--brand-ink);
+  font-weight: bold;
+}
+
+.admin-pane { margin-bottom: 24px; }
+.admin-pane[hidden] { display: none; }
+.admin-pane > h2 { font-size: 1.1rem; margin-bottom: 12px; }
+
+/* --------------------------------------------------------------- 통계판 */
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.admin-stat {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.admin-stat .admin-stat-label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.admin-stat .admin-stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--brand-ink);
+  line-height: 1.2;
+  word-break: break-all;
+}
+
+.admin-facts {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  font-size: 0.9rem;
+}
+
+.admin-facts dt { color: var(--muted); }
+.admin-facts dd { margin: 0; word-break: break-all; }
+
+/* --------------------------------------------------------------- 도구줄 */
+
+.admin-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.admin-toolbar label { font-size: 0.9rem; font-weight: bold; }
+
+.admin-toolbar input {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-input);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.92rem;
+  flex: 0 1 220px;
+  min-width: 0;
+}
+
+.admin-toolbar input:focus { border-color: var(--focus-line); }
+
+.admin-toolbar button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--brand-line);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.admin-toolbar button:hover { background: var(--tint); }
+
+/* ------------------------------------------------------------------- 표 */
+
+.admin-caption {
+  caption-side: top;
+  text-align: left;
+  font-size: 0.84rem;
+  color: var(--muted);
+  padding-bottom: 6px;
+}
+
+table.list.admin-table { font-size: 0.88rem; }
+table.list.admin-table th { white-space: nowrap; }
+table.list.admin-table td { text-align: left; vertical-align: top; }
+table.list.admin-table td.admin-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+table.list.admin-table td.admin-when { white-space: nowrap; color: var(--muted-3); }
+table.list.admin-table td.admin-wrap { min-width: 180px; white-space: pre-wrap; word-break: break-word; }
+
+.admin-players { list-style: none; margin: 0; padding: 0; }
+.admin-players li { white-space: nowrap; }
+
+.admin-badge {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-6);
+  color: var(--ink-2);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.admin-badge.win {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+  border-color: var(--ok-line);
+  font-weight: bold;
+}
+
+.admin-badge.live {
+  background: var(--tint);
+  color: var(--brand-ink);
+  border-color: var(--brand-line);
+}
+
+.admin-blank { color: var(--muted-blank); }
+
+.admin-empty-row td {
+  text-align: center;
+  color: var(--muted);
+  padding: 20px 10px;
+}
+
+/* --------------------------------------------------------------- 페이저 */
+
+.admin-pager {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.admin-pager button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border-input);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.admin-pager button:hover:not(:disabled) { border-color: var(--brand-line); background: var(--tint-4); }
+.admin-pager button:disabled { color: var(--disabled-ink); cursor: default; }
+.admin-pager .admin-range { font-size: 0.86rem; color: var(--muted); }
+
+/* --------------------------------------------------------------- 좁은 폭 */
+
+@media (max-width: 560px) {
+  .admin-top h1 { font-size: 0.95rem; }
+  .admin-top button { padding: 0 10px; font-size: 0.8rem; }
+  .admin-tab { padding: 0 11px; font-size: 0.85rem; }
+  .admin-toolbar input { flex: 1 1 140px; }
+  table.list.admin-table { font-size: 0.84rem; }
+}

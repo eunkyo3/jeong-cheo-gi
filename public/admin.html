@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>정처기 배틀 관리자</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-body">
+
+<!-- 관리자 전용 화면. 일반 내비(topnav)에는 이 페이지로 가는 링크가 없다.
+     표 내용은 전부 public/js/admin.js 가 textContent 로 그린다(innerHTML 미사용). -->
+
+<header class="admin-top">
+  <div class="wrap wide admin-top-in">
+    <h1>정처기 배틀 관리자</h1>
+    <span class="admin-spacer"></span>
+    <button type="button" id="refreshBtn" hidden>새로고침</button>
+    <button type="button" id="logoutBtn" hidden>로그아웃</button>
+  </div>
+</header>
+
+<div class="wrap wide">
+  <noscript>
+    <p class="admin-note">이 페이지는 자바스크립트가 필요합니다. 브라우저에서 자바스크립트를 켜 주세요.</p>
+  </noscript>
+
+  <main id="view">
+
+    <p class="admin-note" id="bootNote">불러오는 중…</p>
+
+    <!-- ------------------------------------------------------------ 로그인 -->
+    <section class="card admin-login" id="loginPane" hidden>
+      <h2>관리자 로그인</h2>
+      <form id="loginForm" autocomplete="on">
+        <div class="form-row">
+          <label for="adminId">아이디</label>
+          <input type="text" id="adminId" name="username" autocomplete="username" autocapitalize="off" spellcheck="false" required>
+        </div>
+        <div class="form-row">
+          <label for="adminPw">비밀번호</label>
+          <input type="password" id="adminPw" name="password" autocomplete="current-password" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit" id="loginBtn">로그인</button>
+        </div>
+        <p class="error-text" id="loginError" role="alert"></p>
+      </form>
+    </section>
+
+    <!-- ---------------------------------------------------------- 대시보드 -->
+    <section id="dashPane" hidden>
+
+      <div class="admin-tabs" role="tablist" aria-label="관리자 화면 전환">
+        <button type="button" class="admin-tab" role="tab" id="tab-overview" data-tab="overview" aria-controls="pane-overview" aria-selected="true">개요</button>
+        <button type="button" class="admin-tab" role="tab" id="tab-users" data-tab="users" aria-controls="pane-users" aria-selected="false">사용자</button>
+        <button type="button" class="admin-tab" role="tab" id="tab-matches" data-tab="matches" aria-controls="pane-matches" aria-selected="false">대전</button>
+        <button type="button" class="admin-tab" role="tab" id="tab-study" data-tab="study" aria-controls="pane-study" aria-selected="false">학습 기록</button>
+        <button type="button" class="admin-tab" role="tab" id="tab-reports" data-tab="reports" aria-controls="pane-reports" aria-selected="false">신고</button>
+        <button type="button" class="admin-tab" role="tab" id="tab-rooms" data-tab="rooms" aria-controls="pane-rooms" aria-selected="false">진행 중 방</button>
+      </div>
+
+      <p class="error-text" id="paneError" role="alert"></p>
+
+      <!-- 개요 -->
+      <section class="admin-pane" id="pane-overview" role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
+        <h2>개요</h2>
+        <div class="admin-stats" id="statCards"></div>
+        <dl class="admin-facts" id="statFacts"></dl>
+      </section>
+
+      <!-- 사용자 -->
+      <section class="admin-pane" id="pane-users" role="tabpanel" aria-labelledby="tab-users" tabindex="0" hidden>
+        <h2>사용자</h2>
+        <form class="admin-toolbar" id="userSearchForm" role="search">
+          <label for="userSearch">닉네임 검색</label>
+          <input type="search" id="userSearch" placeholder="닉네임 일부" autocapitalize="off" spellcheck="false">
+          <button type="submit">검색</button>
+          <button type="button" id="userSearchClear">지우기</button>
+        </form>
+        <div class="tbl-scroll">
+          <table class="list admin-table">
+            <caption class="admin-caption">가입한 사용자 목록. 비밀번호 해시는 조회되지 않습니다.</caption>
+            <thead><tr><th scope="col">id</th><th scope="col">닉네임</th><th scope="col">가입일</th><th scope="col">대전 수</th><th scope="col">마지막 학습</th><th scope="col">학습 기록</th></tr></thead>
+            <tbody id="tb-users"></tbody>
+          </table>
+        </div>
+        <div class="admin-pager" data-pager="users"></div>
+      </section>
+
+      <!-- 대전 -->
+      <section class="admin-pane" id="pane-matches" role="tabpanel" aria-labelledby="tab-matches" tabindex="0" hidden>
+        <h2>대전</h2>
+        <div class="tbl-scroll">
+          <table class="list admin-table">
+            <caption class="admin-caption">끝난 대전 기록. 참가자의 답안 본문은 조회되지 않습니다.</caption>
+            <thead><tr><th scope="col">id</th><th scope="col">방 이름</th><th scope="col">모드</th><th scope="col">문항</th><th scope="col">종료</th><th scope="col">참가자</th></tr></thead>
+            <tbody id="tb-matches"></tbody>
+          </table>
+        </div>
+        <div class="admin-pager" data-pager="matches"></div>
+      </section>
+
+      <!-- 학습 기록 -->
+      <section class="admin-pane" id="pane-study" role="tabpanel" aria-labelledby="tab-study" tabindex="0" hidden>
+        <h2>학습 기록</h2>
+        <form class="admin-toolbar" id="studyFilterForm">
+          <label for="studyUser">사용자 id</label>
+          <input type="number" id="studyUser" min="1" step="1" inputmode="numeric" placeholder="전체">
+          <button type="submit">적용</button>
+          <button type="button" id="studyFilterClear">지우기</button>
+        </form>
+        <div class="tbl-scroll">
+          <table class="list admin-table">
+            <caption class="admin-caption">최근 채점 기록. 답안 내용은 저장·조회하지 않습니다.</caption>
+            <thead><tr><th scope="col">id</th><th scope="col">사용자</th><th scope="col">집합</th><th scope="col">점수</th><th scope="col">문항</th><th scope="col">오답</th><th scope="col">시각</th></tr></thead>
+            <tbody id="tb-study"></tbody>
+          </table>
+        </div>
+        <div class="admin-pager" data-pager="study"></div>
+      </section>
+
+      <!-- 신고 -->
+      <section class="admin-pane" id="pane-reports" role="tabpanel" aria-labelledby="tab-reports" tabindex="0" hidden>
+        <h2>신고</h2>
+        <div class="tbl-scroll">
+          <table class="list admin-table">
+            <caption class="admin-caption">정답 이의 제기 목록. 최신순.</caption>
+            <thead><tr><th scope="col">시각</th><th scope="col">문항</th><th scope="col">낸 사람</th><th scope="col">제출 답안</th><th scope="col">내용</th></tr></thead>
+            <tbody id="tb-reports"></tbody>
+          </table>
+        </div>
+        <div class="admin-pager" data-pager="reports"></div>
+      </section>
+
+      <!-- 진행 중 방 -->
+      <section class="admin-pane" id="pane-rooms" role="tabpanel" aria-labelledby="tab-rooms" tabindex="0" hidden>
+        <h2>진행 중 방</h2>
+        <div class="tbl-scroll">
+          <table class="list admin-table">
+            <caption class="admin-caption">지금 서버 메모리에 살아 있는 대전 방입니다.</caption>
+            <thead><tr><th scope="col">방 id</th><th scope="col">이름</th><th scope="col">상태</th><th scope="col">방장</th><th scope="col">인원</th><th scope="col">생성</th></tr></thead>
+            <tbody id="tb-rooms"></tbody>
+          </table>
+        </div>
+        <p class="admin-hint" id="roomsHint"></p>
+      </section>
+
+    </section>
+  </main>
+</div>
+
+<script src="/js/admin.js"></script>
+</body>
+</html>

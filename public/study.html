@@ -24,11 +24,25 @@
   </div>
 </nav>
 
-<div class="wrap">
+<main class="wrap">
 
   <header class="page">
     <h1 id="roundTitle">회차를 불러오는 중&hellip;</h1>
     <p id="roundMeta"></p>
+
+    <!--
+      아래 네 그릇은 study.js 가 내용을 채운다. 예전에는 스크립트가 필요할 때 만들어 끼워
+      넣었는데, 네 개가 서로의 위치에 기대는 호출 순서 의존이 생겼다. 자리는 여기서 선언하고
+      스크립트는 채우기만 한다 (비어 있는 동안은 hidden).
+        #battleSub  대전 오답 보기의 부제 한 줄
+        #typeFilter 유형 칩 (전체/코드/SQL/이론)
+        #langFilter 언어 칩 (코드 유형일 때만)
+        #peekBar    오답노트 "해설 모두 펼치기" 한 줄
+    -->
+    <p class="study-sub" id="battleSub" hidden></p>
+    <div class="type-filter" id="typeFilter" role="group" aria-label="문항 유형 필터" hidden></div>
+    <div class="type-filter lang-filter" id="langFilter" role="group" aria-label="코드 문항 언어 필터" hidden></div>
+    <div class="peek-bar" id="peekBar" hidden></div>
 
     <!-- 학습 타이머 (선택형). 기본은 접힘 — "⏱ 타이머" 를 눌러야 컨트롤이 나온다.
          시간을 고르고 "시작"을 눌러야 흐르기 시작한다 (타이머가 도는 동안에는 항상 펼침). -->
@@ -50,9 +64,9 @@
   </header>
 
   <!-- 자동 저장된 답안을 복원했을 때의 안내 (study.js 가 채운다) -->
-  <div class="notice" id="restoreNotice" hidden></div>
+  <div class="notice" id="restoreNotice" aria-live="polite" hidden></div>
 
-  <div id="scoreBoard">
+  <div id="scoreBoard" aria-live="polite">
     <div class="score"></div>
     <div class="pass"></div>
   </div>
@@ -61,6 +75,13 @@
     <p class="muted">문제를 불러오는 중&hellip;</p>
   </div>
 
+  <!--
+    채점은 로그인이 필요하다 (보안 C-1 — 비로그인 채점은 정답 오라클이 된다).
+    비로그인으로 풀고 있으면 제출 버튼 바로 위에서 미리 알려 주고, 그래도 눌러 401 을 받으면
+    같은 자리에서 로그인 경로를 준다. study.js 가 채운다.
+  -->
+  <div class="notice" id="loginNotice" aria-live="polite" hidden></div>
+
   <div class="btnbar" id="btnbar" hidden>
     <button type="button" id="submitBtn">제출하고 채점하기</button>
     <button type="button" id="resetBtn" class="secondary" hidden>다시 풀기</button>
@@ -68,7 +89,7 @@
     <span class="answered-count" id="answeredCount" hidden></span>
   </div>
 
-</div>
+</main>
 
 <!-- 풀이 중에 제출 버튼이 화면 밖으로 밀려나면 뜨는 하단 미니바 (study.js 가 스크롤에 맞춰 여닫는다). -->
 <div class="studybar" id="studyBar" hidden>
@@ -77,13 +98,22 @@
   <button type="button" class="sb-submit" id="studyBarSubmit">제출</button>
 </div>
 
-<div class="toast-wrap" id="toastWrap"></div>
+<!-- 토스트는 조작 없이 사라지는 짧은 알림이다 — 보조 기술에도 즉시 읽히도록 role="alert". -->
+<div class="toast-wrap" id="toastWrap" role="alert"></div>
 
 <script src="/js/api.js"></script>
 <script src="/js/clipboard.js"></script>
 <script src="/js/boki.js"></script>
 <!-- 코드 블록 들여쓰기 정규화 — study.js 보다 먼저 읽어야 window.CodeFmt 가 준비된다. -->
 <script src="/js/codefmt.js"></script>
+<!-- 화면 공용 모듈(window.JPK). dom → 나머지 순서로 읽어야 한다. -->
+<script src="/js/shared/dom.js"></script>
+<script src="/js/shared/store.js"></script>
+<script src="/js/shared/qmeta.js"></script>
+<script src="/js/shared/motion.js"></script>
+<script src="/js/shared/focus.js"></script>
+<script src="/js/shared/qbody.js"></script>
+<script src="/js/shared/nav.js"></script>
 <script src="/js/study.js"></script>
 </body>
 </html>

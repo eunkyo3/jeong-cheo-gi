@@ -8,7 +8,7 @@
  * 랭킹 규칙(PROTOCOL.md): 1등 +3점, 그 외 참가 +1점, 무승부는 전원 +1점.
  * 정렬·순위는 서버(server/ranking.js)가 확정해 보낸다. 여기서는 표시만 한다.
  *
- * 의존: window.api (js/api.js)
+ * 의존: window.api (js/api.js), JPK.dom, JPK.nav (js/shared/*.js)
  */
 
 (function () {
@@ -19,39 +19,9 @@
     loading: true,
   };
 
-  // ------------------------------------------------------------ DOM 헬퍼
-
-  function append(parent, kids) {
-    if (kids == null || kids === false || kids === true) return;
-    if (Array.isArray(kids)) {
-      for (var i = 0; i < kids.length; i++) append(parent, kids[i]);
-      return;
-    }
-    parent.appendChild(kids.nodeType ? kids : document.createTextNode(String(kids)));
-  }
-
-  function h(tag, attrs, kids) {
-    var e = document.createElement(tag);
-    if (attrs) {
-      for (var k in attrs) {
-        if (!Object.prototype.hasOwnProperty.call(attrs, k)) continue;
-        var v = attrs[k];
-        if (v == null || v === false) continue;
-        if (k === 'text') e.textContent = String(v);
-        else if (k === 'class') e.className = v;
-        else if (k.slice(0, 2) === 'on') e.addEventListener(k.slice(2), v);
-        else e.setAttribute(k, String(v));
-      }
-    }
-    append(e, kids);
-    return e;
-  }
-
-  function frag(kids) {
-    var f = document.createDocumentFragment();
-    append(f, kids);
-    return f;
-  }
+  // DOM 헬퍼는 공용 모듈이 소유한다 (battle.js 와 같은 h/append/frag).
+  var h = JPK.dom.h;
+  var frag = JPK.dom.frag;
 
   // -------------------------------------------------------------- 조회기
 
@@ -78,9 +48,13 @@
     var rows = document.querySelectorAll('tr.rank-row');
     for (var i = 0; i < rows.length; i++) {
       if (narrow) {
+        // 이 폭에서 행은 실제로 눌러서 펴는 조작 요소다. `aria-expanded` 만 붙이면
+        // 보조 기술에는 "무엇을 펴는지" 가 없는 표 행으로 읽힌다 — role 도 함께 준다.
+        rows[i].setAttribute('role', 'button');
         rows[i].setAttribute('tabindex', '0');
         rows[i].setAttribute('aria-expanded', rows[i].className.indexOf(' open') === -1 ? 'false' : 'true');
       } else {
+        rows[i].removeAttribute('role');
         rows[i].removeAttribute('tabindex');
         rows[i].removeAttribute('aria-expanded');
       }
@@ -222,37 +196,13 @@
       });
   }
 
+  /**
+   * 상단 내비 — 다섯 화면이 같은 구조를 쓴다. 뼈대 조립과 로그인 표시는 공용 모듈이 맡는다
+   * (비어 있는 `#nav` 를 채우고, 그 뒤로는 닉네임·로그아웃·로그인 세 조각만 갈아끼운다).
+   * 로그아웃하면 랭킹은 볼 수 없으므로 메인으로 돌려보낸다(기본 동작).
+   */
   function buildNav() {
-    var nav = document.getElementById('nav');
-    if (!nav) return;
-    nav.replaceChildren(frag(h('div', { class: 'wrap' }, [
-      h('a', { class: 'brand', href: '/', text: '정처기 배틀' }),
-      h('a', { href: '/', 'data-nav': 'study', text: '학습' }),
-      h('a', { href: '/battle.html', 'data-nav': 'battle', text: '대전' }),
-      h('a', { href: '/ranking.html', 'data-nav': 'ranking', 'aria-current': 'page', text: '랭킹' }),
-      h('span', { class: 'spacer' }),
-      h('span', { class: 'who', id: 'navWho' }, state.me ? [h('b', { text: state.me.nickname }), ' 님'] : null),
-      h('button', {
-        type: 'button',
-        id: 'navLogout',
-        text: '로그아웃',
-        hidden: state.me ? null : 'hidden',
-        onclick: function () {
-          window.api.post('/api/auth/logout', {})
-            .then(function () { window.location.href = '/'; })
-            .catch(function () { window.location.href = '/'; });
-        },
-      }),
-      // 비로그인일 때만 — 지금은 boot() 가 먼저 메인으로 돌려보내지만, 그 경로가 사라져도
-      // 내비가 "로그아웃"만 덩그러니 보여 주지 않도록 다른 페이지와 같은 구조를 유지한다.
-      h('a', {
-        class: 'nav-login',
-        id: 'navLogin',
-        href: '/#account',
-        text: '로그인',
-        hidden: state.me ? 'hidden' : null,
-      }),
-    ])));
+    JPK.nav.render(state.me, { current: 'ranking' });
   }
 
   function boot() {

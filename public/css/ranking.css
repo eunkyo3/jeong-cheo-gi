@@ -1,7 +1,11 @@
 /* ranking.css — 랭킹 화면 전용.
    표·헤더·버튼·힌트는 app.css 가 소유한다(table.list / header.page / .btnbar / .hint).
    여기에는 랭킹 표에만 필요한 것과, battle.css 에만 있어서 이 페이지에서 빠지는
-   두 조각(.banner / .empty)만 둔다. 폰 화면에서 표가 깨지지 않게 가로 스크롤을 준다. */
+   두 조각(.banner / .empty)만 둔다. 폰 화면에서 표가 깨지지 않게 가로 스크롤을 준다.
+
+   **색은 리터럴로 적지 않는다.** ranking.html 이 app.css 를 먼저 읽으므로 모든 색은
+   app.css :root 의 토큰을 참조한다 — battle.css 와 같은 규칙이고, 그래야 다크 모드가
+   토큰 재정의 하나로 따라오며 .banner / .empty 가 두 파일에서 어긋나지 않는다. */
 
 /* ------------------------------------------------- battle.css 미로드 보완 */
 
@@ -12,12 +16,12 @@
   font-size: 0.92rem;
   font-weight: bold;
 }
-.banner.err { background: #fbdcdc; color: #7f1d1d; border: 1px solid #e9b8b8; }
-.banner.warn { background: #fff4d6; color: #6b4a05; border: 1px solid #e6d98a; }
-.banner.info { background: #dff3e7; color: #14532d; border: 1px solid #a9d8bf; }
+.banner.err { background: var(--bad-bg); color: var(--bad-fg); border: 1px solid var(--bad-line); }
+.banner.warn { background: var(--warn-bg); color: var(--warn-fg); border: 1px solid var(--warn-line); }
+.banner.info { background: var(--ok-bg); color: var(--ok-fg); border: 1px solid var(--ok-line); }
 
 .empty {
-  color: #77857e;
+  color: var(--muted-2);
   text-align: center;
   padding: 26px 12px;
   font-size: 0.95rem;
@@ -43,7 +47,7 @@ table.rank-table td.nick {
   word-break: break-all;
   min-width: 110px;
 }
-table.rank-table td.pts { font-weight: bold; color: var(--deep); }
+table.rank-table td.pts { font-weight: bold; color: var(--brand-ink); }
 table.rank-table td.rank { width: 56px; }
 
 /* 접힌 상세 줄과 안내는 폰에서만 쓴다 — 데스크톱 표는 지금 모습 그대로다. */
@@ -52,9 +56,11 @@ table.rank-table td.rank { width: 56px; }
 
 /* 상세 줄이 사이사이 끼면서 app.css 의 줄무늬(tr:nth-child(even))가 어긋난다.
    실제 데이터 행은 1·3·5… 번째이므로 그중 짝수번째(4n+3)에 다시 줄무늬를 준다. */
-table.rank-table tbody tr.rank-row:not(.me):nth-child(4n+3) td { background: #fafbfc; }
+table.rank-table tbody tr.rank-row:not(.me):nth-child(4n+3) td { background: var(--stripe); }
 
-/* 순위 배지. 1~3위만 색을 준다. */
+/* 순위 배지. 1~3위만 색을 준다.
+   메달 세 색은 금·은·동이라는 뜻 자체가 색이라 모드에 따라 뒤집지 않는다 —
+   각 알약이 밑면·글자 한 쌍으로 5.25~7.69:1 을 스스로 만든다. */
 .rankno {
   display: inline-block;
   min-width: 26px;
@@ -62,8 +68,8 @@ table.rank-table tbody tr.rank-row:not(.me):nth-child(4n+3) td { background: #fa
   border-radius: 999px;
   font-weight: bold;
   font-size: 0.86rem;
-  background: #eceff0;
-  color: #55645c;
+  background: var(--surface-6);
+  color: var(--muted-3);
 }
 .rankno.r1 { background: #d4af37; color: #3a2c00; }
 .rankno.r2 { background: #c2c8cc; color: #2c3236; }
@@ -72,32 +78,36 @@ table.rank-table tbody tr.rank-row:not(.me):nth-child(4n+3) td { background: #fa
 /* 내 줄 강조 — 배경과 왼쪽 띠를 함께 준다(색맹 대비). */
 table.rank-table tr.me td,
 table.list tr.me:nth-child(even) td {
-  background: #eafaf0;
+  background: var(--ok-tint-2);
   font-weight: bold;
 }
 table.rank-table tr.me td:first-child { box-shadow: inset 4px 0 0 var(--ok); }
 
+/* 정답색으로 꽉 채운 알약 — 면과 글자가 한 쌍으로 뒤집히는 토큰을 쓴다
+   (옛 --ok + 흰 글자는 3.41:1 이었다). */
 .mine-tag {
   display: inline-block;
   margin-left: 6px;
   padding: 1px 7px;
   border-radius: 6px;
-  background: var(--ok);
-  color: #fff;
+  background: var(--ok-fill);
+  color: var(--on-ok-fill);
   font-size: 0.72rem;
   font-weight: bold;
   vertical-align: 1px;
 }
 
-/* "대전으로" — 새로고침(primary) 과 나란히 서므로 유령 버튼으로 낮춘다. */
+/* "대전으로" — 새로고침(primary) 과 나란히 서므로 유령 버튼으로 낮춘다.
+   테두리가 이 버튼의 유일한 윤곽이다 — 옛 #c3ccc7 은 흰 면 대비 1.64:1 이라
+   버튼이 어디서 끝나는지 보이지 않았다(WCAG 1.4.11). */
 .btnbar button.ghost {
   background: transparent;
-  color: var(--deep);
-  border: 2px solid #c3ccc7;
+  color: var(--brand-ink);
+  border: 2px solid var(--border-ghost);
   padding: 12px 44px;
   margin-left: 10px;
 }
-.btnbar button.ghost:hover { background: #e6ece9; border-color: var(--deep); }
+.btnbar button.ghost:hover { background: var(--tint); border-color: var(--brand-line); }
 
 /* ---------------------------------------------------------------- 모바일 */
 
@@ -111,11 +121,13 @@ table.rank-table tr.me td:first-child { box-shadow: inset 4px 0 0 var(--ok); }
   table.rank-table tr.rank-row { cursor: pointer; }
   table.rank-table tr.rank-row td { position: relative; }
   /* 펼침 표시 — 승점 뒤에 작은 삼각형. */
+  /* 이 삼각형이 "이 줄은 펼칠 수 있다"를 알리는 유일한 단서다 — 옛 #8a968f 는 3.07:1 로
+     비텍스트 기준은 겨우 넘겼지만 0.72rem 글자로 읽히려면 4.5:1 이 필요하다. */
   table.rank-table tr.rank-row td.pts::after {
     content: '▾';
     margin-left: 6px;
     font-size: 0.72rem;
-    color: #8a968f;
+    color: var(--muted-2);
   }
   table.rank-table tr.rank-row.open td.pts::after { content: '▴'; }
   table.rank-table tr.rank-row.open + tr.rank-detail { display: table-row; }
@@ -123,11 +135,11 @@ table.rank-table tr.me td:first-child { box-shadow: inset 4px 0 0 var(--ok); }
     text-align: left;
     padding: 6px 10px 10px;
     font-size: 0.85rem;
-    color: #55645c;
+    color: var(--muted-3);
     white-space: nowrap;
-    background: #f6f8f7;
+    background: var(--surface-2);
   }
-  table.rank-table tr.rank-detail.me td { background: #eafaf0; }
+  table.rank-table tr.rank-detail.me td { background: var(--ok-tint-2); }
   .rank-tap-hint { display: block; }
 }
 

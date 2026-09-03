@@ -10,19 +10,30 @@
  *
  * 렌더는 study.js·battle.js 와 같은 규약이다: 이벤트 → state → render() 전체 재작성.
  * 부분 DOM 패치는 하지 않는다.
+ *
+ * 의존 (전역): window.api, window.Fmt, JPK.dom, JPK.qmeta, JPK.store, JPK.nav
  */
 (function () {
   'use strict';
 
   var TAB_KEY = 'jpk-wrong:tab';
 
-  // 문항 유형 — 서버 계약(data/types/*.json)의 값 셋과 화면 표기.
-  var TYPE_ORDER = ['code', 'sql', 'theory'];
-  var TYPE_LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
-  // 코드 문항 언어 — 서버 계약(data/langs/*.json)의 값 셋과 화면 표기.
-  // 언어는 코드 유형에만 있는 축이라 유형이 "코드" 일 때만 고를 수 있다.
-  var LANGS = ['c', 'java', 'python'];
-  var LANG_LABEL = { c: 'C', java: 'Java', python: 'Python' };
+  var el = JPK.dom.el;
+  var pad2 = JPK.dom.pad2;
+  var htmlToText = JPK.dom.htmlToText;
+  var srOnly = JPK.dom.srOnly;
+
+  // 문항 유형·언어 표는 공용 모듈(js/shared/qmeta.js)이 소유한다 — 화면마다 다른 말이 나오지 않게.
+  var TYPE_ORDER = JPK.qmeta.TYPE_ORDER;
+  var TYPE_LABEL = JPK.qmeta.TYPE_LABEL;
+  var LANGS = JPK.qmeta.LANGS;
+  var LANG_LABEL = JPK.qmeta.LANG_LABEL;
+  var normalizeType = JPK.qmeta.normalizeType;
+  var normalizeLang = JPK.qmeta.normalizeLang;
+  var questionOrigin = JPK.qmeta.questionOrigin;
+  var countsText = JPK.qmeta.countsText;
+  var langsText = JPK.qmeta.langsText;
+
   var RESULT_LABEL = { win: '승', lose: '패', draw: '무' };
 
   var state = {
@@ -40,46 +51,12 @@
   var elTabs = document.getElementById('wrongTabs');
   var elBody = document.getElementById('wrongBody');
   var elToastWrap = document.getElementById('toastWrap');
-  var elNavWho = document.getElementById('navWho');
-  var elNavLogout = document.getElementById('navLogout');
-  var elNavLogin = document.getElementById('navLogin');
 
   // ------------------------------------------------------------- 작은 도구
 
-  function el(tag, className, text) {
-    var node = document.createElement(tag);
-    if (className) node.className = className;
-    if (text != null) node.textContent = text;
-    return node;
-  }
-
   function toast(message, kind) {
-    if (!elToastWrap) return;
-    var t = el('div', 'toast' + (kind ? ' ' + kind : ''), message);
-    elToastWrap.appendChild(t);
-    setTimeout(function () {
-      t.classList.add('leaving');
-      setTimeout(function () {
-        if (t.parentNode) t.parentNode.removeChild(t);
-      }, 300);
-    }, 2600);
+    JPK.dom.toast(elToastWrap, message, kind);
   }
-
-  /** jsdom·사파리 프라이빗 모드에서 던질 수 있다 — 탭 기억은 항상 최선 노력. */
-  function storeGet(key) {
-    try {
-      return window.localStorage.getItem(key);
-    } catch (e) {
-      return null;
-    }
-  }
-  function storeSet(key, value) {
-    try {
-      window.localStorage.setItem(key, value);
-    } catch (e) { /* 무시 */ }
-  }
-
-  function pad2(n) { return (n < 10 ? '0' : '') + n; }
 
   /** epoch ms · 숫자 문자열 · ISO 문자열을 모두 받아 준다 (서버 표기가 바뀌어도 깨지지 않게). */
   function toDate(value) {
@@ -110,42 +87,6 @@
   }
 
   /**
-   * 문항 id("2026-2#3") → "2026년 2회 · 3번". study.js questionOrigin 과 같은 규칙이다.
-   */
-  function questionOrigin(qid) {
-    var s = String(qid == null ? '' : qid);
-    var hashIdx = s.indexOf('#');
-    var prefix = hashIdx >= 0 ? s.slice(0, hashIdx) : s;
-    var num = hashIdx >= 0 ? s.slice(hashIdx + 1) : '';
-    var m = /^(\d{4})-(\d+)$/.exec(prefix);
-    if (!m) return prefix;
-    var label = m[1] + '년 ' + m[2] + '회';
-    return num ? label + ' · ' + num + '번' : label;
-  }
-
-  /** {code:2,sql:1,theory:2} → "코드 2 · SQL 1 · 이론 2" (0인 유형은 생략). */
-  function countsText(counts) {
-    if (!counts || typeof counts !== 'object') return '';
-    var parts = [];
-    TYPE_ORDER.forEach(function (t) {
-      var n = Number(counts[t]) || 0;
-      if (n > 0) parts.push(TYPE_LABEL[t] + ' ' + n);
-    });
-    return parts.join(' · ');
-  }
-
-  /** {c:2,java:1} → "C 2 · Java 1" (0인 언어는 생략). countsText 와 같은 모양이다. */
-  function langsText(langs) {
-    if (!langs || typeof langs !== 'object') return '';
-    var parts = [];
-    LANGS.forEach(function (l) {
-      var n = Number(langs[l]) || 0;
-      if (n > 0) parts.push(LANG_LABEL[l] + ' ' + n);
-    });
-    return parts.join(' · ');
-  }
-
-  /**
    * 지금 링크에 언어 한정이 실리는가. langTail 과 **같은 조건**이어야 한다 —
    * 화면에 적는 문항 수와 그 링크가 여는 study 화면의 문항 수가 어긋나면 안 된다.
    */
@@ -167,23 +108,6 @@
       return Number(row.counts[state.typeFilter]) || 0;
     }
     return all;
-  }
-
-  /** 문항 prompt 는 HTML 자산이다 — 목록에서는 태그를 걷어내고 텍스트만 보여 준다. */
-  function htmlToText(html) {
-    var div = document.createElement('div');
-    div.innerHTML = html == null ? '' : html;
-    return (div.textContent || '').replace(/\s+/g, ' ').trim();
-  }
-
-  function normalizeType(value) {
-    var t = String(value == null ? '' : value).trim().toLowerCase();
-    return TYPE_ORDER.indexOf(t) === -1 ? '' : t;
-  }
-
-  function normalizeLang(value) {
-    var l = String(value == null ? '' : value).trim().toLowerCase();
-    return LANGS.indexOf(l) === -1 ? '' : l;
   }
 
   function typeTail() {
@@ -244,35 +168,20 @@
 
   // ---------------------------------------------------------------- 내비
 
+  /**
+   * 정적 내비다 — 공용 모듈은 닉네임·로그아웃·로그인 세 조각만 갈아끼운다.
+   * 오답노트는 로그인 사용자의 기록이므로 로그아웃하면 화면도 안내로 되돌린다(페이지 이동은 없다).
+   */
   function renderNav(user) {
-    if (!elNavWho || !elNavLogout) return;
-    elNavWho.textContent = '';
-    if (!user) {
-      elNavLogout.hidden = true;
-      if (elNavLogin) elNavLogin.hidden = false;
-      return;
-    }
-    elNavWho.appendChild(el('b', null, user.nickname));
-    elNavWho.appendChild(document.createTextNode(' 님'));
-    elNavLogout.hidden = false;
-    if (elNavLogin) elNavLogin.hidden = true;
-  }
-
-  if (elNavLogout) {
-    elNavLogout.addEventListener('click', function () {
-      elNavLogout.disabled = true;
-      api.logout().then(function () {
-        elNavLogout.disabled = false;
-        renderNav(null);
+    JPK.nav.render(user, {
+      current: 'study',
+      onLogout: function () {
         toast('로그아웃했습니다.');
-        // 오답노트는 로그인 사용자의 기록이다 — 로그아웃하면 화면도 안내로 되돌린다.
         state.data = null;
         state.error = { kind: 'auth', message: '로그인이 필요합니다.' };
         render();
-      }).catch(function (e) {
-        elNavLogout.disabled = false;
-        toast(e.message, 'bad');
-      });
+      },
+      onError: function (e) { toast(e && e.message ? e.message : '로그아웃에 실패했습니다.', 'bad'); },
     });
   }
 
@@ -373,17 +282,28 @@
       var btn = el('button', 'chip' + (on ? ' on' : ''), t.label);
       btn.type = 'button';
       btn.setAttribute('data-tab', t.key);
+      // 두 탭은 켜고 끄는 토글이다 — 지금 어느 쪽을 보고 있는지 보조 기술에도 알린다.
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       btn.addEventListener('click', function () {
         if (state.tab === t.key) return;
         state.tab = t.key;
-        storeSet(TAB_KEY, t.key);
+        JPK.store.set(TAB_KEY, t.key);
         render();
       });
       elTabs.appendChild(btn);
     });
   }
 
+  /**
+   * 지금 보고 있는 탭의 제목. 화면에는 탭 칩이 이미 그 말을 하고 있으므로 눈에는 감추고
+   * 문서 구조에만 남긴다 — 이게 없으면 h1(오답노트) 다음이 곧바로 h3(방 이름)이라 단계가 끊긴다.
+   */
+  function tabHeading(text) {
+    return srOnly(el('h2', 'wn-tab-title', text));
+  }
+
   function renderRoundTab() {
+    elBody.appendChild(tabHeading('회차별 오답'));
     var rows = state.data.byRound || [];
     if (rows.length === 0) {
       elBody.appendChild(el('p', 'muted', '회차로 묶을 오답이 없습니다.'));
@@ -507,6 +427,7 @@
   }
 
   function renderBattleTab() {
+    elBody.appendChild(tabHeading('대전별 오답'));
     var rows = state.data.byBattle || [];
     if (rows.length === 0) {
       var card = el('div', 'card');
@@ -544,7 +465,7 @@
 
   // ------------------------------------------------------------------ 시작
 
-  var savedTab = storeGet(TAB_KEY);
+  var savedTab = JPK.store.get(TAB_KEY);
   if (savedTab === 'round' || savedTab === 'battle') state.tab = savedTab;
 
   api.get('/api/me/wrong/summary')

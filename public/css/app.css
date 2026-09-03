@@ -5,18 +5,142 @@
    여기에 헤더·내비·카드·폼 등 레이아웃 프리미티브를 더해 study/battle/ranking 이 공유한다.
    폰(Tailscale 원격 접속)이 1급 사용 환경이므로 전 구간 반응형이다. */
 
+/* ------------------------------------------------------------------- 토큰
+   app.css 는 전 페이지가 **가장 먼저** 읽는 파일이므로 여기 :root 가 세 CSS 파일
+   (app / battle / ranking)의 단일 색 출처다. battle.css·ranking.css 는 리터럴 색을
+   쓰지 않고 이 토큰만 참조한다 — 그래야 아래 다크 팔레트가 토큰 재정의만으로 끝난다.
+
+   대비 규율(WCAG 2.1 AA): 본문 글자 4.5:1, 조작 요소 테두리·의미 있는 그래픽 3:1.
+   `--ok` / `--bad` 는 **면·테두리 전용**이다(흰 배경 위 3.41:1 / 4.38:1 로 글자에 못 쓴다).
+   글자와 "흰 글자를 얹는 면"에는 `--ok-text` / `--bad-text` 를 쓴다. */
 :root {
-  --ink: #222;
+  /* 브라우저에 이 페이지가 두 모드를 다 다룬다고 알린다 — 폼 컨트롤·스크롤바가 따라온다. */
+  color-scheme: light dark;
+
+  /* 브랜드(진녹) — 면 */
   --deep: #1e3a2f;
   --deep-2: #2c5445;
   --deep-3: #2f4f3e;
+  /* 브랜드색 **글자·테두리**는 별도 토큰이다 — 다크에서 진녹은 면으로는 살아남지만
+     밝은 바탕 위 글자·윤곽으로는 안 보이므로 밝은 녹으로 뒤집혀야 한다.
+     (`--deep` 은 "채워진 면", `--brand-line` 은 "그 면 색으로 그린 윤곽") */
+  --brand-ink: #1e3a2f;
+  --brand-ink-2: #2c5445;
+  --brand-line: #1e3a2f;
+  /* 진녹 면 위에 얹는 색 (내비·페이지 헤더·하단 미니바) */
+  --on-deep: #fff;
+  --on-deep-2: #cfe3d8;
+  --on-deep-3: #b7ccc2;
+  --on-deep-dim: #93a9a0;   /* 진녹 위 비활성 — 4.95:1 */
+  --deep-line: #6b8b7c;     /* 진녹 위 테두리 — 3.30:1 */
+  --urgent-on-deep: #ffb4b4;
+
+  /* 바탕·면 */
   --paper: #f0f2f5;
   --card: #fff;
+  --surface: #fff;          /* 입력칸·표·칩 등 흰 면 */
+  --surface-2: #fafbfa;     /* 살짝 가라앉은 면 (방·플레이어 줄) */
+  --surface-3: #f4f5f6;     /* 비활성 입력칸 */
+  --surface-4: #f7f8f9;     /* 0문항 회차 버튼 */
+  --surface-5: #eceff1;     /* 비활성 버튼 링크 */
+  --surface-6: #eceff0;     /* 중립 칩 (뱃지 off · 정오 칩 · 순위 뱃지) */
+  --stripe: #fafbfc;        /* 표 줄무늬 */
+  --tint: #e6ece9;          /* 브랜드 연한 면 (켜진 칩) */
+  --tint-2: #eef4f0;
+  --tint-3: #e7f1ec;
+  --tint-4: #f3f7f5;        /* 회차 버튼 hover */
+  --tint-5: #e0eae4;        /* 칩 :active */
+  --tint-6: #d3ded8;        /* 유령 버튼 hover */
+  --tint-7: #e8efeb;        /* 진행 표시 칩 */
+
+  /* 선 — 아래 셋은 장식용 구분선이다(WCAG 1.4.11 비대상). 조작 요소 테두리는 그 아래. */
   --line: #d7dce1;
-  --muted: #666;
+  --line-2: #e2e8e4;
+  --line-3: #dfe5e2;
+  --line-dash: #d9dedb;
+  --grid: #999;             /* 표 격자 */
+  --grid-2: #b7bfc5;
+  --grid-3: #ccc;
+  --border-input: #7d8791;  /* 입력칸·칩 테두리 — 흰 면 3.65:1 / paper 3.26:1 */
+  --border-ghost: #8a968f;  /* 유령 버튼 테두리 — 3.07:1 */
+  /* 포커스 표시는 면 색과 따로 논다 — 다크에서 진녹 테두리·링은 안 보인다. */
+  --focus-line: #1e3a2f;    /* 입력칸 :focus 테두리 */
+  --focus-ring: #2c5445;    /* :focus-visible 외곽선 */
+
+  /* 글자 */
+  --ink: #222;
+  --ink-2: #444;
+  --ink-3: #555;
+  --muted: #666;            /* 5.74:1 */
+  --muted-2: #5f6d66;       /* 초록기 도는 보조 글자 — 5.43:1 (옛 #77857e 3.86:1 대체) */
+  --muted-3: #55645c;       /* 6.24:1 */
+  --muted-4: #45564d;       /* 7.80:1 */
+  --muted-blank: #6b7873;   /* "미제출" 같은 빈 값 — 4.61:1 (옛 #9aa5a0 2.54:1 대체) */
+  --disabled-ink: #67706b;  /* 비활성 글자 — opacity 합성 대신 명시색으로 4.68:1 이상 */
+  --disabled-ink-2: #5a615e;
+
+  /* 상태 — 면 */
   --ok: #2e9e5b;
   --bad: #d64545;
-  --warn: #b8860b;
+  /* 상태 — 글자, 그리고 흰 글자를 얹는 면 */
+  --ok-text: #217a45;       /* 5.34:1 (흰 글자를 얹어도 5.34:1) */
+  --bad-text: #b83232;      /* 5.93:1 */
+  /* 정답색으로 **꽉 채운 작은 알약** (내 뱃지·"나" 표시). 라이트에서는 짙은 면 + 흰 글자,
+     다크에서는 밝은 면 + 짙은 글자로 **한 쌍이 함께 뒤집혀야** 한다 —
+     면만 밝히고 글자를 흰색으로 두면 다크에서 1.93:1 이 된다. */
+  --ok-fill: #217a45;
+  --on-ok-fill: #fff;
+  --ok-bg: #dff3e7;
+  --ok-fg: #14532d;
+  --ok-tint: #f3fbf6;
+  --ok-tint-2: #eafaf0;
+  --ok-line: #a9d8bf;
+  --bad-bg: #fbdcdc;
+  --bad-fg: #7f1d1d;
+  --bad-tint: #fdf5f5;
+  --bad-tint-2: #fdecec;
+  --bad-line: #e9b8b8;
+  --warn: #8a6608;          /* 5.27:1 (옛 #b8860b 3.25:1) */
+  --warn-bg: #fff4d6;
+  --warn-fg: #6b4a05;
+  --warn-line: #e6d98a;
+  --note-bg: #fffbe8;       /* 보기 상자·복원 배너 */
+  --note-fg: #222;
+
+  /* 중립 채움 버튼 (secondary) — 흰 글자가 5.43:1 로 읽힌다(옛 #888 3.54:1). */
+  --neutral-fill: #5f6d66;
+  --neutral-fill-h: #4c5751;
+  --ghost-fill-h: #6b7075;
+  /* 위험 버튼 ("방 나가기") — 흰 글자로 6.50:1 / hover 4.80:1 */
+  --danger-fill: #a33;
+  --danger-fill-h: #c14b4b;
+
+  /* 큰 블록 (코드·해설·지문·토스트) */
+  --code-bg: #23272e;
+  --code-fg: #e8eaed;
+  --desc-bg: #f6f7f4;
+  --explain-bg: #f7f9fb;
+  --explain-fg: #2a3138;
+  --explain-bd: #dde4ea;
+  --explain-strong: #16324a;
+  --explain-code-bg: #eceff3;
+  --peek-bg: #eef3f7;
+  --peek-fg: #24405a;
+  --peek-bd: #d5e0ea;
+  --mark-bg: #fff08a;
+  --mark-fg: #4a3b00;
+  --toast-bg: #2b2f33;
+  --toast-fg: #fff;
+
+  /* 진행 막대 — 채움과 트랙이 4.11:1, 트랙 테두리가 바탕과 3.65:1 로 갈린다. */
+  --track-bg: #dbe4df;
+  --track-ring: #7d8791;
+
+  --shadow: rgba(0, 0, 0, 0.08);
+  --shadow-2: rgba(0, 0, 0, 0.15);
+  --shadow-3: rgba(0, 0, 0, 0.18);
+  --scrim: rgba(0, 0, 0, 0.55);
+
   --radius: 10px;
 }
 
@@ -26,15 +150,42 @@
    마우스 클릭은 각 입력칸 규칙의 `:focus:not(:focus-visible)` 에서 링을 끈다(테두리 강조는 남는다).
    `:focus-visible` 을 모르는 구형 브라우저는 브라우저 기본 외곽선이 늘 보인다 — 그대로 둔다. */
 :focus-visible {
-  outline: 2px solid var(--deep-2);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
-/* 어두운 배경(상단 내비·페이지 헤더·하단 미니바) 위에서는 초록 링이 보이지 않는다 — 흰 링으로 바꾼다. */
+/* 어두운 배경(상단 내비·페이지 헤더·하단 미니바) 위에서는 초록 링이 보이지 않는다 — 흰 링으로 바꾼다.
+   이 셋은 라이트·다크 어느 쪽에서도 진녹(--deep) 면이므로 흰색이 양쪽에서 맞다 —
+   토큰을 거치지 않고 리터럴로 둔다(`npm run headless` 의 focusring 검사도 이 값을 본다). */
 .topnav :focus-visible,
 header.page :focus-visible,
 .studybar :focus-visible { outline-color: #fff; }
 
 html { -webkit-text-size-adjust: 100%; }
+
+/* 눈에는 안 보이지만 보조 기술에는 남는 요소 (레인 D 의 `JPK.dom.srOnly` 대체용).
+   `display:none`·`visibility:hidden` 은 스크린 리더에서도 사라지므로 쓸 수 없다 —
+   1px 로 줄이고 잘라 내는 표준 clip 기법이다. 자리를 차지하지 않으므로
+   대전 4화면의 `<h1>` 과 오답노트 탭 `<h2>` 를 넣어도 기존 레이아웃이 그대로 남는다.
+
+   값은 `public/js/shared/dom.js` 의 `SR_ONLY_STYLE` 과 **한 글자도 다르지 않다** —
+   레인 D 가 인라인 스타일을 이 클래스로 바꿔도 화면은 변하지 않는다.
+
+   포커스 시 드러내는 규칙(스킵 링크 방식)은 **일부러 넣지 않았다**: 이 요소들은 사람이
+   탭으로 옮겨 온 게 아니라 화면 전환 때 스크립트가 `focus()` 로 보낸 제목이다.
+   프로그램적 포커스는 `:focus-visible` 에 걸리지 않으므로 링도 그려지지 않고,
+   여기서 억지로 드러내면 아무도 누르지 않은 것이 갑자기 튀어나온다. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
 
 body {
   font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
@@ -51,41 +202,51 @@ body {
 
 .topnav {
   background: var(--deep);
-  color: #fff;
+  color: var(--on-deep);
   position: sticky;
   top: 0;
   z-index: 20;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 2px 8px var(--shadow-3);
 }
 /* 전 페이지 공통. 320px 까지 한 줄을 유지해야 하므로 줄바꿈을 막고,
-   자리가 모자라면 닉네임(.who)만 말줄임으로 줄어든다. */
+   자리가 모자라면 닉네임(.who)만 말줄임으로 줄어든다.
+   내비 항목은 손가락으로 눌러야 하므로 세로 40px 을 채운다 — 그 40px 은 항목의
+   패딩으로 만들고 .wrap 의 세로 여백은 그만큼 줄여, 바 전체 높이(≈46px)와
+   그 높이에 맞춰 놓은 sticky 오프셋(#scoreBoard 52px · .timerbar 46px)을 유지한다.
+   가로 간격도 gap 에서 항목 패딩으로 옮긴다(gap 2px + 좌우 6px = 예전 14px 과 같다) —
+   그래야 320px 에서 한 줄이 유지된다. */
 .topnav .wrap {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 2px;
   flex-wrap: nowrap;
-  padding-top: 10px;
-  padding-bottom: 10px;
+  padding-top: 3px;
+  padding-bottom: 3px;
 }
 .topnav .brand {
   font-weight: bold;
   font-size: 1.05rem;
-  color: #fff;
+  color: var(--on-deep);
   text-decoration: none;
   white-space: nowrap;
   flex: 0 0 auto;
+  margin-right: 8px;
 }
 .topnav a {
-  color: #cfe3d8;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 6px;
+  color: var(--on-deep-2);
   text-decoration: none;
   font-size: 0.92rem;
   white-space: nowrap;
   flex: 0 0 auto;
 }
-.topnav a:hover { color: #fff; text-decoration: underline; }
+.topnav a:hover { color: var(--on-deep); text-decoration: underline; }
 /* 현재 페이지는 밑줄로만 표시한다 — 알약(배경 칩) 스타일은 쓰지 않는다. */
 .topnav a[aria-current="page"] {
-  color: #fff;
+  color: var(--on-deep);
   font-weight: bold;
   text-decoration: underline;
   text-decoration-thickness: 2px;
@@ -96,65 +257,73 @@ body {
 .topnav .who,
 .topnav .whoami {
   font-size: 0.88rem;
-  color: #b7ccc2;
+  color: var(--on-deep-3);
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.topnav .who b { color: #fff; }
-.topnav .whoami { color: #fff; font-weight: bold; }
-/* 로그아웃 — 테두리 없는 작은 텍스트 버튼(좁은 화면에서 자리를 덜 먹게). */
+.topnav .who b { color: var(--on-deep); }
+.topnav .whoami { color: var(--on-deep); font-weight: bold; }
+/* 로그아웃 — 테두리 없는 작은 텍스트 버튼(좁은 화면에서 자리를 덜 먹게).
+   테두리는 없어도 탭 영역은 링크와 같은 40px 이어야 한다. */
 .topnav button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
   font-size: 0.84rem;
-  padding: 4px 0;
+  padding: 0 6px;
   border: none;
   border-radius: 0;
   background: transparent;
-  color: #b7ccc2;
+  color: var(--on-deep-3);
   cursor: pointer;
   font-weight: normal;
   white-space: nowrap;
   flex: 0 0 auto;
 }
-.topnav button:hover { color: #fff; text-decoration: underline; }
-.topnav button:disabled { color: #7d938a; cursor: default; text-decoration: none; }
+.topnav button:hover { color: var(--on-deep); text-decoration: underline; }
+.topnav button:disabled { color: var(--on-deep-dim); cursor: default; text-decoration: none; }
 /* 비로그인 안내 링크 — 로그인 폼(#account)으로 내려보낸다. 알약 아님. */
-.topnav .nav-login { color: #fff; font-weight: bold; }
+.topnav .nav-login { color: var(--on-deep); font-weight: bold; }
 
 @media (max-width: 600px) {
-  .topnav .wrap { gap: 9px; }
-  .topnav .brand { font-size: 0.95rem; }
-  .topnav a { font-size: 0.85rem; }
+  /* 좁아질수록 gap 을 0 으로 접고 항목 패딩만 남긴다 — 탭 영역은 40px 을 지키면서
+     항목 사이 간격은 예전(9px·7px)과 비슷하게 유지된다. */
+  .topnav .wrap { gap: 0; }
+  .topnav .brand { font-size: 0.95rem; margin-right: 6px; }
+  .topnav a { font-size: 0.85rem; padding: 0 5px; }
+  .topnav button { padding: 0 5px; }
   .topnav a[aria-current="page"] { text-underline-offset: 4px; }
   .topnav .who, .topnav .whoami { font-size: 0.82rem; }
   .topnav button { font-size: 0.8rem; }
 }
 @media (max-width: 360px) {
-  .topnav .wrap { gap: 7px; }
-  .topnav .brand { font-size: 0.9rem; }
-  .topnav a { font-size: 0.82rem; }
+  .topnav .wrap { gap: 0; }
+  .topnav .brand { font-size: 0.9rem; margin-right: 4px; }
+  .topnav a { font-size: 0.82rem; padding: 0 4px; }
+  .topnav button { padding: 0 4px; }
 }
 
 /* ---------------------------------------------------------------- 헤더 */
 
 header.page {
   background: var(--deep);
-  color: #fff;
+  color: var(--on-deep);
   border-radius: 12px;
   padding: 26px 22px;
   margin: 20px 0 22px;
   text-align: center;
 }
 header.page h1 { font-size: 1.5rem; margin-bottom: 6px; line-height: 1.35; }
-header.page p { color: #b7ccc2; font-size: 0.9rem; }
+header.page p { color: var(--on-deep-3); font-size: 0.9rem; }
 
 h2.section {
   font-size: 1.12rem;
   margin: 26px 0 12px;
   padding-bottom: 6px;
-  border-bottom: 2px solid var(--deep);
+  border-bottom: 2px solid var(--brand-line);
 }
 
 /* ----------------------------------------------------------------- 카드 */
@@ -164,7 +333,7 @@ h2.section {
   border-radius: var(--radius);
   padding: 18px 20px;
   margin-bottom: 18px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px var(--shadow);
 }
 .card h3 { font-size: 1rem; margin-bottom: 10px; }
 
@@ -177,7 +346,7 @@ h2.section {
 /* 회차 버튼 */
 .round-btn {
   display: block;
-  background: #fff;
+  background: var(--card);
   border: 2px solid var(--line);
   border-radius: 8px;
   padding: 12px 10px;
@@ -187,16 +356,18 @@ h2.section {
   font-weight: bold;
   transition: border-color 0.12s, background 0.12s;
 }
-.round-btn:hover { border-color: var(--deep); background: #f3f7f5; }
+.round-btn:hover { border-color: var(--brand-line); background: var(--tint-4); }
 /* 고른 유형이 0문항인 회차 — <a> 가 아니라 <span> 으로 나와 클릭 자체가 안 된다.
    학습 화면 .chip.empty 와 같은 흐림 톤. 취소선은 쓰지 않는다 — text-decoration 은
-   자식으로 전파되어 문항 수·구성·기록 뱃지까지 관통해 버린다. 대신 사유를 한 줄로 적는다. */
+   자식으로 전파되어 문항 수·구성·기록 뱃지까지 관통해 버린다. 대신 사유를 한 줄로 적는다.
+   흐림은 opacity 로 만들지 않는다 — opacity 0.42 는 글자를 배경과 2.52:1 까지 떨어뜨려
+   "읽을 수는 있어야 하는" 안내문(사유·문항 수)을 못 읽게 만든다. 명시색으로 낮춘다. */
 .round-btn.empty {
-  opacity: 0.42;
   cursor: default;
-  background: #f7f8f9;
+  background: var(--surface-4);
+  color: var(--disabled-ink-2);
 }
-.round-btn.empty:hover { border-color: var(--line); background: #f7f8f9; }
+.round-btn.empty:hover { border-color: var(--line); background: var(--surface-4); }
 .round-btn .empty-note {
   display: block;
   font-weight: normal;
@@ -205,12 +376,15 @@ h2.section {
   color: var(--muted);
   margin-top: 2px;
 }
+.round-btn.empty .empty-note,
+.round-btn.empty .cnt,
+.round-btn.empty .types { color: var(--muted-2); }
 .round-btn .cnt { display: block; font-weight: normal; font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
 
 .year-group { margin-bottom: 18px; }
 .year-group > h3 {
   font-size: 0.95rem;
-  color: var(--deep);
+  color: var(--brand-ink);
   margin-bottom: 8px;
   padding-left: 2px;
 }
@@ -219,15 +393,15 @@ h2.section {
 
 .q {
   position: relative;
-  background: #fff;
+  background: var(--card);
   border-radius: var(--radius);
   padding: 20px 22px;
   margin-bottom: 18px;
   border: 2px solid transparent;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px var(--shadow);
 }
-.q.correct { border-color: var(--ok); background: #f3fbf6; }
-.q.wrong { border-color: var(--bad); background: #fdf5f5; }
+.q.correct { border-color: var(--ok); background: var(--ok-tint); }
+.q.wrong { border-color: var(--bad); background: var(--bad-tint); }
 
 /* 문항 카드 우상단 — 출처 회차·번호 (요구 4). 제목 줄 오른쪽 자리를 미리 비워 둔다. */
 .q-origin {
@@ -282,13 +456,16 @@ h2.section {
 }
 
 /* 뱃지 줄에 유형 + 회차(+ "이후 맞힘") 가 함께 서므로 제목 오른쪽을 그만큼 비워 둔다. */
-.qtitle { font-weight: bold; margin-bottom: 10px; font-size: 1.02rem; padding-right: 165px; }
+/* 문항 카드 제목은 문서 구조상 진짜 제목이라 `<div>` 가 아니라 `<h3>` 다(레인 D, 2-2).
+   h3 의 UA 기본 `margin-block-start: 1em` 이 카드 위쪽에 빈 줄을 만들므로 여기서 지운다 —
+   이 규칙은 예전부터 `margin-bottom` 만 정하고 있었다. */
+.qtitle { font-weight: bold; margin-top: 0; margin-bottom: 10px; font-size: 1.02rem; padding-right: 165px; }
 /* 뱃지가 셋(유형·회차·"이후 맞힘")이면 우상단 줄이 165px 를 넘으므로 제목 오른쪽을 더 비운다. */
 .q:has(.q-badges .q-resolved) .qtitle { padding-right: 250px; }
 .qtitle .num {
   display: inline-block;
   background: var(--deep);
-  color: #fff;
+  color: var(--on-deep);
   border-radius: 6px;
   padding: 1px 9px;
   margin-right: 8px;
@@ -296,8 +473,8 @@ h2.section {
 }
 
 .desc-box {
-  background: #f6f7f4;
-  border-left: 4px solid var(--deep);
+  background: var(--desc-bg);
+  border-left: 4px solid var(--brand-line);
   padding: 12px 14px;
   margin: 10px 0;
   border-radius: 0 6px 6px 0;
@@ -305,8 +482,8 @@ h2.section {
 }
 
 pre.code {
-  background: #23272e;
-  color: #e8eaed;
+  background: var(--code-bg);
+  color: var(--code-fg);
   padding: 14px 16px;
   border-radius: 8px;
   overflow-x: auto;
@@ -323,24 +500,25 @@ table.tbl {
   border-collapse: collapse;
   margin: 10px 0;
   font-size: 0.9rem;
-  background: #fff;
+  background: var(--surface);
 }
 table.tbl th {
   background: var(--deep-3);
-  color: #fff;
+  color: var(--on-deep);
   padding: 6px 18px;
-  border: 1px solid #999;
+  border: 1px solid var(--grid);
   white-space: nowrap;
 }
 table.tbl td {
   padding: 5px 18px;
-  border: 1px solid #999;
+  border: 1px solid var(--grid);
   text-align: center;
 }
 
 .boki {
-  background: #fffbe8;
-  border: 1px solid #e6d98a;
+  background: var(--note-bg);
+  color: var(--note-fg);
+  border: 1px solid var(--warn-line);
   border-radius: 6px;
   padding: 10px 14px;
   margin: 10px 0;
@@ -358,18 +536,18 @@ input.ans {
   min-width: 200px;
   max-width: 380px;
   padding: 9px 12px;
-  border: 2px solid #c6ccd2;
+  border: 2px solid var(--border-input);
   border-radius: 8px;
   font-size: 1rem;
   font-family: Consolas, "Malgun Gothic", monospace;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
 }
 input.ans:focus { border-color: var(--deep); }
 input.ans:focus:not(:focus-visible) { outline: none; }
-input.ans.ok { border-color: var(--ok); background: #eafaf0; }
-input.ans.bad { border-color: var(--bad); background: #fdecec; }
-input.ans:disabled { background: #f4f5f6; color: #555; }
+input.ans.ok { border-color: var(--ok); background: var(--ok-tint-2); }
+input.ans.bad { border-color: var(--bad); background: var(--bad-tint-2); }
+input.ans:disabled { background: var(--surface-3); color: var(--ink-3); }
 
 .feedback {
   display: none;
@@ -378,8 +556,8 @@ input.ans:disabled { background: #f4f5f6; color: #555; }
   border-radius: 8px;
   font-size: 0.93rem;
 }
-.q.correct .feedback { display: block; background: #dff3e7; color: #14532d; }
-.q.wrong .feedback { display: block; background: #fbdcdc; color: #7f1d1d; }
+.q.correct .feedback { display: block; background: var(--ok-bg); color: var(--ok-fg); }
+.q.wrong .feedback { display: block; background: var(--bad-bg); color: var(--bad-fg); }
 .feedback .answer-line { margin-top: 4px; }
 
 /* 해설 상자 — 채점 후 "해설 보기" 로 펼친다. 서버가 검증한 화이트리스트 마크업만 들어온다
@@ -387,25 +565,25 @@ input.ans:disabled { background: #f4f5f6; color: #555; }
 .explain-box {
   margin-top: 10px;
   padding: 12px 14px;
-  border: 1px solid #dde4ea;
+  border: 1px solid var(--explain-bd);
   border-left: 4px solid var(--deep-2);
   border-radius: 8px;
-  background: #f7f9fb;
-  color: #2a3138;
+  background: var(--explain-bg);
+  color: var(--explain-fg);
   font-size: 0.92rem;
   line-height: 1.75;         /* 긴 설명을 읽어 내려가야 한다 */
   word-break: break-word;
 }
 .explain-box > * + * { margin-top: 8px; }
 .explain-box p { margin: 0; }
-.explain-box b { color: #16324a; }
+.explain-box b { color: var(--explain-strong); }
 .explain-box ul,
 .explain-box ol { margin: 0; padding-left: 1.35em; }
 .explain-box li + li { margin-top: 4px; }
 .explain-box code {
   font-family: Consolas, "D2Coding", monospace;
   font-size: 0.9em;
-  background: #eceff3;
+  background: var(--explain-code-bg);
   border-radius: 4px;
   padding: 1px 4px;
 }
@@ -413,7 +591,7 @@ input.ans:disabled { background: #f4f5f6; color: #555; }
   font-family: Consolas, "D2Coding", monospace;
   font-size: 0.88rem;
   line-height: 1.55;
-  background: #eceff3;
+  background: var(--explain-code-bg);
   border-radius: 6px;
   padding: 10px 12px;
   overflow-x: auto;          /* 코드는 카드를 밀지 않고 스스로 스크롤한다 */
@@ -421,11 +599,12 @@ input.ans:disabled { background: #f4f5f6; color: #555; }
 }
 .explain-box pre code { background: none; padding: 0; }
 
-/* 형광펜 강조. 정답 배경(연녹)·오답 배경(연적) 위에서도 읽히는 톤이다. */
+/* 형광펜 강조. 정답 배경(연녹)·오답 배경(연적) 위에서도 읽히는 톤이다.
+   다크에서도 형광펜은 형광펜이어야 하므로 노랑 바탕·짙은 글자를 그대로 둔다(9.43:1). */
 .explain-box mark,
 .feedback mark {
-  background: #fff08a;
-  color: #4a3b00;
+  background: var(--mark-bg);
+  color: var(--mark-fg);
   padding: 0 3px;
   border-radius: 3px;
   font-weight: bold;
@@ -433,21 +612,25 @@ input.ans:disabled { background: #f4f5f6; color: #555; }
 
 .q-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .q-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;         /* 손가락 탭 영역 */
   font-size: 0.86rem;
   font-weight: bold;
   padding: 8px 14px;
   border-radius: 8px;
-  border: 1px solid var(--deep);
-  background: #fff;
-  color: var(--deep);
+  border: 1px solid var(--brand-line);
+  background: var(--card);
+  color: var(--brand-ink);
   cursor: pointer;
 }
-.q-actions button:not(:disabled):hover { background: var(--deep); color: #fff; }
-.q-actions button.ghost { border-color: #b0b6bb; color: #555; }
-.q-actions button.ghost:not(:disabled):hover { background: #6b7075; border-color: #6b7075; color: #fff; }
+.q-actions button:not(:disabled):hover { background: var(--deep); color: var(--on-deep); }
+.q-actions button.ghost { border-color: var(--border-ghost); color: var(--ink-3); }
+.q-actions button.ghost:not(:disabled):hover { background: var(--ghost-fill-h); border-color: var(--ghost-fill-h); color: var(--on-deep); }
 /* 불러오는 중인 버튼 — 눌리지 않는다는 것이 보여야 한다. */
 .q-actions button:disabled { opacity: 0.55; cursor: default; }
-.q-actions .copied { color: var(--ok); font-size: 0.84rem; align-self: center; font-weight: bold; }
+.q-actions .copied { color: var(--ok-text); font-size: 0.84rem; align-self: center; font-weight: bold; }
 
 /* ----------------------------------------------------------------- 버튼 */
 
@@ -460,11 +643,12 @@ input.ans:disabled { background: #f4f5f6; color: #555; }
   border-radius: var(--radius);
   cursor: pointer;
   background: var(--deep);
-  color: #fff;
+  color: var(--on-deep);
 }
 .btnbar button:hover, button.primary:hover { background: var(--deep-2); }
-.btnbar button.secondary { background: #888; margin-left: 10px; }
-.btnbar button.secondary:hover { background: #6f6f6f; }
+/* 흰 글자가 얹히는 중립 버튼 — 옛 #888 은 흰 글자와 3.54:1 이라 AA 미달이었다. */
+.btnbar button.secondary { background: var(--neutral-fill); margin-left: 10px; }
+.btnbar button.secondary:hover { background: var(--neutral-fill-h); }
 
 /* 제출 버튼 옆 진행 표시 — "답한 문항 17/20". 입력마다 이 한 줄만 갱신된다. */
 .btnbar .answered-count {
@@ -484,19 +668,19 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   position: sticky;
   top: 52px;
   z-index: 10;
-  background: #fff;
-  border: 3px solid var(--deep);
+  background: var(--card);
+  border: 3px solid var(--brand-line);
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 20px;
   text-align: center;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 14px var(--shadow-2);
 }
 #scoreBoard.shown { display: block; }
-#scoreBoard .score { font-size: 2rem; font-weight: bold; color: var(--deep); }
+#scoreBoard .score { font-size: 2rem; font-weight: bold; color: var(--brand-ink); }
 #scoreBoard .pass { font-size: 1.05rem; margin-top: 4px; }
-.pass.ok { color: var(--ok); }
-.pass.no { color: var(--bad); }
+.pass.ok { color: var(--ok-text); }
+.pass.no { color: var(--bad-text); }
 
 /* 불합격일 때만 붙는 다음 행동 (study.js) — 첫 오답 카드로 데려가고 해설을 열어 준다. */
 .pass-cta {
@@ -505,7 +689,7 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   padding: 5px 12px;
   font-size: 0.88rem;
   font-weight: bold;
-  color: #fff;
+  color: var(--on-deep);
   background: var(--deep);
   border: 1px solid var(--deep);
   border-radius: 8px;
@@ -545,8 +729,9 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .hint { font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
 .muted { color: var(--muted); }
-.error-text { color: var(--bad); font-size: 0.88rem; margin-top: 8px; min-height: 1.2em; }
-.ok-text { color: var(--ok); font-size: 0.88rem; margin-top: 8px; min-height: 1.2em; }
+/* 상태 문구는 **글자**이므로 면 색(--bad 4.38:1 · --ok 3.41:1)이 아니라 글자용 토큰을 쓴다. */
+.error-text { color: var(--bad-text); font-size: 0.88rem; margin-top: 8px; min-height: 1.2em; }
+.ok-text { color: var(--ok-text); font-size: 0.88rem; margin-top: 8px; min-height: 1.2em; }
 
 /* ------------------------------------------------------------------ 폼 */
 
@@ -556,10 +741,10 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   flex: 1;
   min-width: 160px;
   padding: 9px 12px;
-  border: 2px solid #c6ccd2;
+  border: 2px solid var(--border-input);
   border-radius: 8px;
   font-size: 1rem;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
 }
 .form-row input:focus { border-color: var(--deep); }
@@ -572,18 +757,18 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   border-radius: 8px;
   border: 1px solid var(--deep);
   background: var(--deep);
-  color: #fff;
+  color: var(--on-deep);
   cursor: pointer;
 }
-.form-actions button.alt { background: #fff; color: var(--deep); }
-.form-actions button:hover { background: var(--deep-2); color: #fff; }
+.form-actions button.alt { background: var(--card); color: var(--brand-ink); border-color: var(--brand-line); }
+.form-actions button:hover { background: var(--deep-2); color: var(--on-deep); }
 
 /* ----------------------------------------------------------------- 모달 */
 
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -591,7 +776,7 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   z-index: 1000;
 }
 .modal {
-  background: #fff;
+  background: var(--card);
   border-radius: 12px;
   padding: 18px 20px;
   width: 100%;
@@ -601,18 +786,18 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
 }
 .modal h3 { font-size: 1.05rem; margin-bottom: 8px; }
-.modal p.guide { font-size: 0.9rem; color: #444; margin-bottom: 10px; }
+.modal p.guide { font-size: 0.9rem; color: var(--ink-2); margin-bottom: 10px; }
 .modal textarea {
   width: 100%;
   min-height: 220px;
   padding: 10px 12px;
-  border: 2px solid #c6ccd2;
+  border: 2px solid var(--border-input);
   border-radius: 8px;
   font-family: Consolas, "Malgun Gothic", monospace;
   font-size: 0.88rem;
   line-height: 1.5;
   resize: vertical;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
 }
 .modal textarea:focus { border-color: var(--deep); }
@@ -625,28 +810,28 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   border-radius: 8px;
   border: 1px solid var(--deep);
   background: var(--deep);
-  color: #fff;
+  color: var(--on-deep);
   cursor: pointer;
 }
-.modal .modal-actions button.alt { background: #fff; color: var(--deep); }
+.modal .modal-actions button.alt { background: var(--card); color: var(--brand-ink); border-color: var(--brand-line); }
 
 /* ------------------------------------------------------------------ 표 */
 
 table.list {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
+  background: var(--surface);
   font-size: 0.94rem;
 }
 table.list th {
   background: var(--deep-3);
-  color: #fff;
+  color: var(--on-deep);
   padding: 9px 10px;
-  border: 1px solid #b7bfc5;
+  border: 1px solid var(--grid-2);
   white-space: nowrap;
 }
-table.list td { padding: 8px 10px; border: 1px solid #d7dce1; text-align: center; }
-table.list tr:nth-child(even) td { background: #fafbfc; }
+table.list td { padding: 8px 10px; border: 1px solid var(--line); text-align: center; }
+table.list tr:nth-child(even) td { background: var(--stripe); }
 
 /* ---------------------------------------------------------------- 반응형 */
 
@@ -688,9 +873,9 @@ table.list tr:nth-child(even) td { background: #fafbfc; }
 .qbody > *:last-child { margin-bottom: 0; }
 
 /* 채점 후 입력칸은 readOnly 다 (disabled 가 아니라 값을 선택·복사할 수 있다). */
-input.ans[readonly] { background: #f4f5f6; cursor: default; }
-input.ans[readonly].ok { background: #eafaf0; }
-input.ans[readonly].bad { background: #fdecec; }
+input.ans[readonly] { background: var(--surface-3); cursor: default; }
+input.ans[readonly].ok { background: var(--ok-tint-2); }
+input.ans[readonly].bad { background: var(--bad-tint-2); }
 
 /* 좁은 화면에서 표가 카드를 밀어내지 않도록 study.js 가 표를 이 상자로 감싼다. */
 .tbl-scroll { -webkit-overflow-scrolling: touch; }
@@ -716,8 +901,8 @@ input.ans[readonly].bad { background: #fdecec; }
   padding: 6px 12px;
   padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
   background: var(--deep);
-  color: #fff;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.18);
+  color: var(--on-deep);
+  box-shadow: 0 -2px 10px var(--shadow-3);
 }
 .studybar[hidden] { display: none; }
 .studybar .sb-count {
@@ -728,22 +913,28 @@ input.ans[readonly].bad { background: #fdecec; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* 바의 내용 높이 예산이 40px 이므로 버튼도 정확히 40px 을 채운다 —
+   탭 영역을 확보하면서 바 높이(52px + safe-area)는 그대로다. */
 .studybar button {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
   font-size: 0.86rem;
   font-weight: bold;
   font-family: inherit;
-  padding: 7px 14px;
+  padding: 0 14px;
   border-radius: 6px;
   cursor: pointer;
-  border: 1px solid #cfe3d8;
+  border: 1px solid var(--on-deep-2);
   background: transparent;
-  color: #cfe3d8;
+  color: var(--on-deep-2);
 }
-.studybar button:hover:not(:disabled) { background: var(--deep-2); color: #fff; }
+.studybar button:hover:not(:disabled) { background: var(--deep-2); color: var(--on-deep); }
 .studybar button:disabled { opacity: 0.45; cursor: not-allowed; }
-.studybar .sb-submit { background: #fff; border-color: #fff; color: var(--deep); }
-.studybar .sb-submit:hover { background: #e6ece9; color: var(--deep); }
+.studybar .sb-submit { background: var(--on-deep); border-color: var(--on-deep); color: var(--deep); }
+.studybar .sb-submit:hover { background: var(--tint); color: var(--deep); }
 
 /* 미니바가 마지막 카드를 가리지 않게 본문 아래를 비운다. */
 body.with-studybar { padding-bottom: 64px; }
@@ -751,7 +942,9 @@ body.with-studybar { padding-bottom: 64px; }
 @media (max-width: 620px) {
   .studybar { gap: 6px; padding-left: 10px; padding-right: 10px; }
   .studybar .sb-count { font-size: 0.8rem; }
-  .studybar button { padding: 7px 10px; font-size: 0.8rem; }
+  /* 좁아지면 **가로만** 줄인다 — 예전에는 세로 패딩까지 줄여 탭 영역이 29px 로
+     쪼그라들었다(손가락이 1급 입력 수단인 화면에서 정확히 거꾸로 간 규칙). */
+  .studybar button { padding: 0 10px; font-size: 0.8rem; }
   body.with-studybar { padding-bottom: 68px; }
 }
 
@@ -772,8 +965,8 @@ body.with-studybar { padding-bottom: 64px; }
   max-width: calc(100vw - 24px);
 }
 .toast {
-  background: #2b2f33;
-  color: #fff;
+  background: var(--toast-bg);
+  color: var(--toast-fg);
   padding: 11px 18px;
   border-radius: 999px;
   font-size: 0.9rem;
@@ -783,12 +976,15 @@ body.with-studybar { padding-bottom: 64px; }
   transition: opacity 0.28s, transform 0.28s;
   text-align: center;
 }
-.toast.ok { background: var(--ok); }
-.toast.bad { background: var(--bad); }
+/* 흰 글자가 얹히므로 면 토큰(--ok 3.41:1 · --bad 4.38:1)이 아니라 글자용 토큰을 밑면으로 쓴다. */
+.toast.ok { background: var(--ok-text); }
+.toast.bad { background: var(--bad-text); }
 .toast.leaving { opacity: 0; transform: translateY(8px); }
 
 @media (max-width: 620px) {
-  .toast-wrap { bottom: 12px; }
+  /* 좁은 화면에는 하단 고정 바가 산다 — 학습의 .studybar(52px + safe-area) 와
+     대전의 .floatpanel. 토스트를 그 위로 띄워 안내가 바에 가리지 않게 한다. */
+  .toast-wrap { bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
   .toast { font-size: 0.84rem; padding: 10px 14px; }
 }
 
@@ -801,8 +997,8 @@ body.with-studybar { padding-bottom: 64px; }
   font-weight: normal;
   font-size: 0.72rem;
   line-height: 1.4;
-  color: var(--deep);
-  background: #e7f1ec;
+  color: var(--brand-ink);
+  background: var(--tint-3);
   border-radius: 999px;
   padding: 1px 8px;
 }
@@ -819,7 +1015,7 @@ body.with-studybar { padding-bottom: 64px; }
 }
 .history-list li:last-child { border-bottom: none; }
 .history-list .h-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
-.history-list .h-score { font-weight: bold; color: var(--deep); white-space: nowrap; }
+.history-list .h-score { font-weight: bold; color: var(--brand-ink); white-space: nowrap; }
 .history-list .h-detail { color: var(--muted); font-size: 0.84rem; white-space: nowrap; }
 .history-list .h-date { color: var(--muted); font-size: 0.82rem; white-space: nowrap; }
 
@@ -832,18 +1028,18 @@ body.with-studybar { padding-bottom: 64px; }
   border-radius: 8px;
   border: 1px solid var(--deep);
   background: var(--deep);
-  color: #fff;
+  color: var(--on-deep);
   text-decoration: none;
   cursor: pointer;
 }
-.btn-link:hover { background: var(--deep-2); color: #fff; }
+.btn-link:hover { background: var(--deep-2); color: var(--on-deep); }
 .btn-link.disabled {
-  background: #eceff1;
+  background: var(--surface-5);
   border-color: var(--line);
   color: var(--muted);
   cursor: not-allowed;
 }
-.btn-link.disabled:hover { background: #eceff1; color: var(--muted); }
+.btn-link.disabled:hover { background: var(--surface-5); color: var(--muted); }
 
 /* 랜덤 모의고사 카드 */
 .practice-picks {
@@ -865,10 +1061,10 @@ body.with-studybar { padding-bottom: 64px; }
 .checkline input { width: 16px; height: 16px; }
 #practiceBox select {
   padding: 9px 12px;
-  border: 2px solid #c6ccd2;
+  border: 2px solid var(--border-input);
   border-radius: 8px;
   font-size: 1rem;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
 }
 #practiceBox select:focus { border-color: var(--deep); }
@@ -884,29 +1080,34 @@ body.with-studybar { padding-bottom: 64px; }
   gap: 8px;
   margin-top: 14px;
 }
-.study-tools label { font-size: 0.85rem; color: #b7ccc2; }
+.study-tools label { font-size: 0.85rem; color: var(--on-deep-3); }
 .study-tools select {
+  min-height: 40px;
   padding: 6px 10px;
   border-radius: 6px;
-  border: 1px solid #6b8b7c;
-  background: #fff;
+  border: 1px solid var(--deep-line);
+  background: var(--surface);
   color: var(--ink);
   font-size: 0.88rem;
 }
 .study-tools button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
   font-size: 0.85rem;
   font-weight: bold;
-  padding: 6px 14px;
+  padding: 0 14px;
   border-radius: 6px;
-  border: 1px solid #6b8b7c;
+  border: 1px solid var(--deep-line);
   background: transparent;
-  color: #cfe3d8;
+  color: var(--on-deep-2);
   cursor: pointer;
 }
-.study-tools button:hover:not(:disabled) { background: var(--deep-2); color: #fff; }
+.study-tools button:hover:not(:disabled) { background: var(--deep-2); color: var(--on-deep); }
 /* 접기 토글 — 기본 상태에서는 헤더에 이 버튼 하나만 보인다. */
-.study-tools .timer-toggle { border-color: #6b8b7c; }
-.study-tools .timer-toggle.on { background: var(--deep-2); color: #fff; }
+.study-tools .timer-toggle { border-color: var(--deep-line); }
+.study-tools .timer-toggle.on { background: var(--deep-2); color: var(--on-deep); }
 .timer-panel {
   display: flex;
   align-items: center;
@@ -919,17 +1120,18 @@ body.with-studybar { padding-bottom: 64px; }
   font-family: Consolas, "Courier New", monospace;
   font-size: 1.35rem;
   font-weight: bold;
-  color: #fff;
+  color: var(--on-deep);
   min-width: 4.2em;
   text-align: center;
   letter-spacing: 0.04em;
 }
-.timer-out.urgent { color: #ffb4b4; }
+.timer-out.urgent { color: var(--urgent-on-deep); }
 
 /* 자동 저장 복원 안내 배너 */
 .notice {
-  background: #fffbe8;
-  border: 1px solid #e6d98a;
+  background: var(--note-bg);
+  color: var(--note-fg);
+  border: 1px solid var(--warn-line);
   border-radius: 8px;
   padding: 10px 14px;
   margin-bottom: 16px;
@@ -940,30 +1142,35 @@ body.with-studybar { padding-bottom: 64px; }
   gap: 6px 12px;
 }
 .notice[hidden] { display: none; }
+/* 텍스트 링크처럼 보이지만 <button> 이다 — 밑줄만으로는 탭 영역이 22px 밖에 안 되므로
+   세로 40px 을 padding 으로 채운다(글자 자리는 그대로, 눌리는 범위만 넓어진다). */
 button.linkish {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
   background: none;
   border: none;
-  padding: 0;
+  padding: 0 4px;
   font-size: 0.86rem;
-  color: var(--deep);
+  color: var(--brand-ink);
   text-decoration: underline;
   cursor: pointer;
   font-family: inherit;
 }
 
 /* 오답노트 인라인 이의 제기 상자 (battle.css 의 .reportbox 와 같은 모양, 이름은 분리) */
-.report-box { margin-top: 10px; border-top: 1px dashed #d9dedb; padding-top: 10px; }
+.report-box { margin-top: 10px; border-top: 1px dashed var(--line-dash); padding-top: 10px; }
 .report-box textarea {
   width: 100%;
   min-height: 68px;
   padding: 9px 11px;
-  border: 2px solid #c6ccd2;
+  border: 2px solid var(--border-input);
   border-radius: 8px;
   font-family: inherit;
   font-size: 0.92rem;
   line-height: 1.5;
   resize: vertical;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
 }
 .report-box textarea:focus { border-color: var(--deep); }
@@ -973,7 +1180,7 @@ button.linkish {
 /* 빈 상태 (오답노트가 비었을 때) */
 .empty-state { text-align: center; padding: 28px 20px; }
 .empty-state p:first-child { font-size: 1.05rem; font-weight: bold; margin-bottom: 8px; }
-.empty-state a { color: var(--deep); }
+.empty-state a { color: var(--brand-ink); }
 
 /* --------------------------------------------------------- 유형 필터 (칩) */
 
@@ -983,20 +1190,27 @@ button.linkish {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 2px solid #c6ccd2;
+  border: 2px solid var(--border-input);
   border-radius: 999px;
   padding: 6px 13px;
   font-size: 0.86rem;
   cursor: pointer;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
   user-select: none;
 }
-.chip.on { border-color: var(--deep); background: #e6ece9; font-weight: bold; }
+.chip.on { border-color: var(--brand-line); background: var(--tint); font-weight: bold; }
 .chip:disabled { opacity: 0.5; cursor: default; }
-/* 이 회차에 0문항인 유형 — 채점 후의 일괄 비활성보다 한 단계 더 흐리게, 취소선으로 "없음"을 알린다. */
-.chip.empty { opacity: 0.38; text-decoration: line-through; }
-.chip:hover:not(:disabled):not(.on) { border-color: var(--deep-2); }
+/* 이 회차에 0문항인 유형 — 채점 후의 일괄 비활성보다 한 단계 더 흐리게, 취소선으로 "없음"을 알린다.
+   흐림을 opacity 로 만들면 글자가 배경과 2.30:1 까지 떨어져 유형 이름 자체를 못 읽는다.
+   "없음"은 취소선과 가라앉은 면으로 알리고, 글자는 4.68:1 이상을 지킨다. */
+.chip.empty {
+  text-decoration: line-through;
+  color: var(--disabled-ink);
+  background: var(--surface-3);
+  border-color: var(--line);
+}
+.chip:hover:not(:disabled):not(.on) { border-color: var(--brand-line); }
 
 /* ------------------------------------------------------------- 보기 칩 */
 
@@ -1016,12 +1230,12 @@ button.linkish {
   text-align: left;
   font-family: inherit;
 }
-.boki-chips .chip:active { background: #e6ece9; }
+.boki-chips .chip:active { background: var(--tint); }
 
 @media (max-width: 620px) {
   /* 좁은 화면에서는 손가락으로 누를 만큼 키운다 (한 줄에 두 개까지). */
   .boki-chips { gap: 6px; }
-  .boki-chips .chip { flex: 1 1 44%; justify-content: center; text-align: center; padding: 8px 10px; }
+  .boki-chips .chip { flex: 1 1 44%; justify-content: center; text-align: center; padding: 8px 10px; min-height: 40px; }
 }
 
 /* 학습 화면(어두운 헤더 안)과 메인 회차 목록 위에서 같은 줄로 쓰인다. */
@@ -1033,7 +1247,7 @@ button.linkish {
   gap: 6px 8px;
   margin-top: 12px;
 }
-.type-filter .type-filter-label { font-size: 0.85rem; color: #b7ccc2; }
+.type-filter .type-filter-label { font-size: 0.85rem; color: var(--on-deep-3); }
 /* display:flex 가 UA 의 [hidden]{display:none} 을 덮어쓴다 — hidden 을 실제로 숨김으로 돌린다. */
 .type-filter[hidden] { display: none; }
 #roundTypeFilter,
@@ -1047,17 +1261,18 @@ button.linkish {
   font-weight: normal;
   font-size: 0.72rem;
   line-height: 1.4;
-  color: var(--deep-2);
+  color: var(--brand-ink-2);
   margin-top: 2px;
 }
 
 /* 랜덤 모의고사 / 오답노트 옆 유형 <select> */
 .type-select {
+  min-height: 40px;
   padding: 9px 12px;
-  border: 2px solid #c6ccd2;
+  border: 2px solid var(--border-input);
   border-radius: 8px;
   font-size: 0.95rem;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
 }
 .type-select:focus { border-color: var(--deep); }
@@ -1067,7 +1282,7 @@ button.linkish {
 
 /* 학습 헤더의 부제 한 줄 (대전 오답 보기: 날짜 · vs 상대 · 내 정답 · 승패). */
 header.page .study-sub {
-  color: #cfe3d8;
+  color: var(--on-deep-2);
   font-size: 0.88rem;
   font-weight: bold;
   margin-top: 4px;
@@ -1081,13 +1296,13 @@ header.page .study-sub {
   flex-wrap: wrap;
   gap: 10px 14px;
 }
-.wn-summary .wn-total { font-weight: bold; font-size: 1.05rem; color: var(--deep); }
+.wn-summary .wn-total { font-weight: bold; font-size: 1.05rem; color: var(--brand-ink); }
 
 /* 회차별 / 대전별 탭 — 유형 필터와 같은 .chip 시각 언어를 쓴다. */
 .wn-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
 
 /* 회차별 목록 — .history-list 를 그대로 쓰되 이름 칸이 링크다. */
-.wn-rounds .h-name { color: var(--deep); font-weight: bold; text-decoration: none; }
+.wn-rounds .h-name { color: var(--brand-ink); font-weight: bold; text-decoration: none; }
 .wn-rounds .h-name:hover { text-decoration: underline; }
 
 /* 대전별 카드 */
@@ -1099,10 +1314,14 @@ header.page .study-sub {
   gap: 4px 12px;
   margin-bottom: 6px;
 }
-.wn-battle .wn-bname { font-size: 1.08rem; color: var(--deep); margin-bottom: 0; }
+/* 방 이름은 `<h3>` 다. 부모 `.wn-bhead` 가 flex 라 여백이 상쇄되지 않으므로
+   h3 의 UA 기본 `margin-block-start: 1em`(≈17px)이 제목 줄 위에 그대로 남아 있었다 —
+   `margin-bottom: 0` 만 적혀 있던 것으로 보아 원래 위아래를 다 지우려던 규칙이다.
+   `.qtitle` 과 같은 처리다. */
+.wn-battle .wn-bname { font-size: 1.08rem; color: var(--brand-ink); margin-top: 0; margin-bottom: 0; }
 .wn-battle .wn-bdate { color: var(--muted); font-size: 0.84rem; white-space: nowrap; }
 .wn-battle .wn-bmeta { font-size: 0.9rem; }
-.wn-battle .wn-bwrong { font-size: 0.9rem; font-weight: bold; color: var(--bad); margin-top: 2px; }
+.wn-battle .wn-bwrong { font-size: 0.9rem; font-weight: bold; color: var(--bad-text); margin-top: 2px; }
 .wn-battle .wn-bactions { margin-top: 12px; }
 
 /* 펼친 "틀린 문항" 목록 — 문항 카드가 아니라 요약 줄이다 (답안 입력은 study.html 에서 한다). */
@@ -1113,7 +1332,7 @@ header.page .study-sub {
 .wn-qhead .num {
   display: inline-block;
   background: var(--deep);
-  color: #fff;
+  color: var(--on-deep);
   border-radius: 6px;
   padding: 0 7px;
   min-width: 24px;
@@ -1127,7 +1346,7 @@ header.page .study-sub {
 
 @media (max-width: 620px) {
   .wn-summary { flex-direction: column; align-items: stretch; }
-  .wn-tabs .chip { flex: 1 1 auto; justify-content: center; }
+  .wn-tabs .chip { flex: 1 1 auto; justify-content: center; min-height: 40px; }
   .wn-battle .wn-bhead { gap: 2px; }
   .round-btn .badge { font-size: 0.68rem; padding: 1px 6px; }
   .round-btn .types { font-size: 0.68rem; }
@@ -1136,7 +1355,8 @@ header.page .study-sub {
   .type-filter .type-filter-label { flex-basis: 100%; text-align: center; }
   #roundTypeFilter .type-filter-label,
   #roundLangFilter .type-filter-label { text-align: left; }
-  .type-filter .chip { flex: 1 1 auto; justify-content: center; padding: 6px 10px; }
+  /* 좁은 폭에서 칩은 손가락으로 누르는 1급 조작 요소다 — 가로만 줄이고 세로 40px 은 지킨다. */
+  .type-filter .chip { flex: 1 1 auto; justify-content: center; padding: 6px 10px; min-height: 40px; }
   .type-select { width: 100%; }
   .history-list li { flex-wrap: wrap; gap: 2px 10px; }
   .history-list .h-name { flex-basis: 100%; }
@@ -1161,6 +1381,8 @@ header.page .study-sub {
    **app.css 가 .q-lang 의 단일 소유자다**: battle.html 이 app.css 를 함께 읽으므로
    같은 문항이 학습과 대전에서 다른 색으로 보이지 않게 여기 한 곳에서만 정의한다.
    아래 기본값(회색)은 c/java/python 어느 쪽도 아닌 값이 들어왔을 때의 폴백이다. */
+/* 뱃지 알약은 옅은 면 + 짙은 글자 한 쌍으로 스스로 대비를 만든다(전부 4.8:1 이상).
+   다크에서도 이 조합은 그대로 읽히므로 (어두운 카드 위의 밝은 강조 칩) 토큰으로 뒤집지 않는다. */
 .q-lang {
   font-size: 0.72rem;
   font-weight: bold;
@@ -1190,11 +1412,11 @@ header.page .study-sub {
    채점된 카드가 아닌 여기서는 직접 켜 준다. */
 .feedback.peek {
   display: block;
-  background: #eef3f7;
-  color: #24405a;
-  border: 1px solid #d5e0ea;
+  background: var(--peek-bg);
+  color: var(--peek-fg);
+  border: 1px solid var(--peek-bd);
 }
-.feedback.peek b { color: #16324a; }
+.feedback.peek b { color: var(--explain-strong); }
 
 /* 해설이 아직 없는 문항 — 상자 대신 한 줄만. */
 .peek-none { margin-top: 8px; font-size: 0.9rem; }
@@ -1208,7 +1430,7 @@ header.page .study-sub {
   gap: 6px 10px;
   margin-top: 10px;
 }
-.peek-bar .peek-hint { font-size: 0.8rem; color: #b7ccc2; }
+.peek-bar .peek-hint { font-size: 0.8rem; color: var(--on-deep-3); }
 /* .type-filter 와 같은 이유 — display:flex 가 [hidden] 을 이긴다. */
 .peek-bar[hidden] { display: none; }
 
@@ -1225,10 +1447,178 @@ header.page .study-sub {
 
 /* 허브 회차 행이 링크가 아닐 때 (고른 유형·언어의 오답이 그 회차에 0개).
    .round-btn.empty 와 같은 흐림 톤 — 링크처럼 보이지 않아야 한다. */
+/* opacity 0.55 는 --muted 를 실효 #ababab(2.30:1) 로 만들어 회차 이름을 못 읽게 했다.
+   "링크가 아니다" 는 굵기·색·밑줄 없음으로 알리고, 글자는 5.43:1 을 지킨다. */
 .wn-rounds .h-name.empty {
-  color: var(--muted);
-  opacity: 0.55;
+  color: var(--muted-2);
+  font-weight: normal;
   cursor: default;
   text-decoration: none;
 }
 .wn-rounds .h-name.empty:hover { text-decoration: none; }
+
+/* ------------------------------------------------------------ 움직임 줄이기
+
+   전정 장애·멀미·주의력 문제로 움직임을 꺼 둔 사용자를 위한 계약(WCAG 2.3.3).
+   이 프로젝트에서 움직이는 것은 토스트 페이드(0.28s)·회차 버튼 색 전환(0.12s)·
+   JS 의 `scrollIntoView({behavior:'smooth'})` 넷뿐이다. 애니메이션은 지우지 않고
+   1ms 로 접어 완료 이벤트(transitionend)에 기대는 코드가 있어도 그대로 돌게 둔다.
+
+   **이 파일에서 `!important` 를 쓰는 곳은 여기뿐이다.** 사용자가 OS 수준에서 밝힌
+   요구는 어떤 컴포넌트 규칙보다도 뒤에 와야 하므로 다른 방법이 없다.
+   `scroll-behavior: auto` 는 JS 가 넘긴 `behavior:'smooth'` 를 이기지 못한다 —
+   부드러운 스크롤은 레인 D(JS)가 이 미디어 쿼리를 읽어 끄기로 한다. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* 사라지는 토스트가 아래로 미끄러지는 대신 그냥 흐려진다. */
+  .toast.leaving { transform: none; }
+}
+
+/* ------------------------------------------------------------------ 다크
+
+   `color-scheme: light dark` 를 :root 에 선언해 두었으므로 폼 컨트롤·스크롤바는
+   브라우저가 알아서 뒤집는다. 여기서는 **토큰만** 다시 정의한다 —
+   세 CSS 파일의 모든 색이 토큰을 거치므로 이 블록 하나로 전 페이지가 따라온다.
+   (예외는 유형·언어·"이후 맞힘" 뱃지 알약이다. 옅은 면 + 짙은 글자 한 쌍으로
+    스스로 4.8:1 이상을 만들고, 어두운 카드 위에서 밝은 강조 칩으로 읽히므로 그대로 둔다.)
+
+   대비는 라이트와 같은 규율로 다시 계산했다: 본문 글자 4.5:1, 조작 요소 3:1.
+   가장 빡빡한 곳이 `--muted-2` / `--surface-6` 4.89:1, `--on-deep-dim` / `--deep` 4.54:1. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* 브랜드 — 면은 어두운 녹을 유지하고, 글자·윤곽만 밝은 녹으로 뒤집는다. */
+    --deep: #2b5f4a;
+    --deep-2: #37765d;
+    --deep-3: #2b5f4a;
+    --brand-ink: #7fc9a5;
+    --brand-ink-2: #6fbc98;
+    --brand-line: #6fbc98;
+    --on-deep: #fff;
+    --on-deep-2: #cfe3d8;
+    --on-deep-3: #c8dbd1;
+    --on-deep-dim: #bccfc6;
+    --deep-line: #8fae9f;
+    --urgent-on-deep: #ffc9c9;
+    --focus-line: #7fc9a5;
+    --focus-ring: #8fd3b1;
+
+    /* 바탕·면 */
+    --paper: #0e1316;
+    --card: #212b30;
+    --surface: #212b30;
+    --surface-2: #29343a;
+    --surface-3: #2c3840;
+    --surface-4: #29343a;
+    --surface-5: #2c3840;
+    --surface-6: #313d44;
+    --stripe: #29343a;
+    --tint: #27392f;
+    --tint-2: #24352c;
+    --tint-3: #27392f;
+    --tint-4: #24352c;
+    --tint-5: #2c4437;
+    --tint-6: #315041;
+    --tint-7: #27392f;
+
+    /* 선 */
+    --line: #3b464d;
+    --line-2: #36424a;
+    --line-3: #36424a;
+    --line-dash: #414c54;
+    --grid: #5f6a71;
+    --grid-2: #515d64;
+    --grid-3: #515d64;
+    --border-input: #8a949d;
+    --border-ghost: #8a968f;
+
+    /* 글자 */
+    --ink: #e6eae8;
+    --ink-2: #c9d1d5;
+    --ink-3: #bcc5ca;
+    --muted: #a3aeb3;
+    --muted-2: #9db0a7;
+    --muted-3: #a8b8b0;
+    --muted-4: #b6c4bc;
+    --muted-blank: #93a29c;
+    --disabled-ink: #9aa49e;
+    --disabled-ink-2: #a6b0aa;
+
+    /* 상태 */
+    --ok: #35b169;
+    --bad: #e05a5a;
+    --ok-text: #5fd08c;
+    --bad-text: #ff8f8f;
+    --ok-fill: #5fd08c;
+    --on-ok-fill: #12261b;
+    --ok-bg: #123726;
+    --ok-fg: #9fe3b8;
+    --ok-tint: #1a2b22;
+    --ok-tint-2: #1a2b22;
+    --ok-line: #2f6a4c;
+    --bad-bg: #3a1717;
+    --bad-fg: #ffb4b4;
+    --bad-tint: #2e1c1c;
+    --bad-tint-2: #2e1c1c;
+    --bad-line: #6d3131;
+    --warn: #e0bb5a;
+    --warn-bg: #322b12;
+    --warn-fg: #f2dfa0;
+    --warn-line: #6b5c26;
+    --note-bg: #2a2612;
+    --note-fg: #f2e9c4;
+
+    --neutral-fill: #4a544f;
+    --neutral-fill-h: #5c6862;
+    --ghost-fill-h: #545c60;
+    --danger-fill: #a33;
+    --danger-fill-h: #c14b4b;
+
+    /* 큰 블록 — 코드는 더 어둡게, 해설은 카드보다 한 단계 밝게 띄운다. */
+    --code-bg: #0b0f12;
+    --code-fg: #e8eaed;
+    --desc-bg: #242e33;
+    --explain-bg: #242d33;
+    --explain-fg: #dfe6ea;
+    --explain-bd: #3a464f;
+    --explain-strong: #a9cbe6;
+    --explain-code-bg: #1a2126;
+    --peek-bg: #1e2a36;
+    --peek-fg: #cfe0ee;
+    --peek-bd: #3a4d61;
+    /* 형광펜은 다크에서도 형광펜이다 — 노랑 바탕·짙은 글자를 유지한다(9.43:1). */
+    --mark-bg: #fff08a;
+    --mark-fg: #4a3b00;
+    /* 토스트는 뒤집어 밝은 알약으로 띄운다 — 어두운 페이지 위에서 가장 잘 보인다. */
+    --toast-bg: #e9edee;
+    --toast-fg: #212b30;
+
+    --track-bg: #3f4f47;
+    --track-ring: #8a949d;
+
+    /* 어두운 바탕에서는 검은 그림자가 보이지 않는다 — 카드 경계는 면 밝기 차로 낸다. */
+    --shadow: rgba(0, 0, 0, 0.5);
+    --shadow-2: rgba(0, 0, 0, 0.6);
+    --shadow-3: rgba(0, 0, 0, 0.6);
+    --scrim: rgba(0, 0, 0, 0.72);
+  }
+
+  /* 이 블록의 **유일한 규칙 재정의**다. 입력칸 :focus 테두리는 라이트에서 `var(--deep)` 인데
+     (`npm run headless` 의 focusring 검사가 그 값을 본다), 다크에서는 진녹이 어두운 입력칸과
+     1.95:1 이라 "지금 여기 커서가 있다"가 보이지 않는다. 밝은 녹(8.29:1)으로 올린다.
+     키보드 포커스는 이와 별개로 `:focus-visible` 링(--focus-ring, 9.30:1)이 늘 그린다 —
+     이 규칙은 마우스로 들어온 포커스까지 보이게 하는 몫이다. */
+  input.ans:focus,
+  .form-row input:focus,
+  .modal textarea:focus,
+  .report-box textarea:focus,
+  .type-select:focus,
+  #practiceBox select:focus { border-color: var(--focus-line); }
+}

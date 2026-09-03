@@ -22,7 +22,8 @@
 <nav class="topnav" id="nav"></nav>
 
 <div class="wrap">
-  <div id="notice"></div>
+  <!-- 연결 끊김·오류 토스트가 들어온다 — 조작 없이 사라지므로 role="alert" 로 즉시 읽힌다. -->
+  <div id="notice" role="alert"></div>
   <noscript>
     <div class="banner err">이 페이지는 자바스크립트가 필요합니다. 브라우저에서 자바스크립트를 켜 주세요.</div>
   </noscript>
@@ -36,6 +37,12 @@
 <script src="/js/clipboard.js"></script>
 <script src="/js/boki.js"></script>
 <script src="/js/codefmt.js"></script>
+<!-- 화면 공용 모듈(window.JPK). dom → 나머지 순서로 읽어야 한다. -->
+<script src="/js/shared/dom.js"></script>
+<script src="/js/shared/qmeta.js"></script>
+<script src="/js/shared/focus.js"></script>
+<script src="/js/shared/qbody.js"></script>
+<script src="/js/shared/nav.js"></script>
 <script src="/js/battle.js"></script>
 </body>
 </html>

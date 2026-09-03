@@ -1,7 +1,11 @@
 /* battle.css — 대전 화면 전용 규칙.
    공통 규칙(.q / .qtitle .num / .desc-box / pre.code / table.tbl / .boki /
    .ansrow / input.ans / .feedback / .btnbar)은 app.css 가 소유한다.
-   여기에는 로비·대기실·대전·결과 화면에만 있는 것만 둔다. */
+   여기에는 로비·대기실·대전·결과 화면에만 있는 것만 둔다.
+
+   **색은 리터럴로 적지 않는다.** battle.html 이 app.css 를 먼저 읽으므로
+   모든 색은 app.css :root 의 토큰을 참조한다 — 그래야 다크 모드가 토큰 재정의
+   하나로 이 화면까지 따라온다. 새 색이 필요하면 app.css 에 토큰을 먼저 만든다. */
 
 /* ------------------------------------------------------------------ 공통 */
 
@@ -9,39 +13,47 @@
    여기에 재정의를 두지 않는다. */
 
 .card {
-  background: #fff;
+  background: var(--card);
   border-radius: 10px;
   padding: 18px 20px;
   margin-bottom: 18px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px var(--shadow);
 }
 .card > h2 {
   font-size: 1.12rem;
-  color: #1e3a2f;
+  color: var(--brand-ink);
   margin-bottom: 12px;
-  border-bottom: 2px solid #e2e8e4;
+  border-bottom: 2px solid var(--line-2);
   padding-bottom: 8px;
 }
 
 /* app.css 의 큰 제출 버튼과 별개인 소형 버튼. */
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;               /* 손가락 탭 영역(2-6) */
   font-size: 0.95rem;
   font-weight: bold;
-  padding: 10px 18px;
+  padding: 0 18px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  background: #1e3a2f;
-  color: #fff;
+  background: var(--deep);
+  color: var(--on-deep);
   line-height: 1.2;
 }
-.btn:hover:not(:disabled) { background: #2c5445; }
-.btn:disabled { background: #b5bfba; cursor: not-allowed; }
-.btn.ghost { background: #e6ece9; color: #1e3a2f; }
-.btn.ghost:hover:not(:disabled) { background: #d3ded8; }
-.btn.danger { background: #a33; }
-.btn.danger:hover:not(:disabled) { background: #c14b4b; }
-.btn.sm { font-size: 0.85rem; padding: 7px 12px; border-radius: 7px; }
+.btn:hover:not(:disabled) { background: var(--deep-2); }
+/* 옛 값은 연회색 면(#b5bfba)에 흰 글자가 그대로 얹혀 1.89:1 — 비활성이어도
+   무슨 버튼인지는 읽혀야 한다. "꺼져 있다"는 인상은 연한 면이 만드는 것이므로
+   면은 연하게 두고 **글자를 낮춘다**(4.70:1). 어둡게 채우면 오히려 켜진 것처럼 보인다. */
+.btn:disabled { background: var(--surface-6); color: var(--muted-2); cursor: not-allowed; }
+.btn.ghost { background: var(--tint); color: var(--brand-ink); }
+.btn.ghost:hover:not(:disabled) { background: var(--tint-6); }
+.btn.danger { background: var(--danger-fill); }
+.btn.danger:hover:not(:disabled) { background: var(--danger-fill-h); }
+/* "작은" 은 글자와 좌우 여백만 줄인다는 뜻이다 — 세로 40px 은 .btn 에서 물려받는다. */
+.btn.sm { font-size: 0.85rem; padding: 0 12px; border-radius: 7px; }
 
 .banner {
   border-radius: 8px;
@@ -50,14 +62,14 @@
   font-size: 0.92rem;
   font-weight: bold;
 }
-.banner.err { background: #fbdcdc; color: #7f1d1d; border: 1px solid #e9b8b8; }
-.banner.warn { background: #fff4d6; color: #6b4a05; border: 1px solid #e6d98a; }
-.banner.info { background: #dff3e7; color: #14532d; border: 1px solid #a9d8bf; }
+.banner.err { background: var(--bad-bg); color: var(--bad-fg); border: 1px solid var(--bad-line); }
+.banner.warn { background: var(--warn-bg); color: var(--warn-fg); border: 1px solid var(--warn-line); }
+.banner.info { background: var(--ok-bg); color: var(--ok-fg); border: 1px solid var(--ok-line); }
 /* 재대전 초대 배너 (C1) — info 와 같은 톤이되 버튼을 담을 수 있게 세로로 쌓는다. */
 .banner.invite {
-  background: #dff3e7;
-  color: #14532d;
-  border: 1px solid #a9d8bf;
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+  border: 1px solid var(--ok-line);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -65,13 +77,16 @@
 .banner.invite .qactions { margin-top: 0; }
 
 .empty {
-  color: #77857e;
+  color: var(--muted-2);
   text-align: center;
   padding: 26px 12px;
   font-size: 0.95rem;
 }
 
-.muted { color: #77857e; font-size: 0.86rem; }
+/* 크기만 조정한다. 색은 app.css `.muted` 가 소유한다 —
+   여기서 색을 다시 적으면(옛 #77857e 3.86:1) 나중에 로드되는 이 파일이
+   app.css 의 --muted(5.74:1)를 조용히 덮어써 대전 화면에서만 대비가 무너졌다. */
+.muted { font-size: 0.86rem; }
 
 /* -------------------------------------------------------------------- 로비 */
 
@@ -81,33 +96,35 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  border: 1px solid #dfe5e2;
+  border: 1px solid var(--line-3);
   border-radius: 8px;
   padding: 12px 14px;
-  background: #fafbfa;
+  background: var(--surface-2);
 }
 .room .rname { font-weight: bold; flex: 1 1 140px; min-width: 0; word-break: break-all; }
-.room .rmeta { color: #55645c; font-size: 0.85rem; flex: 0 0 auto; }
+.room .rmeta { color: var(--muted-3); font-size: 0.85rem; flex: 0 0 auto; }
 
 .formgrid { display: flex; flex-direction: column; gap: 14px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 /* 짧은 설정(문항 수·유형·제한 시간)은 한 줄에 나란히 — 좁아지면 알아서 접힌다(⑧). */
 .fieldrow { display: flex; flex-wrap: wrap; gap: 14px 22px; }
 .fieldrow > .field { flex: 1 1 200px; }
-.field > .flabel { font-weight: bold; font-size: 0.92rem; color: #34473e; }
+.field > .flabel { font-weight: bold; font-size: 0.92rem; color: var(--muted-4); }
 .field input[type="text"],
 .field select {
+  min-height: 40px;
   padding: 10px 12px;
-  border: 2px solid #c6ccd2;
+  border: 2px solid var(--border-input);
   border-radius: 8px;
   font-size: 1rem;
   font-family: inherit;
-  background: #fff;
+  background: var(--surface);
+  color: var(--ink);
   width: 100%;
   max-width: 420px;
 }
 .field input[type="text"]:focus,
-.field select:focus { border-color: #1e3a2f; }
+.field select:focus { border-color: var(--deep); }
 .field input[type="text"]:focus:not(:focus-visible),
 .field select:focus:not(:focus-visible) { outline: none; }
 
@@ -118,27 +135,29 @@
   gap: 8px;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px dashed #d9dedb;
+  border-top: 1px dashed var(--line-dash);
 }
 .codejoin .codeinput {
   flex: 0 1 160px;
   min-width: 0;
+  min-height: 40px;
   padding: 9px 12px;
-  border: 2px solid #c6ccd2;
+  border: 2px solid var(--border-input);
   border-radius: 8px;
   font-size: 1rem;
   font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 2px;
   text-align: center;
-  background: #fff;
+  background: var(--surface);
+  color: var(--ink);
 }
-.codejoin .codeinput:focus { border-color: #1e3a2f; }
+.codejoin .codeinput:focus { border-color: var(--deep); }
 .codejoin .codeinput:focus:not(:focus-visible) { outline: none; }
 
 /* 랜덤 회차 프리셋 (A4·⑧) — 최근 3회차 / 전체 선택 / 전체 해제 + 선택 요약. */
 .yearrow { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
-.year-toggle.on { border-color: #1e3a2f; background: #e6ece9; font-weight: bold; }
+.year-toggle.on { border-color: var(--brand-line); background: var(--tint); font-weight: bold; }
 
 /* 연도별 회차 그룹 (⑧) — 21개 칩이 "방 만들기" 버튼을 첫 화면 밖으로 밀어내지 않게
    닫힌 연도는 알약 한 개로 줄이고, 펼친 연도만 한 줄을 통째로 차지한다. */
@@ -149,20 +168,41 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 40px;               /* 손가락 탭 영역(2-6) */
   list-style: none;
   cursor: pointer;
-  border: 2px solid #c6ccd2;
+  border: 2px solid var(--border-input);
   border-radius: 999px;
   padding: 4px 12px;
   font-size: 0.86rem;
-  background: #fff;
+  background: var(--surface);
+  color: var(--ink);
   user-select: none;
 }
 .yeargroup > summary::-webkit-details-marker { display: none; }
-.yeargroup[open] > summary { border-color: #1e3a2f; background: #eef4f0; }
-.yeargroup > summary .ysum-y { font-weight: bold; color: #1e3a2f; }
-.yeargroup > summary .ysum-n { color: #77857e; font-size: 0.8rem; }
-.yeargroup > summary .year-toggle { padding: 2px 8px; font-size: 0.76rem; }
+/* 기본 마커를 지운 <summary> 는 열림·닫힘을 알릴 수단이 사라진다 —
+   옛 상태 단서는 테두리 색 차이뿐이라 두 상태가 1.05:1 로 구분되지 않았다.
+   방향이 뒤집히는 꺾쇠를 세워 색맹·저시력에서도 모양만으로 상태가 읽히게 한다
+   (꺾쇠 자체는 흰 면 대비 5.43:1). */
+.yeargroup > summary::after {
+  content: '';
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  margin-left: 2px;
+  border-right: 2px solid var(--muted-2);
+  border-bottom: 2px solid var(--muted-2);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.15s;
+}
+.yeargroup[open] > summary::after {
+  transform: translateY(1px) rotate(-135deg);
+  border-color: var(--brand-ink);
+}
+.yeargroup[open] > summary { border-color: var(--brand-line); background: var(--tint-2); }
+.yeargroup > summary .ysum-y { font-weight: bold; color: var(--brand-ink); }
+.yeargroup > summary .ysum-n { color: var(--muted-2); font-size: 0.8rem; }
+.yeargroup > summary .year-toggle { padding: 0 8px; font-size: 0.76rem; }
 .yeargroup > .chips { margin: 8px 0 4px 4px; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -170,17 +210,19 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 2px solid #c6ccd2;
+  min-height: 40px;               /* 손가락 탭 영역(2-6) */
+  border: 2px solid var(--border-input);
   border-radius: 999px;
   padding: 7px 13px;
   font-size: 0.88rem;
   cursor: pointer;
-  background: #fff;
+  background: var(--surface);
+  color: var(--ink);
   user-select: none;
 }
-.chip.on { border-color: #1e3a2f; background: #e6ece9; font-weight: bold; }
-.chip input { accent-color: #1e3a2f; }
-.chip .cnt { color: #77857e; font-size: 0.8rem; }
+.chip.on { border-color: var(--brand-line); background: var(--tint); font-weight: bold; }
+.chip input { accent-color: var(--deep); }
+.chip .cnt { color: var(--muted-2); font-size: 0.8rem; }
 
 .radiorow { display: flex; flex-wrap: wrap; gap: 8px; }
 
@@ -191,10 +233,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #dfe5e2;
+  border: 1px solid var(--line-3);
   border-radius: 8px;
   padding: 10px 13px;
-  background: #fafbfa;
+  background: var(--surface-2);
 }
 .player .pname { font-weight: bold; flex: 1; word-break: break-all; }
 .badge {
@@ -204,22 +246,24 @@
   padding: 2px 8px;
   white-space: nowrap;
 }
-.badge.host { background: #1e3a2f; color: #fff; }
-.badge.me { background: #2e9e5b; color: #fff; }
-.badge.on { background: #dff3e7; color: #14532d; }
-.badge.off { background: #eceff0; color: #77857e; }
+.badge.host { background: var(--deep); color: var(--on-deep); }
+/* 정답색으로 꽉 채운 알약 — 면과 글자가 한 쌍으로 뒤집히는 토큰을 쓴다
+   (옛 #2e9e5b + 흰 글자는 3.41:1 이었다). */
+.badge.me { background: var(--ok-fill); color: var(--on-ok-fill); }
+.badge.on { background: var(--ok-bg); color: var(--ok-fg); }
+.badge.off { background: var(--surface-6); color: var(--muted-2); }
 
-.setting-list { font-size: 0.9rem; color: #45564d; line-height: 1.9; }
-.setting-list b { color: #1e3a2f; }
+.setting-list { font-size: 0.9rem; color: var(--muted-4); line-height: 1.9; }
+.setting-list b { color: var(--brand-ink); }
 
 /* 회차 요약 + 펼치기 (⑨) — 21개를 나열하면 대기실이 회차 목록으로 덮인다. */
 .roundsum { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.roundsum .btn.sm { padding: 2px 8px; font-size: 0.76rem; }
+.roundsum .btn.sm { padding: 0 8px; font-size: 0.76rem; }
 .roundsum-list {
   margin: 2px 0 0 0;
   font-size: 0.84rem;
   line-height: 1.6;
-  color: #55645c;
+  color: var(--muted-3);
   word-break: keep-all;
 }
 
@@ -232,10 +276,10 @@
   margin-bottom: 12px;
   padding: 10px 14px;
   border-radius: 8px;
-  background: #eef4f0;
-  border: 1px dashed #a9d8bf;
+  background: var(--tint-2);
+  border: 1px dashed var(--ok-line);
 }
-.roomcode .code-text { font-weight: bold; color: #1e3a2f; letter-spacing: 0.5px; }
+.roomcode .code-text { font-weight: bold; color: var(--brand-ink); letter-spacing: 0.5px; }
 
 /* -------------------------------------------------------------------- 대전 */
 
@@ -244,47 +288,62 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #fff;
-  border: 3px solid #1e3a2f;
+  background: var(--card);
+  border: 3px solid var(--brand-line);
   border-radius: 12px;
   padding: 12px 16px;
   margin-bottom: 16px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 14px var(--shadow-2);
 }
 .timerbar .timer {
   font-size: 1.9rem;
   font-weight: bold;
-  color: #1e3a2f;
+  color: var(--brand-ink);
   text-align: center;
   font-variant-numeric: tabular-nums;
   letter-spacing: 1px;
 }
-.timerbar .timer.urgent { color: #d64545; }
-.timerbar .tlabel { text-align: center; font-size: 0.8rem; color: #77857e; }
+.timerbar .timer.urgent { color: var(--bad-text); }
+.timerbar .tlabel { text-align: center; font-size: 0.8rem; color: var(--muted-2); }
 
 .progresslist {
   display: flex;
   flex-direction: column;
   gap: 5px;
   margin-top: 10px;
-  border-top: 1px solid #e2e8e4;
+  border-top: 1px solid var(--line-2);
   padding-top: 10px;
 }
 .prow { display: flex; align-items: center; gap: 8px; font-size: 0.86rem; }
 .prow .pn { flex: 0 1 auto; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.prow .pn.self { font-weight: bold; color: #1e3a2f; }
-.prow .ptrack { flex: 1; height: 8px; background: #e6ece9; border-radius: 999px; overflow: hidden; }
-.prow .pfill { height: 100%; background: #2e9e5b; border-radius: 999px; }
-.prow .pnum { flex: 0 0 auto; color: #55645c; font-variant-numeric: tabular-nums; }
-.prow .pdc { flex: 0 0 auto; color: #b06a6a; font-size: 0.78rem; }
+.prow .pn.self { font-weight: bold; color: var(--brand-ink); }
+/* 진행 막대는 "몇 문항 풀었는지"를 오직 그림으로만 알린다 — WCAG 1.4.11 의 그래픽 객체다.
+   옛 값은 채움(#2e9e5b)과 트랙(#e6ece9)이 2.85:1, 트랙과 카드가 1.20:1 이라
+   빈 막대는 아예 보이지 않고 채운 만큼도 흐릿했다.
+   트랙을 한 단계 가라앉히고 테두리 링(3.65:1)을 둘러 빈 상태를 보이게 하고,
+   채움은 글자용 진녹(--ok-text)으로 낮춰 트랙과 4.11:1 로 갈린다. */
+.prow .ptrack {
+  flex: 1;
+  height: 8px;
+  background: var(--track-bg);
+  box-shadow: inset 0 0 0 1px var(--track-ring);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.prow .pfill { height: 100%; background: var(--ok-text); border-radius: 999px; }
+.prow .pnum { flex: 0 0 auto; color: var(--muted-3); font-variant-numeric: tabular-nums; }
+/* 접속 끊김 표시 — 옛 #b06a6a 는 4.10:1 이었다. */
+.prow .pdc { flex: 0 0 auto; color: var(--bad-text); font-size: 0.78rem; }
 
-.q.readonly input.ans { background: #f2f4f3; color: #55645c; }
+.q.readonly input.ans { background: var(--surface-3); color: var(--muted-3); }
 
 /* 문항 뱃지 줄 — 대전 문항 카드 / 결과 카드 우상단. 유형 뱃지 + 출처 회차 뱃지 두 개가 선다.
    자리·크기·줄바꿈은 app.css 의 .q-badges / .q-type / .q-origin 을 그대로 쓴다
    (battle.html 은 두 파일을 모두 읽는다. 좁은 화면에서 static 으로 눕는 것도 app.css 가 한다).
    여기서는 대전 카드 톤에 맞춘 색만 다시 못 박는다. */
 .q .q-badges { top: 14px; }
+/* 뱃지 알약은 옅은 면 + 짙은 글자로 스스로 대비를 만든다(6.9~10.3:1) — 다크에서도
+   어두운 카드 위 밝은 강조 칩으로 그대로 읽히므로 토큰으로 뒤집지 않는다(app.css 와 같은 규칙). */
 .q .q-type.code { background: #e7eefb; color: #1f4f96; border: 1px solid #c6d8f3; }
 .q .q-type.sql { background: #efe8f8; color: #59389a; border: 1px solid #d9c9ef; }
 .q .q-type.theory { background: #e6ece9; color: #1e3a2f; border: 1px solid #cfe0d7; }
@@ -312,7 +371,7 @@
   font-weight: bold;
   font-size: 0.86rem;
 }
-.marks-row .marks-name.self { color: #1e3a2f; }
+.marks-row .marks-name.self { color: var(--brand-ink); }
 .marks-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .mark-chip {
   display: inline-flex;
@@ -321,13 +380,13 @@
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  background: #eceff0;
-  color: #77857e;
+  background: var(--surface-6);
+  color: var(--muted-2);
   font-size: 0.8rem;
   font-weight: bold;
 }
-.mark-chip.ok { background: #dff3e7; color: #14532d; }
-.mark-chip.bad { background: #fbdcdc; color: #7f1d1d; }
+.mark-chip.ok { background: var(--ok-bg); color: var(--ok-fg); }
+.mark-chip.bad { background: var(--bad-bg); color: var(--bad-fg); }
 
 /* 스크롤 시 나타나는 플로팅 현황 패널(요구 1). 모달(z-index 1000)보다 아래에 둔다. */
 .floatpanel {
@@ -336,22 +395,22 @@
   top: 80px;
   width: 230px;
   z-index: 300;
-  background: #fff;
-  border: 2px solid #1e3a2f;
+  background: var(--card);
+  border: 2px solid var(--brand-line);
   border-radius: 12px;
   padding: 12px 14px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 6px 20px var(--shadow-3);
 }
 .floatpanel .ftime {
   font-size: 1.3rem;
   font-weight: bold;
-  color: #1e3a2f;
+  color: var(--brand-ink);
   text-align: center;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.5px;
   margin-bottom: 6px;
 }
-.floatpanel .ftime.urgent { color: #d64545; }
+.floatpanel .ftime.urgent { color: var(--bad-text); }
 .floatpanel .fprows { display: flex; flex-direction: column; gap: 5px; }
 .floatpanel .fprow {
   display: flex;
@@ -366,23 +425,23 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.floatpanel .fpn.self { font-weight: bold; color: #1e3a2f; }
-.floatpanel .fpnum { flex: 0 0 auto; color: #55645c; font-variant-numeric: tabular-nums; }
+.floatpanel .fpn.self { font-weight: bold; color: var(--brand-ink); }
+.floatpanel .fpnum { flex: 0 0 auto; color: var(--muted-3); font-variant-numeric: tabular-nums; }
 .floatpanel .fsummary {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid #e2e8e4;
+  border-top: 1px solid var(--line-2);
   font-size: 0.78rem;
-  color: #45564d;
+  color: var(--muted-4);
 }
 .floatpanel .ftop { display: block; width: 100%; margin-top: 10px; text-align: center; }
 
 /* -------------------------------------------------------------------- 결과 */
 
 .result-head { text-align: center; }
-.result-head .verdict { font-size: 1.5rem; font-weight: bold; color: #1e3a2f; margin-bottom: 4px; }
-.result-head .verdict.draw { color: #8a6d1f; }
-.result-head .verdict.lose { color: #a05252; }
+.result-head .verdict { font-size: 1.5rem; font-weight: bold; color: var(--brand-ink); margin-bottom: 4px; }
+.result-head .verdict.draw { color: var(--warn); }
+.result-head .verdict.lose { color: var(--bad-text); }
 
 .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 table.res {
@@ -390,94 +449,52 @@ table.res {
   width: 100%;
   min-width: 420px;
   font-size: 0.9rem;
-  background: #fff;
+  background: var(--surface);
 }
 table.res th {
-  background: #2f4f3e;
-  color: #fff;
+  background: var(--deep-3);
+  color: var(--on-deep);
   padding: 8px 12px;
-  border: 1px solid #999;
+  border: 1px solid var(--grid);
   white-space: nowrap;
 }
 table.res td {
   padding: 8px 12px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--grid-3);
   text-align: center;
   white-space: nowrap;
 }
-table.res tr.win td { background: #f3fbf6; font-weight: bold; }
-table.res tr.self td { box-shadow: inset 3px 0 0 #2e9e5b; }
+table.res tr.win td { background: var(--ok-tint); font-weight: bold; }
+table.res tr.self td { box-shadow: inset 3px 0 0 var(--ok); }
 
-/* 해설 상자 — 채점 후 "해설 보기" 로 펼친다. 서버가 검증한 화이트리스트 마크업만 들어온다
-   (p b mark br ul ol li code pre). 정답·오답 카드 양쪽에서 같은 모양으로 읽혀야 한다. */
-.explain-box {
-  margin-top: 10px;
-  padding: 12px 14px;
-  border: 1px solid #dde4ea;
-  border-left: 4px solid #2c5445;
-  border-radius: 8px;
-  background: #f7f9fb;
-  color: #2a3138;
-  font-size: 0.92rem;
-  line-height: 1.75;         /* 긴 설명을 읽어 내려가야 한다 */
-  word-break: break-word;
-}
-.explain-box > * + * { margin-top: 8px; }
-.explain-box p { margin: 0; }
-.explain-box b { color: #16324a; }
-.explain-box ul,
-.explain-box ol { margin: 0; padding-left: 1.35em; }
-.explain-box li + li { margin-top: 4px; }
-.explain-box code {
-  font-family: Consolas, "D2Coding", monospace;
-  font-size: 0.9em;
-  background: #eceff3;
-  border-radius: 4px;
-  padding: 1px 4px;
-}
-.explain-box pre {
-  font-family: Consolas, "D2Coding", monospace;
-  font-size: 0.88rem;
-  line-height: 1.55;
-  background: #eceff3;
-  border-radius: 6px;
-  padding: 10px 12px;
-  overflow-x: auto;          /* 코드는 카드를 밀지 않고 스스로 스크롤한다 */
-  white-space: pre;
-}
-.explain-box pre code { background: none; padding: 0; }
-
-/* 형광펜 강조. 정답 배경(연녹)·오답 배경(연적) 위에서도 읽히는 톤이다. */
-.explain-box mark,
-.feedback mark {
-  background: #fff08a;
-  color: #4a3b00;
-  padding: 0 3px;
-  border-radius: 3px;
-  font-weight: bold;
-}
+/* 해설 상자(.explain-box)와 형광펜(mark)은 **app.css 가 단독으로 소유한다**.
+   battle.html 이 app.css 를 함께 읽으므로 여기 있던 46줄은 값까지 똑같은 복사본이었다
+   — 한쪽만 고치면 학습과 대전에서 해설이 다르게 보이는 사고가 나므로 지운다. */
 
 .qactions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.reportbox { margin-top: 10px; border-top: 1px dashed #d9dedb; padding-top: 10px; }
+.reportbox { margin-top: 10px; border-top: 1px dashed var(--line-dash); padding-top: 10px; }
 .reportbox textarea {
   width: 100%;
   min-height: 68px;
   padding: 9px 11px;
-  border: 2px solid #c6ccd2;
+  border: 2px solid var(--border-input);
   border-radius: 8px;
   font-family: inherit;
   font-size: 0.92rem;
   resize: vertical;
+  background: var(--surface);
+  color: var(--ink);
 }
-.reportbox textarea:focus { border-color: #1e3a2f; }
+.reportbox textarea:focus { border-color: var(--deep); }
 .reportbox textarea:focus:not(:focus-visible) { outline: none; }
 
 /* ---------------------------------------------------------------- 모바일 */
 
 @media (max-width: 480px) {
   .card { padding: 14px 13px; }
-  .btn { padding: 11px 14px; }          /* 좁아져도 탭 영역은 유지 */
-  .btn.sm { padding: 9px 11px; }
+  /* 세로 40px 은 .btn / .btn.sm 의 min-height 가 지킨다 — 여기서는 가로만 줄인다. */
+  .btn { padding: 0 14px; }
+  .btn.sm { padding: 0 11px; }
   .timerbar { padding: 10px 12px; }
   .timerbar .timer { font-size: 1.6rem; }
   .field input[type="text"], .field select { max-width: none; }
@@ -499,12 +516,14 @@ table.res tr.self td { box-shadow: inset 3px 0 0 #2e9e5b; }
 
 #notice:not(:empty) { margin-top: 14px; }
 
-/* app.css 의 sticky 내비(높이 약 44px) 아래로 붙도록 내린다. */
+/* app.css 의 sticky 내비 아래로 붙도록 내린다.
+   내비 높이는 이제 폭과 무관하게 46px 로 고정이다 (항목 min-height 40px + .wrap 상하 3px) —
+   예전에는 브랜드 글자 크기를 따라 44~47px 로 흔들려 480px 이하에서 살짝 겹쳤다. */
 .timerbar { top: 46px; }
 
 /* app.css 는 `.q-actions .copied` 만 정의한다. 대전 화면은 `.qactions` 를 쓴다. */
 .qactions .copied {
-  color: #2e9e5b;
+  color: var(--ok-text);
   font-size: 0.84rem;
   font-weight: bold;
   align-self: center;
@@ -515,10 +534,11 @@ table.res tr.self td { box-shadow: inset 3px 0 0 #2e9e5b; }
 .card > .timerbar { position: static; margin-bottom: 0; box-shadow: none; }
 
 /* 결과 화면의 문항별 채점 제목. */
-h2.section { color: #1e3a2f; }
+h2.section { color: var(--brand-ink); }
 
 @media (max-width: 480px) {
-  .timerbar { top: 42px; }
+  /* 내비 높이가 폭과 무관해졌으므로 오프셋도 같다 (예전 42px 은 2~4px 겹쳤다). */
+  .timerbar { top: 46px; }
 }
 
 /* 플로팅 현황 패널(요구 1) — 모바일에서는 하단 바로 눕힌다. */
@@ -554,8 +574,8 @@ h2.section { color: #1e3a2f; }
   margin-left: 12px;
   padding: 8px 14px;
   border-radius: 999px;
-  background: #e8efeb;
-  color: var(--deep-3, #2f4f3e);
+  background: var(--tint-7);
+  color: var(--brand-ink);
   font-size: 0.95rem;
   font-weight: bold;
   white-space: nowrap;
@@ -581,10 +601,10 @@ h2.section { color: #1e3a2f; }
   max-width: 100%;
   white-space: normal;
   word-break: break-word;
-  color: #1e3a2f;
+  color: var(--brand-ink);
 }
-.boki-chips .chip:hover { border-color: #1e3a2f; background: #eef4f0; }
-.boki-chips .chip:active { background: #e0eae4; }
+.boki-chips .chip:hover { border-color: var(--brand-line); background: var(--tint-2); }
+.boki-chips .chip:active { background: var(--tint-5); }
 
 /* 결과 카드의 상대 답안 (⑩) — 내 답 칸 바로 아래 한 줄씩. */
 .opp-answers {
@@ -600,11 +620,43 @@ h2.section { color: #1e3a2f; }
   gap: 6px;
   flex-wrap: wrap;
   font-size: 0.86rem;
-  color: #55645c;
+  color: var(--muted-3);
 }
-.opp-row .opp-name { font-weight: bold; color: #45564d; white-space: nowrap; }
+.opp-row .opp-name { font-weight: bold; color: var(--muted-4); white-space: nowrap; }
 .opp-row .opp-val { word-break: break-all; }
-.opp-row .opp-val.blank { color: #9aa5a0; }
+/* "(미제출)" — 옛 #9aa5a0 은 2.54:1 로, 상대가 답을 안 냈다는 사실 자체가 안 읽혔다. */
+.opp-row .opp-val.blank { color: var(--muted-blank); }
 .opp-row .opp-mark { font-weight: bold; }
-.opp-row .opp-mark.ok { color: #2e9e5b; }
-.opp-row .opp-mark.bad { color: #c0392b; }
+.opp-row .opp-mark.ok { color: var(--ok-text); }
+.opp-row .opp-mark.bad { color: var(--bad-text); }
+
+/* ------------------------------------------ app.css 모바일 규칙 복구 (카스케이드)
+
+   battle.css 는 app.css **뒤에** 로드된다. 위쪽 `.boki-chips .chip` 규칙은
+   미디어 쿼리 밖에 있지만 특이도가 같아(0,2,0) app.css:1021 의
+   `@media (max-width: 620px)` 확대 규칙까지 덮어써 왔다 — 그 결과 좁은 화면에서
+   보기 칩이 왼쪽 정렬 6px 패딩으로 되돌아가 손가락으로 누르기 어려웠다.
+   같은 미디어 쿼리를 이 파일 끝에 다시 두어 순서로 되찾는다. */
+@media (max-width: 620px) {
+  .boki-chips .chip {
+    flex: 1 1 44%;
+    justify-content: center;
+    text-align: center;
+    padding: 8px 10px;
+    min-height: 40px;
+  }
+}
+
+/* ------------------------------------------------------------------ 다크
+
+   색은 전부 app.css :root 토큰을 거치므로 여기서 다시 정의할 것은 없다.
+   딱 하나, 입력칸 :focus 테두리만 예외다 — 라이트 값 `var(--deep)` 가 다크의 어두운
+   입력칸과 1.95:1 이라 안 보인다. app.css 가 같은 이유로 자기 입력칸을 올리는데,
+   이 세 선택자는 battle.css 소유라 (특이도가 같고 이 파일이 뒤에 로드되므로)
+   여기서 올려야 한다. */
+@media (prefers-color-scheme: dark) {
+  .field input[type="text"]:focus,
+  .field select:focus,
+  .codejoin .codeinput:focus,
+  .reportbox textarea:focus { border-color: var(--focus-line); }
+}

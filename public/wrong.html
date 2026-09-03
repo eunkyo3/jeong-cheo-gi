@@ -33,7 +33,7 @@
     #wrongBody    고른 탭의 목록 (통째로 다시 그린다)
 -->
 
-<div class="wrap">
+<main class="wrap">
 
   <header class="page">
     <h1 id="wrongTitle">오답노트</h1>
@@ -42,18 +42,24 @@
 
   <div class="card wn-summary" id="wrongSummary" hidden></div>
 
-  <div class="wn-tabs" id="wrongTabs" hidden></div>
+  <div class="wn-tabs" id="wrongTabs" role="group" aria-label="오답 묶음 보기" hidden></div>
 
   <div id="wrongBody">
     <p class="muted">오답노트를 불러오는 중&hellip;</p>
   </div>
 
-</div>
+</main>
 
-<div class="toast-wrap" id="toastWrap"></div>
+<!-- 토스트는 조작 없이 사라지는 짧은 알림이다 — 보조 기술에도 즉시 읽히도록 role="alert". -->
+<div class="toast-wrap" id="toastWrap" role="alert"></div>
 
 <script src="/js/api.js"></script>
 <script src="/js/fmt.js"></script>
+<!-- 화면 공용 모듈(window.JPK). dom → 나머지 순서로 읽어야 한다. -->
+<script src="/js/shared/dom.js"></script>
+<script src="/js/shared/store.js"></script>
+<script src="/js/shared/qmeta.js"></script>
+<script src="/js/shared/nav.js"></script>
 <script src="/js/wrong.js"></script>
 </body>
 </html>

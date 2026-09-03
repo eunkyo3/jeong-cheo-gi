@@ -17,27 +17,42 @@
  * 정답은 채점 응답에만 들어 있다 (`details[].display`). 문항 로드 응답에는 없다.
  *
  * 자동 저장: localStorage['jpk-study:<setKey>'] = {answers, savedAt}.
- * 회차/오답노트만 저장한다 — 랜덤 모의고사는 문항 집합이 매번 달라 복원이 무의미하다.
  * 오답노트의 부분 보기는 키에 한정자를 덧붙인다('jpk-study:wrong:round:2024-1') — 전체 오답 풀이의
  * 저장분과 섞이면 없는 문항의 답이 되살아난다.
+ * 랜덤 모의고사는 문항 묶음이 매번 새로 뽑히므로 `questionIds` 까지 함께 적어 두고, 다음 로드에서
+ * **다시 뽑힌 세트와 겹치는 문항의 답만** 되살린다 (서버에 "같은 세트를 다시 달라" 는 수단이 없다).
+ *
+ * 의존 (전역): window.api, window.copyText, window.Boki, window.CodeFmt,
+ *              JPK.dom, JPK.qmeta, JPK.store, JPK.focus, JPK.qbody, JPK.motion, JPK.nav
  */
 (function () {
   'use strict';
+
+  var el = JPK.dom.el;
+  var pad2 = JPK.dom.pad2;
+  var htmlToText = JPK.dom.htmlToText;
+  var fireInput = JPK.dom.fireInput;
+
+  // 문항 유형·언어 표는 공용 모듈(js/shared/qmeta.js)이 소유한다 — 화면마다 다른 말이 나오지 않게.
+  var TYPE_ORDER = JPK.qmeta.TYPE_ORDER;
+  var TYPE_LABEL = JPK.qmeta.TYPE_LABEL;
+  var LANGS = JPK.qmeta.LANGS;
+  var LANG_LABEL = JPK.qmeta.LANG_LABEL;
+  var normalizeType = JPK.qmeta.normalizeType;
+  var normalizeLang = JPK.qmeta.normalizeLang;
+  var questionOrigin = JPK.qmeta.questionOrigin;
 
   var PASS_SCORE = 60;
   var STORE_PREFIX = 'jpk-study:';
   var TIMER_PREF_KEY = 'jpk-study:timer';
   var TIMER_OPEN_KEY = 'jpk-study:timerOpen';
+  // 필터 칩은 페이지를 통째로 옮긴다. 그 이동은 "이탈" 이 아니므로 이탈 경고를 띄우지 않는다.
+  // sessionStorage 에도 남겨 두는 이유는 bfcache 복원처럼 메모리 표식이 사라진 뒤에도
+  // beforeunload 가 한 번 더 도는 경우를 막기 위해서다. 다음 로드에서 즉시 지운다.
+  var INTERNAL_NAV_KEY = 'jpk-study:internalNav';
   var SAVE_DEBOUNCE_MS = 300;
   var REPORT_DONE = '접수되었습니다. 고맙습니다!';
 
-  // 문항 유형 — 서버 계약(data/types/*.json)의 값 셋과 화면 표기.
-  var TYPE_ORDER = ['code', 'sql', 'theory'];
-  var TYPE_LABEL = { code: '코드', sql: 'SQL', theory: '이론' };
-  // 코드 문항 언어 — 서버 계약(data/langs/*.json)의 값 셋과 화면 표기.
-  // 언어는 **코드 유형에만** 있는 축이다 (lang 이 오면 type 은 생략이거나 code 여야 한다).
-  var LANGS = ['c', 'java', 'python'];
-  var LANG_LABEL = { c: 'C', java: 'Java', python: 'Python' };
   // 오답노트 즉시 해설 — 한 번에 물어볼 수 있는 문항 수 상한 (서버 계약: ids 는 1~50개).
   var PEEK_CHUNK = 50;
   // 서버가 조용히 생략한 문항 = 그 사용자의 채점 기록에 없다 (403 이 아니라 응답에서 빠진다).
@@ -81,6 +96,25 @@
     timerMinutes: 0,
     timerEndsAt: 0,   // epoch ms, 0 이면 정지
     timerHandle: null,
+    // 타이머 컨트롤 접기 — 사람이 편 상태만 저장한다(도는 동안에는 저장값과 무관하게 항상 펼친다).
+    timerOpen: false,
+
+    // 로그인 상태 — 채점은 로그인이 필요하다(보안 C-1). 안내를 미리 띄우는 데 쓴다.
+    me: null,              // {id, nickname} | null
+    meLoaded: false,       // api.me() 가 한 번이라도 답했는가 (모르는 동안은 안내하지 않는다)
+    gradeBlocked: '',      // '' | 'auth' — 채점이 401 로 막힌 뒤인가
+
+    // ---- 렌더 대상이 아닌 보조 상태 (예전에는 파일 곳곳의 모듈 전역이었다) ----
+    saveTimer: null,       // 자동 저장 디바운스 핸들
+    hasSource: false,      // 쿼리스트링에서 무엇을 풀지 정해졌는가 (필터 줄을 그릴 조건)
+    pageFailed: false,     // fail() 로 떨어진 화면인가 — 그 뒤로는 render() 도 멈춘다
+    internalNav: false,    // 필터 칩이 스스로 페이지를 옮기는 중인가 (이탈 경고 억제)
+    lastFocusField: {},    // qid -> fieldIndex. 보기 칩이 채울 칸(재렌더로 DOM 이 갈려도 살아남는다)
+    boardCompact: false,   // 점수판이 sticky 로 붙어 축소된 상태인가
+    boardTicking: false,   // 점수판 스크롤 계산이 rAF 대기 중인가
+    barShown: false,       // 하단 미니바가 떠 있는가
+    barTicking: false,     // 미니바 스크롤 계산이 rAF 대기 중인가
+    barCountText: '',      // 미니바에 마지막으로 쓴 문구 (같으면 DOM 을 건드리지 않는다)
   };
 
   var elQuestions = document.getElementById('questions');
@@ -92,9 +126,6 @@
   var elReset = document.getElementById('resetBtn');
   var elAnswered = document.getElementById('answeredCount');
   var elToastWrap = document.getElementById('toastWrap');
-  var elNavWho = document.getElementById('navWho');
-  var elNavLogout = document.getElementById('navLogout');
-  var elNavLogin = document.getElementById('navLogin');
   var elTools = document.getElementById('studyTools');
   var elTimerToggle = document.getElementById('timerToggle');
   var elTimerPanel = document.getElementById('timerPanel');
@@ -106,78 +137,36 @@
   var elBarCount = document.getElementById('studyBarCount');
   var elBarNext = document.getElementById('studyBarNext');
   var elBarSubmit = document.getElementById('studyBarSubmit');
+  // 예전에는 스크립트가 필요할 때 만들어 끼워 넣던 네 그릇. 지금은 study.html 이 자리를 선언한다.
+  var elLoginNotice = document.getElementById('loginNotice');
+  var elBattleSub = document.getElementById('battleSub');
+  var elTypeFilter = document.getElementById('typeFilter');
+  var elLangFilter = document.getElementById('langFilter');
+  var elPeekBar = document.getElementById('peekBar');
 
   // ------------------------------------------------------------- 작은 도구
 
-  function el(tag, className, text) {
-    var node = document.createElement(tag);
-    if (className) node.className = className;
-    if (text != null) node.textContent = text;
-    return node;
-  }
-
   function toast(message, kind) {
-    var t = el('div', 'toast' + (kind ? ' ' + kind : ''), message);
-    elToastWrap.appendChild(t);
-    setTimeout(function () {
-      t.classList.add('leaving');
-      setTimeout(function () {
-        if (t.parentNode) t.parentNode.removeChild(t);
-      }, 300);
-    }, 2600);
+    JPK.dom.toast(elToastWrap, message, kind);
   }
 
-  /** jsdom·구형 브라우저·사파리 프라이빗 모드에서 던질 수 있다 — 저장은 항상 최선 노력. */
-  function storeGet(key) {
-    try {
-      return window.localStorage.getItem(key);
-    } catch (e) {
-      return null;
-    }
-  }
-  function storeSet(key, value) {
-    try {
-      window.localStorage.setItem(key, value);
-    } catch (e) { /* 용량 초과·차단 — 무시 */ }
-  }
-  function storeRemove(key) {
-    try {
-      window.localStorage.removeItem(key);
-    } catch (e) { /* 무시 */ }
-  }
-
-  /** jsdom 은 스크롤을 구현하지 않는다 — 없으면 조용히 건너뛴다. */
+  /**
+   * jsdom 은 스크롤을 구현하지 않는다 — 없으면 조용히 건너뛴다.
+   * behavior 는 사용자의 모션 축소 설정을 따른다 (CSS 미디어 쿼리는 스크립트 스크롤을 막지 못한다).
+   */
   function scrollToEl(node) {
     try {
       if (node && typeof node.scrollIntoView === 'function') {
-        node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        node.scrollIntoView({ behavior: JPK.motion.smoothScrollBehavior(), block: 'start' });
       }
     } catch (e) { /* 무시 */ }
   }
   function scrollTop() {
     try {
-      if (typeof window.scrollTo === 'function') window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (typeof window.scrollTo === 'function') {
+        window.scrollTo({ top: 0, behavior: JPK.motion.smoothScrollBehavior() });
+      }
     } catch (e) { /* 무시 */ }
-  }
-
-  /** HTML 문자열에서 사람이 읽을 텍스트만 뽑는다 (bodyText 가 비었을 때의 폴백). */
-  function htmlToText(html) {
-    var div = document.createElement('div');
-    div.innerHTML = html == null ? '' : html;
-    return (div.textContent || '').trim();
-  }
-
-  /** 좁은 화면에서 표가 카드를 밀어내지 않도록 가로 스크롤 상자로 감싼다. */
-  function wrapTables(container) {
-    var tables = container.querySelectorAll('table');
-    for (var i = 0; i < tables.length; i++) {
-      var t = tables[i];
-      var parent = t.parentNode;
-      if (parent && parent.classList && parent.classList.contains('tbl-scroll')) continue;
-      var box = el('div', 'tbl-scroll');
-      parent.insertBefore(box, t);
-      box.appendChild(t);
-    }
   }
 
   function queryParam(name) {
@@ -189,30 +178,6 @@
     return label == null || label === '' ? '답' + (index + 1) : label;
   }
 
-  /** 알 수 없는 값은 전부 '' (= 전체) 로 떨어뜨린다 — 서버에 이상한 type 을 보내지 않는다. */
-  function normalizeType(value) {
-    var t = String(value == null ? '' : value).trim().toLowerCase();
-    return TYPE_ORDER.indexOf(t) === -1 ? '' : t;
-  }
-
-  /** normalizeType 과 같은 규칙 — 알 수 없는 값(비코드 문항의 null 포함)은 ''. */
-  function normalizeLang(value) {
-    var l = String(value == null ? '' : value).trim().toLowerCase();
-    return LANGS.indexOf(l) === -1 ? '' : l;
-  }
-
-  /**
-   * 원본 회차 데이터에는 탭·공백이 뒤섞인 코드 블록이 있다(2020~2021 회차). 데이터는 손대지 않고
-   * **보여 줄 때만** codefmt.js 로 정규화한다. 스크립트가 없는 서버·구버전에서도 원문 그대로 읽히면 되므로
-   * 없거나 던지면 조용히 넘어간다.
-   */
-  function applyCodeFmt(node, lang) {
-    if (!node || !window.CodeFmt || typeof window.CodeFmt.applyTo !== 'function') return;
-    try {
-      window.CodeFmt.applyTo(node, normalizeLang(lang) || null);
-    } catch (e) { /* 표시용 정규화다 — 실패하면 원문을 그대로 둔다 */ }
-  }
-
   function detailFor(questionId) {
     if (!state.result) return null;
     var list = state.result.details || [];
@@ -220,25 +185,6 @@
       if (list[i].questionId === questionId) return list[i];
     }
     return null;
-  }
-
-  function pad2(n) {
-    return (n < 10 ? '0' : '') + n;
-  }
-
-  /**
-   * 문항 id("2026-2#3")에서 출처 회차·번호를 사람이 읽는 표기로 뽑는다.
-   * "YYYY-N#num" 형태만 "YYYY년 N회 · num번" 으로 바꾸고, 그 외 형태는 '#' 앞부분을 그대로 보여준다.
-   */
-  function questionOrigin(qid) {
-    var s = String(qid == null ? '' : qid);
-    var hashIdx = s.indexOf('#');
-    var prefix = hashIdx >= 0 ? s.slice(0, hashIdx) : s;
-    var num = hashIdx >= 0 ? s.slice(hashIdx + 1) : '';
-    var m = /^(\d{4})-(\d+)$/.exec(prefix);
-    if (!m) return prefix;
-    var label = m[1] + '년 ' + m[2] + '회';
-    return num ? label + ' · ' + num + '번' : label;
   }
 
   /**
@@ -260,34 +206,73 @@
 
   // ---------------------------------------------------------------- 내비
 
+  /**
+   * 정적 내비다 — 공용 모듈은 닉네임·로그아웃·로그인 세 조각만 갈아끼운다.
+   * 학습 모드는 비로그인으로도 쓸 수 있으므로 로그아웃해도 페이지를 떠나지 않는다.
+   */
   function renderNav(user) {
-    elNavWho.textContent = '';
-    if (!user) {
-      elNavLogout.hidden = true;
-      if (elNavLogin) elNavLogin.hidden = false;
-      return;
-    }
-    elNavWho.appendChild(el('b', null, user.nickname));
-    elNavWho.appendChild(document.createTextNode(' 님'));
-    elNavLogout.hidden = false;
-    if (elNavLogin) elNavLogin.hidden = true;
+    JPK.nav.render(user, {
+      current: 'study',
+      onLogout: function () { toast('로그아웃했습니다.'); },
+      onError: function (e) { toast(e && e.message ? e.message : '로그아웃에 실패했습니다.', 'bad'); },
+    });
   }
 
-  elNavLogout.addEventListener('click', function () {
-    elNavLogout.disabled = true;
-    api.logout().then(function () {
-      elNavLogout.disabled = false;
-      renderNav(null);
-      toast('로그아웃했습니다.');
-    }).catch(function (e) {
-      elNavLogout.disabled = false;
-      toast(e.message, 'bad');
+  // --------------------------------------------------------- 채점과 로그인
+
+  /**
+   * 채점은 로그인이 필요하다 — 비로그인 채점을 열어 두면 아무나 답을 하나씩 바꿔 보내며
+   * 정답을 캐낼 수 있다(정답 오라클). 서버가 두 채점 경로 모두 401 로 막는다.
+   *
+   * 지금 화면으로 되돌아올 주소를 `next=` 에 실어 메인의 계정 섹션으로 보낸다.
+   * `msg=` 는 메인이 이미 읽어 배너로 띄우는 기존 장치다.
+   */
+  function loginUrl() {
+    var back = window.location.pathname + window.location.search;
+    return '/?msg=' + encodeURIComponent('채점하려면 로그인이 필요합니다.')
+      + '&next=' + encodeURIComponent(back) + '#account';
+  }
+
+  /** 안내 안의 "로그인하러 가기". 이동 전에 답안을 확정 저장하고 이탈 경고를 끈다. */
+  function loginLink(text) {
+    var a = document.createElement('a');
+    a.href = loginUrl();
+    a.textContent = text;
+    a.addEventListener('click', function () {
+      saveNow();
+      state.internalNav = true;
+      JPK.store.sessionSet(INTERNAL_NAV_KEY, '1');
     });
-  });
+    return a;
+  }
+
+  /**
+   * 제출 버튼 위 한 줄. 두 가지 상태를 그린다.
+   *   미리 안내 — 비로그인으로 풀고 있다 (아직 눌러 보지 않았다)
+   *   막힘 안내 — 눌렀더니 401 이었다
+   * 어느 쪽이든 "적어 둔 답은 남는다" 를 함께 말한다. 자동 저장이 실제로 그렇게 동작한다.
+   */
+  function renderLoginNotice() {
+    if (!elLoginNotice) return;
+    var questions = (state.round && state.round.questions) || [];
+    var show = !state.pageFailed && questions.length > 0 && !state.result
+      && state.meLoaded && !state.me;
+    if (!show) {
+      elLoginNotice.textContent = '';
+      elLoginNotice.hidden = true;
+      return;
+    }
+    elLoginNotice.textContent = '';
+    elLoginNotice.appendChild(document.createTextNode(
+      state.gradeBlocked === 'auth'
+        ? '채점하려면 로그인이 필요합니다. 지금까지 적은 답안은 저장해 두었으니 로그인한 뒤 이어서 채점할 수 있습니다. '
+        : '채점하려면 로그인이 필요합니다. 지금 적는 답안은 자동 저장되므로 나중에 로그인해도 그대로 이어집니다. '
+    ));
+    elLoginNotice.appendChild(loginLink('로그인하러 가기'));
+    elLoginNotice.hidden = false;
+  }
 
   // ------------------------------------------------------------- 자동 저장
-
-  var saveTimer = null;
 
   /**
    * 오답노트 부분 보기의 저장 키 한정자. 'round:2024-1' / 'match:12' / '' (전체).
@@ -301,11 +286,14 @@
   }
 
   /**
-   * 저장 키. 랜덤 모의고사는 매번 문항이 달라 저장하지 않는다 → null.
-   * 유형 필터가 걸리면 문항 묶음 자체가 달라지므로 키도 분리한다 (전체 풀이의 저장분과 섞이지 않게).
+   * 저장 키. 유형·언어 필터가 걸리면 문항 묶음 자체가 달라지므로 키도 분리한다
+   * (전체 풀이의 저장분과 섞이지 않게).
+   *
+   * 랜덤 모의고사도 저장한다. 예전에는 "문항이 매번 달라 복원이 무의미하다" 며 저장하지 않았는데,
+   * 그러면서 이탈 경고만 띄워 사람에게 "지키겠다" 고 해 놓고 60문항을 통째로 버렸다.
+   * 지금은 저장하고, 다시 뽑힌 세트와 겹치는 문항만 되살린 뒤 몇 개를 되살렸는지 밝힌다.
    */
   function saveKey() {
-    if (state.mode === 'practice') return null;
     if (!state.setKey) return null;
     var scope = wrongScope();
     return STORE_PREFIX + state.setKey
@@ -325,51 +313,70 @@
     return false;
   }
 
+  /** 지금 화면에 깔린 문항 id — 저장분에 함께 적어 두고, 복원 때 겹치는지 본다. */
+  function currentQuestionIds() {
+    return ((state.round && state.round.questions) || []).map(function (q) { return q.id; });
+  }
+
   function saveNow() {
     var key = saveKey();
     if (!key || state.result) return;
     if (!hasAnswers()) {
-      storeRemove(key);
+      JPK.store.remove(key);
       return;
     }
-    storeSet(key, JSON.stringify({ answers: state.answers, savedAt: Date.now() }));
+    JPK.store.set(key, JSON.stringify({
+      // 회차·오답노트는 문항 묶음이 키로 이미 정해지지만, 모의고사는 그렇지 않다.
+      // 어느 문항에 대한 답이었는지 남겨 두어야 다음 로드에서 겹치는 문항을 셀 수 있다.
+      questionIds: currentQuestionIds(),
+      answers: state.answers,
+      savedAt: Date.now(),
+    }));
   }
 
   function scheduleSave() {
     if (!saveKey() || state.result) return;
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(function () {
-      saveTimer = null;
+    if (state.saveTimer) clearTimeout(state.saveTimer);
+    state.saveTimer = setTimeout(function () {
+      state.saveTimer = null;
       saveNow();
     }, SAVE_DEBOUNCE_MS);
   }
 
   function clearSaved() {
-    if (saveTimer) {
-      clearTimeout(saveTimer);
-      saveTimer = null;
+    if (state.saveTimer) {
+      clearTimeout(state.saveTimer);
+      state.saveTimer = null;
     }
     var key = saveKey();
-    if (key) storeRemove(key);
+    if (key) JPK.store.remove(key);
   }
 
   /**
    * 문항을 받은 직후 한 번 호출한다. 지금 세트에 실제로 있는 문항만 복원한다
-   * (회차 데이터가 바뀌어 사라진 문항의 답이 남아 있어도 무시된다).
+   * (회차 데이터가 바뀌어 사라진 문항, 모의고사에서 이번에 안 뽑힌 문항의 답은 그냥 무시된다).
    */
   function restoreSaved() {
     var key = saveKey();
     if (!key || !state.round) return;
-    var raw = storeGet(key);
+    var raw = JPK.store.get(key);
     if (!raw) return;
     var saved;
     try {
       saved = JSON.parse(raw);
     } catch (e) {
-      storeRemove(key);
+      JPK.store.remove(key);
       return;
     }
     if (!saved || !saved.answers || typeof saved.answers !== 'object') return;
+
+    // 저장할 때 답이 들어 있던 문항 수 — "몇 개 중 몇 개를 되살렸는지" 를 말하기 위한 분모다.
+    var savedWithAnswers = Object.keys(saved.answers).filter(function (qid) {
+      var vals = saved.answers[qid];
+      return Array.isArray(vals) && vals.some(function (v) {
+        return v != null && String(v).trim() !== '';
+      });
+    }).length;
 
     var restored = 0;
     (state.round.questions || []).forEach(function (q) {
@@ -387,17 +394,35 @@
     });
 
     if (restored === 0) {
-      storeRemove(key);
+      JPK.store.remove(key);
+      // 모의고사는 이번에 겹치는 문항이 하나도 없을 수 있다 — 조용히 사라지면 사람은
+      // "저장했다더니 다 날아갔다" 고만 안다. 이유를 밝힌다.
+      if (state.mode === 'practice' && savedWithAnswers > 0) {
+        showRestoreNotice(saved.savedAt, 0, savedWithAnswers);
+      }
       return;
     }
-    showRestoreNotice(saved.savedAt);
+    showRestoreNotice(saved.savedAt, restored, savedWithAnswers);
   }
 
-  function showRestoreNotice(savedAt) {
+  /**
+   * @param {number} [restored] 되살린 문항 수 (모의고사에서 일부만 겹칠 때 밝힌다)
+   * @param {number} [savedTotal] 저장분에 답이 들어 있던 문항 수
+   */
+  function showRestoreNotice(savedAt, restored, savedTotal) {
     if (!elRestore) return;
     elRestore.textContent = '';
     var when = typeof savedAt === 'number' && savedAt > 0 ? formatTime(savedAt) : '시각 미상';
-    elRestore.appendChild(document.createTextNode('이전에 입력하던 답안을 불러왔습니다 (' + when + ').'));
+    var text = '이전에 입력하던 답안을 불러왔습니다 (' + when + ').';
+    // 모의고사는 문항이 매번 새로 뽑힌다 — 전부 되살아나지 않았으면 그 사실을 감추지 않는다.
+    if (state.mode === 'practice' && savedTotal > 0 && restored < savedTotal) {
+      text = restored === 0
+        ? '이전에 답을 적어 둔 ' + savedTotal + '문항이 이번 출제에 하나도 포함되지 않아 복원하지 못했습니다 ('
+          + when + '). 모의고사는 풀 때마다 문항이 새로 뽑힙니다.'
+        : '이전에 적어 둔 ' + savedTotal + '문항 중 이번 출제와 겹치는 ' + restored
+          + '문항의 답만 불러왔습니다 (' + when + ').';
+    }
+    elRestore.appendChild(document.createTextNode(text));
     var drop = el('button', 'linkish', '불러온 답안 지우기');
     drop.type = 'button';
     drop.addEventListener('click', function () {
@@ -416,9 +441,23 @@
     elRestore.hidden = true;
   }
 
+  /**
+   * 필터 칩처럼 **이 화면이 스스로** 옮겨 가는 이동. 답안은 지금 키로 확정 저장하고,
+   * 브라우저의 "이 페이지를 나가시겠습니까" 를 띄우지 않는다 — 사람이 나가려던 게 아니다.
+   */
+  function goInternal(url) {
+    saveNow();                 // 디바운스를 기다리지 않고 확정 저장
+    state.internalNav = true;
+    JPK.store.sessionSet(INTERNAL_NAV_KEY, '1');
+    window.location.href = url;
+  }
+
   // 새로고침·이탈 경고 — 채점 전이고 뭔가 적어 둔 게 있을 때만.
   window.addEventListener('beforeunload', function (ev) {
     if (state.result || state.submitting) return undefined;
+    // 화면이 스스로 옮겨 가는 중이면 경고하지 않는다. 메모리 표식이 사라진 뒤에도
+    // (bfcache 복원 등) 세션 표식이 한 번 더 막아 준다 — 다음 로드에서 지운다.
+    if (state.internalNav || JPK.store.sessionGet(INTERNAL_NAV_KEY) === '1') return undefined;
     if (!hasAnswers()) return undefined;
     saveNow(); // 디바운스를 기다리지 않고 확정 저장
     ev.preventDefault();
@@ -435,11 +474,11 @@
 
   // 타이머 컨트롤 접기 — 헤더가 시험지보다 커 보이지 않게 기본은 접힘.
   // 사람이 편 상태만 저장한다. 타이머가 도는 동안에는 저장값과 무관하게 항상 펼친다(남은 시간을 봐야 한다).
-  var timerOpen = storeGet(TIMER_OPEN_KEY) === '1';
+  state.timerOpen = JPK.store.get(TIMER_OPEN_KEY) === '1';
 
   function syncTimerFold() {
     if (!elTimerPanel || !elTimerToggle) return;
-    var open = timerOpen || !!state.timerEndsAt;
+    var open = state.timerOpen || !!state.timerEndsAt;
     elTimerPanel.hidden = !open;
     elTimerToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open) elTimerToggle.classList.add('on');
@@ -449,9 +488,9 @@
   if (elTimerToggle) {
     elTimerToggle.addEventListener('click', function () {
       // 도는 중에 접으면 남은 시간이 사라진다 — 접기 대신 아무것도 하지 않는다.
-      if (state.timerEndsAt && timerOpen) return;
-      timerOpen = !timerOpen;
-      storeSet(TIMER_OPEN_KEY, timerOpen ? '1' : '0');
+      if (state.timerEndsAt && state.timerOpen) return;
+      state.timerOpen = !state.timerOpen;
+      JPK.store.set(TIMER_OPEN_KEY, state.timerOpen ? '1' : '0');
       syncTimerFold();
     });
   }
@@ -508,10 +547,10 @@
 
   if (elTimerSelect) {
     // 마지막으로 고른 시간을 기억한다 (자동 시작은 하지 않는다 — 시작은 항상 사용자가 누른다).
-    var savedMinutes = storeGet(TIMER_PREF_KEY);
+    var savedMinutes = JPK.store.get(TIMER_PREF_KEY);
     if (savedMinutes && /^(0|30|60|90)$/.test(savedMinutes)) elTimerSelect.value = savedMinutes;
     elTimerSelect.addEventListener('change', function () {
-      storeSet(TIMER_PREF_KEY, String(Number(elTimerSelect.value) || 0));
+      JPK.store.set(TIMER_PREF_KEY, String(Number(elTimerSelect.value) || 0));
       renderTimer();
     });
   }
@@ -639,7 +678,7 @@
     // 서버가 검증(validate:explain)해서 내려주는 신뢰 마크업이다 — 화이트리스트 태그만 들어 있다.
     box.innerHTML = html;
     // 해설 안의 <pre class="code"> 도 같은 규칙으로 정돈한다 — 언어는 그 문항의 것을 쓴다.
-    applyCodeFmt(box, question.lang);
+    JPK.qbody.decorate(box, question.lang);
     card.appendChild(box);
   }
 
@@ -651,7 +690,7 @@
    * 채점 후에는 채점 응답의 explanations 를 쓰는 기존 흐름(renderExplain)이 이긴다.
    */
   function peekEligible() {
-    return !pageFailed && state.mode === 'wrong' && !state.result;
+    return !state.pageFailed && state.mode === 'wrong' && !state.result;
   }
 
   /**
@@ -728,7 +767,7 @@
     render();
     loadPeek([qid]).then(function (denied) {
       state.peekLoading[qid] = false;
-      if (pageFailed) return;       // 그 사이 401 로 화면이 끝났다 — 늦게 온 응답은 버린다
+      if (state.pageFailed) return;       // 그 사이 401 로 화면이 끝났다 — 늦게 온 응답은 버린다
       if (denied.length) {
         render();
         toast(PEEK_DENIED, 'bad');
@@ -738,7 +777,7 @@
       render();
     }).catch(function (e) {
       state.peekLoading[qid] = false;
-      if (pageFailed) return;       // 이미 로그인 안내 화면이다 — 그 위에 토스트를 겹치지 않는다
+      if (state.pageFailed) return;       // 이미 로그인 안내 화면이다 — 그 위에 토스트를 겹치지 않는다
       // 세션이 끊겼으면 최초 로드와 같은 로그인 안내 화면으로 보낸다.
       if (e && e.status === 401) return failWrongAuth();
       render();
@@ -777,7 +816,7 @@
       var box = el('div', 'explain-box');
       // 채점 응답의 해설과 같은 신뢰 마크업이다 (서버가 validate:explain 으로 검증한다).
       box.innerHTML = data.html;
-      applyCodeFmt(box, question.lang);
+      JPK.qbody.decorate(box, question.lang);
       card.appendChild(box);
     } else {
       card.appendChild(el('p', 'muted peek-none', '해설이 아직 없습니다.'));
@@ -815,7 +854,7 @@
     render();
     loadPeek(missing).then(function (denied) {
       state.peekAllLoading = false;
-      if (pageFailed) return;       // 401 로 화면이 끝난 뒤 도착 — 되살리지 않는다
+      if (state.pageFailed) return;       // 401 로 화면이 끝난 뒤 도착 — 되살리지 않는다
       openFetched(ids);
       render();
       if (denied.length) {
@@ -823,7 +862,7 @@
       }
     }).catch(function (e) {
       state.peekAllLoading = false;
-      if (pageFailed) return;
+      if (state.pageFailed) return;
       if (e && e.status === 401) return failWrongAuth();
       render();
       toast(e && e.message ? e.message : '해설을 불러오지 못했습니다.', 'bad');
@@ -855,6 +894,8 @@
     var box = el('div', 'report-box');
     var ta = document.createElement('textarea');
     ta.setAttribute('data-report', qid);
+    // 재렌더를 가로질러 입력 중이던 글과 캐럿을 되돌린다 (대전 화면과 같은 키 규약).
+    ta.setAttribute('data-fkey', 'report:' + qid);
     ta.placeholder = '어떤 점이 이상한지 적어 주세요. (예: 제 답도 인정되어야 합니다 — 근거)';
     ta.value = state.reportText[qid] || '';
     // 타이핑은 재렌더하지 않는다 (재렌더하면 포커스와 캐럿이 날아간다)
@@ -876,27 +917,10 @@
   // ------------------------------------------------------------- 유형 필터
 
   /**
-   * 유형 필터(전체/코드/SQL/이론). study.html 에는 자리가 없으므로 헤더의 메타 줄 뒤에 만들어 붙인다.
+   * 유형 필터(전체/코드/SQL/이론). 자리는 study.html 이 `#typeFilter` 로 선언해 둔다.
    * 누르면 지금 출처(회차·오답노트·모의고사)를 그대로 유지한 채 `type=` 만 바꿔 다시 로드한다.
    * 채점 후에는 전부 비활성 — "다시 풀기" 로 state.result 가 지워지면 다시 활성이 된다.
    */
-  var elTypeFilter = null;
-  var elBattleSub = null;
-  var hasSource = false;
-  var pageFailed = false;   // fail() 로 떨어진 화면인가 (문항이 없다)
-
-  /**
-   * 대전 오답 보기(?set=wrong&match=)의 부제 한 줄. study.html 에는 자리가 없으므로
-   * 메타 줄 바로 아래(유형 필터 위)에 만들어 붙인다.
-   */
-  function ensureBattleSubNode() {
-    if (elBattleSub) return elBattleSub;
-    if (!elMeta || !elMeta.parentNode) return null;
-    elBattleSub = el('p', 'study-sub');
-    elBattleSub.id = 'battleSub';
-    elMeta.parentNode.insertBefore(elBattleSub, elTypeFilter || elMeta.nextSibling);
-    return elBattleSub;
-  }
 
   /** "2026-08-30 · vs 상대 · 내 정답 3/10 · 승" — 없는 조각은 조용히 뺀다. */
   function battleSubText(b) {
@@ -918,28 +942,15 @@
   }
 
   function renderBattleSub() {
+    if (!elBattleSub) return;
     var b = state.battle;
     if (!b) {
-      if (elBattleSub) {
-        elBattleSub.textContent = '';
-        elBattleSub.hidden = true;
-      }
+      elBattleSub.textContent = '';
+      elBattleSub.hidden = true;
       return;
     }
-    var node = ensureBattleSubNode();
-    if (!node) return;
-    node.textContent = '대전 “' + (b.roomName || '이름 없는 방') + '” · ' + battleSubText(b);
-    node.hidden = false;
-  }
-
-  function ensureTypeFilterNode() {
-    if (elTypeFilter) return elTypeFilter;
-    if (!elMeta || !elMeta.parentNode) return null;
-    elTypeFilter = el('div', 'type-filter');
-    elTypeFilter.id = 'typeFilter';
-    var after = elBattleSub || elMeta;   // 부제가 있으면 그 아래로
-    elMeta.parentNode.insertBefore(elTypeFilter, after.nextSibling);
-    return elTypeFilter;
+    elBattleSub.textContent = '대전 “' + (b.roomName || '이름 없는 방') + '” · ' + battleSubText(b);
+    elBattleSub.hidden = false;
   }
 
   /**
@@ -993,8 +1004,8 @@
   }
 
   function renderTypeFilter() {
-    if (!hasSource) return;
-    var node = ensureTypeFilterNode();
+    if (!state.hasSource) return;
+    var node = elTypeFilter;
     if (!node) return;
     node.textContent = '';
     node.hidden = false;
@@ -1012,12 +1023,15 @@
       var btn = el('button', 'chip' + (on ? ' on' : '') + (empty ? ' empty' : ''), opt.label);
       btn.type = 'button';
       btn.setAttribute('data-type', opt.value || 'all');
+      // 칩은 켜고 끄는 토글이다 — 지금 어느 유형을 보고 있는지 보조 기술에도 알린다.
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       // 이 회차에 없는 유형은 눌러 봐야 서버 400 이다 — 누르기 전에 막는다.
       btn.disabled = graded || empty;
       if (empty) btn.title = '이 회차에는 ' + opt.label + ' 문항이 없습니다.';
       btn.addEventListener('click', function () {
         if (on || state.result) return;    // 지금 보고 있는 유형이면 아무것도 하지 않는다
-        window.location.href = studyUrlForType(opt.value);
+        // 화면이 스스로 옮겨 가는 이동이다 — 답안을 확정 저장하고 이탈 경고는 띄우지 않는다.
+        goInternal(studyUrlForType(opt.value));
       });
       node.appendChild(btn);
     });
@@ -1028,18 +1042,6 @@
   }
 
   // ------------------------------------------------------------- 언어 필터
-
-  var elLangFilter = null;
-
-  function ensureLangFilterNode() {
-    if (elLangFilter) return elLangFilter;
-    var after = ensureTypeFilterNode();
-    if (!after || !after.parentNode) return null;
-    elLangFilter = el('div', 'type-filter lang-filter');
-    elLangFilter.id = 'langFilter';
-    after.parentNode.insertBefore(elLangFilter, after.nextSibling);
-    return elLangFilter;
-  }
 
   /**
    * 이 회차에 그 언어의 코드 문항이 0개인가.
@@ -1055,8 +1057,8 @@
    * 유형 칩과 같은 동작이다 — 누르면 `lang=` 만 바꿔 다시 로드하고, 채점 후에는 비활성.
    */
   function renderLangFilter() {
-    if (!hasSource) return;
-    var node = ensureLangFilterNode();
+    if (!state.hasSource) return;
+    var node = elLangFilter;
     if (!node) return;
     node.textContent = '';
     if (effectiveType() !== 'code') {   // 언어는 코드 문항에만 있는 축이다
@@ -1077,11 +1079,12 @@
       var btn = el('button', 'chip' + (on ? ' on' : '') + (empty ? ' empty' : ''), opt.label);
       btn.type = 'button';
       btn.setAttribute('data-lang', opt.value || 'all');
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       btn.disabled = graded || empty;
       if (empty) btn.title = '이 회차에는 ' + opt.label + ' 코드 문항이 없습니다.';
       btn.addEventListener('click', function () {
         if (on || state.result) return;
-        window.location.href = studyUrlForLang(opt.value);
+        goInternal(studyUrlForLang(opt.value));
       });
       node.appendChild(btn);
     });
@@ -1089,21 +1092,9 @@
 
   // ------------------------------------------- 오답노트 해설 일괄 펼치기 줄
 
-  var elPeekBar = null;
-
-  function ensurePeekBarNode() {
-    if (elPeekBar) return elPeekBar;
-    var after = ensureLangFilterNode() || ensureTypeFilterNode();
-    if (!after || !after.parentNode) return null;
-    elPeekBar = el('div', 'peek-bar');
-    elPeekBar.id = 'peekBar';
-    after.parentNode.insertBefore(elPeekBar, after.nextSibling);
-    return elPeekBar;
-  }
-
   function renderPeekBar() {
-    if (!hasSource) return;
-    var node = ensurePeekBarNode();
+    if (!state.hasSource) return;
+    var node = elPeekBar;
     if (!node) return;
     node.textContent = '';
 
@@ -1164,24 +1155,6 @@
 
   // ------------------------------------------------------------- 보기 칩
 
-  /**
-   * 그 문항에서 **마지막으로 포커스했던 입력칸** 번호. qid -> fieldIndex.
-   * 칩을 눌렀을 때 어느 칸에 넣을지 정하는 데만 쓴다 (재렌더로 DOM 이 갈려도 살아남아야 한다).
-   */
-  var lastFocusField = {};
-
-  /** ES5/구형 웹뷰까지 안전한 input 이벤트 발사 — 자동 저장·진행 표시가 전부 이 이벤트로 돈다. */
-  function fireInput(node) {
-    var ev;
-    if (typeof window.Event === 'function') {
-      ev = new window.Event('input', { bubbles: true });
-    } else {
-      ev = document.createEvent('Event');
-      ev.initEvent('input', true, false);
-    }
-    node.dispatchEvent(ev);
-  }
-
   /** 칩에 적을 말. 마커가 있으면 "ㄱ. 동치분할 …" 처럼 마커를 앞세운다. */
   function chipLabel(item) {
     if (item.marker && item.text && item.marker !== item.text) return item.marker + '. ' + item.text;
@@ -1190,7 +1163,7 @@
 
   /** 칩이 채울 칸: 마지막 포커스 → 첫 빈 칸 → (다 찼으면) 첫 칸. */
   function chipTargetIndex(question, inputCount) {
-    var last = lastFocusField[question.id];
+    var last = state.lastFocusField[question.id];
     if (last != null && last >= 0 && last < inputCount) return last;
     var blank = blankFieldIndex(question);
     return blank >= 0 && blank < inputCount ? blank : 0;
@@ -1221,7 +1194,7 @@
         var input = inputs[idx];
         input.value = window.Boki.fillValue(item, promptText);
         // 값만 바꾸고 input 이벤트를 쏜다 — 타이핑으로 고칠 수 있어야 한다.
-        // 여기서 포커스를 옮기거나 lastFocusField 를 세우지 않는다(대전 쪽과 같은 동작) —
+        // 여기서 포커스를 옮기거나 state.lastFocusField 를 세우지 않는다(대전 쪽과 같은 동작) —
         // 그러면 다음 칩이 같은 칸을 덮어쓴다. 사람이 직접 고른 칸이 없으면 칩은 차례로 빈 칸을 채운다.
         fireInput(input);
       });
@@ -1261,8 +1234,10 @@
     if (state.resolvedIds[question.id]) badges.appendChild(el('span', 'q-resolved', '이후 맞힘'));
     card.appendChild(badges);
 
-    // 제목: 번호 + prompt(HTML 자산이므로 HTML 로 삽입)
-    var title = el('div', 'qtitle');
+    // 제목: 번호 + prompt(HTML 자산이므로 HTML 로 삽입).
+    // 카드 제목은 문서 구조상 진짜 제목이다 (h1 회차명 → h3 문항). 클래스는 그대로 `.qtitle` 이고
+    // 그 규칙이 h3 의 기본 위쪽 여백까지 눌러 주므로 모양은 변하지 않는다.
+    var title = el('h3', 'qtitle');
     title.appendChild(el('span', 'num', displayNum(question, index)));
     var promptSpan = document.createElement('span');
     promptSpan.innerHTML = question.prompt || '';
@@ -1274,10 +1249,9 @@
     if (question.bodyHtml) {
       body = el('div', 'qbody');
       body.innerHTML = question.bodyHtml;
-      wrapTables(body);
-      // 원본 회차 데이터에는 탭·공백이 뒤섞인 코드 블록이 있다 — 데이터는 그대로 두고 표시할 때만 정돈한다.
-      // (채점 후 카드도 같은 renderQuestion 을 지나므로 여기 한 곳이면 두 경로가 모두 덮인다.)
-      applyCodeFmt(body, question.lang);
+      // 표는 가로 스크롤 상자로 감싸고, 탭·공백이 뒤섞인 코드 블록은 표시할 때만 정돈한다.
+      // 원본 데이터는 건드리지 않는다. (채점 후 카드도 같은 renderQuestion 을 지난다.)
+      JPK.qbody.decorate(body, question.lang);
       card.appendChild(body);
     }
 
@@ -1293,6 +1267,9 @@
       input.type = 'text';
       input.className = 'ans';
       input.id = 'ans-' + question.id + '-' + fieldIndex;
+      // 전체 재렌더(해설 토글 등)를 가로질러 포커스·캐럿을 되돌리기 위한 안정된 키.
+      // 대전 화면과 같은 규약이다 (js/shared/focus.js).
+      input.setAttribute('data-fkey', JPK.focus.ansKey(question.id, fieldIndex));
       input.autocomplete = 'off';
       input.autocapitalize = 'off';
       input.spellcheck = false;
@@ -1318,7 +1295,7 @@
         });
         input.addEventListener('keydown', onAnswerKeydown);
         // 보기 칩이 "마지막으로 보던 칸" 에 값을 넣을 수 있게 기억해 둔다.
-        input.addEventListener('focus', function () { lastFocusField[question.id] = fieldIndex; });
+        input.addEventListener('focus', function () { state.lastFocusField[question.id] = fieldIndex; });
       }
       row.appendChild(input);
       card.appendChild(row);
@@ -1427,7 +1404,8 @@
     }
     if (!card.scrollIntoView) return;
     try {
-      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // behavior 는 모션 축소 설정을 따른다 — CSS 미디어 쿼리는 스크립트 스크롤을 막지 못한다.
+      card.scrollIntoView({ behavior: JPK.motion.smoothScrollBehavior(), block: 'center' });
     } catch (e) {
       card.scrollIntoView();
     }
@@ -1458,9 +1436,6 @@
 
   // ------------------------------------------------- 점수판 축소(sticky compact)
 
-  var boardCompact = false;
-  var boardScrollTicking = false;
-
   /**
    * 점수판이 sticky 로 "붙기 시작했는가" — 붙은 순간 박스의 화면 좌표 top 은 정확히 sticky top 에 고정된다.
    * 문서 맨 위(scrollY 0)는 붙었을 리 없다: 레이아웃을 계산하지 않는 환경(jsdom)에서
@@ -1481,8 +1456,8 @@
   }
 
   function setBoardCompact(on) {
-    if (on === boardCompact) return;   // 불리언이 바뀔 때만 DOM 을 건드린다
-    boardCompact = on;
+    if (on === state.boardCompact) return;   // 불리언이 바뀔 때만 DOM 을 건드린다
+    state.boardCompact = on;
     if (on) elBoard.classList.add('compact');
     else elBoard.classList.remove('compact');
   }
@@ -1502,10 +1477,10 @@
 
   /** battle.js 의 onFloatScroll 과 같은 모양 — rAF 로 한 프레임에 한 번만 계산한다. */
   function onBoardScroll() {
-    if (boardScrollTicking) return;
-    boardScrollTicking = true;
+    if (state.boardTicking) return;
+    state.boardTicking = true;
     (window.requestAnimationFrame || function (fn) { setTimeout(fn, 16); })(function () {
-      boardScrollTicking = false;
+      state.boardTicking = false;
       syncBoardCompact();
     });
   }
@@ -1516,10 +1491,6 @@
   }
 
   // ------------------------------------------------- 하단 미니바 (#studyBar)
-
-  var barShown = false;
-  var barScrollTicking = false;
-  var barCountText = '';
 
   /**
    * 미니바를 띄울 조건 — 풀이 중(채점 전)이고 **제출 버튼이 화면 밖**일 때.
@@ -1543,8 +1514,8 @@
     var questions = (state.round && state.round.questions) || [];
     var blanks = unansweredQuestions();
     var text = '답한 ' + (questions.length - blanks.length) + '/' + questions.length;
-    if (elBarCount && text !== barCountText) {
-      barCountText = text;
+    if (elBarCount && text !== state.barCountText) {
+      state.barCountText = text;
       elBarCount.textContent = text;
     }
     // 빈 칸이 하나도 없으면 갈 곳이 없다.
@@ -1567,8 +1538,8 @@
       || (document.documentElement && document.documentElement.clientHeight) || 0;
     var show = shouldShowBar(active, top, bottom, vh);
     if (show) renderBarText();
-    if (show === barShown) return;   // 불리언이 바뀔 때만 DOM 을 건드린다
-    barShown = show;
+    if (show === state.barShown) return;   // 불리언이 바뀔 때만 DOM 을 건드린다
+    state.barShown = show;
     elStudyBar.hidden = !show;
     if (document.body) {
       if (show) document.body.classList.add('with-studybar');
@@ -1577,10 +1548,10 @@
   }
 
   function onBarScroll() {
-    if (barScrollTicking) return;
-    barScrollTicking = true;
+    if (state.barTicking) return;
+    state.barTicking = true;
     (window.requestAnimationFrame || function (fn) { setTimeout(fn, 16); })(function () {
-      barScrollTicking = false;
+      state.barTicking = false;
       syncStudyBar();
     });
   }
@@ -1734,7 +1705,7 @@
   function render() {
     // fail() 로 떨어진 화면은 **종결**이다. 뒤늦게 도착한 응답이나 화면에 남아 있던 버튼이
     // 문항·제출 버튼을 되살리면 로그인 안내 위로 시험지가 다시 깔린다.
-    if (pageFailed) return;
+    if (state.pageFailed) return;
     var round = state.round;
     if (!round) return;
 
@@ -1743,15 +1714,21 @@
     renderBattleSub();
     renderTypeFilter();
 
+    // 문항 목록은 매번 통째로 다시 만든다. 해설 토글 하나에도 DOM 이 전부 갈리므로,
+    // 그때 어느 칸에 무엇을 치고 있었는지(한글 조합 포함)를 잃지 않도록 키로 적어 두고 되돌린다.
+    var focused = JPK.focus.capture(elQuestions);
+
     elQuestions.textContent = '';
     if (round.questions.length === 0) {
       elQuestions.appendChild(el('p', 'muted', '이 회차에는 등록된 문항이 없습니다.'));
       elBtnbar.hidden = true;
+      renderLoginNotice();
       return;
     }
     round.questions.forEach(function (q, i) {
       elQuestions.appendChild(renderQuestion(q, i));
     });
+    JPK.focus.restore(elQuestions, focused);
 
     elBtnbar.hidden = false;
     var graded = !!state.result;
@@ -1762,9 +1739,12 @@
     if (elTools) elTools.hidden = graded;
 
     renderAnsweredCount();
+    renderLoginNotice();
     renderBoard();
     renderTimer();
 
+    // 이의 제기 상자를 **막 연** 경우에만 그리로 포커스를 옮긴다.
+    // (그 밖의 재렌더에서는 위 JPK.focus.restore 가 원래 있던 칸을 지킨다.)
     if (state.reportFocus) {
       var ta = elQuestions.querySelector('textarea[data-report="' + state.reportFocus + '"]');
       state.reportFocus = '';
@@ -1796,7 +1776,11 @@
       return api.post('/api/rounds/' + encodeURIComponent(state.roundId) + '/grade', body);
     }
     // practice/wrong 세트는 이미 필터된 문항만 들고 있으므로 경로를 바꾸지 않는다.
-    return api.post('/api/practice/grade', { setKey: state.setKey, answers: answers });
+    return api.post('/api/practice/grade', {
+      setKey: state.setKey,
+      setToken: (state.round && state.round.setToken) || '', // 서버가 채점 집합을 정한다
+      answers: answers,
+    });
   }
 
   /**
@@ -1823,14 +1807,30 @@
         state.submitting = false;
         elSubmit.disabled = false;
         elSubmit.textContent = '제출하고 채점하기';
-        toast(e.message, 'bad');
+        var status = e && e.status;
+
+        // 401 — 로그인이 필요하다. 토스트는 사라지므로 제출 버튼 옆에 남는 안내도 함께 세운다.
+        // 답안을 먼저 확정 저장해 둔다: 사람이 곧 로그인하러 이 페이지를 떠난다.
+        if (status === 401) {
+          state.me = null;
+          state.meLoaded = true;
+          state.gradeBlocked = 'auth';
+          saveNow();
+          renderLoginNotice();
+          toast('채점하려면 로그인이 필요합니다.', 'bad');
+          return;
+        }
+
+        // 409(진행 중인 대전의 문항) · 429(채점 요청 과다) 는 서버 문구가 이미 이유를 말한다.
+        // 둘 다 답안은 그대로 남아 있어야 하므로 화면을 되돌리지 않는다.
+        toast(e && e.message ? e.message : '채점에 실패했습니다.', 'bad');
       });
   }
 
   function reset() {
     state.result = null;
     state.answers = {};
-    lastFocusField = {};
+    state.lastFocusField = {};
     state.showExplain = {};
     // 받아 둔 정답·해설(state.peek)은 그대로 둔다 — 같은 문항이라 다시 물어볼 이유가 없다.
     // 펼침 상태만 접는다.
@@ -1854,7 +1854,7 @@
   // ------------------------------------------------------------------ 시작
 
   function fail(message, extraLink, linkText) {
-    pageFailed = true;   // 이 뒤로는 문항이 없는 화면이다 — render() 도 여기서 멈춘다
+    state.pageFailed = true;   // 이 뒤로는 문항이 없는 화면이다 — render() 도 여기서 멈춘다
     elTitle.textContent = '학습 모드';
     elMeta.textContent = '';
     // 복원 배너를 남기면 그 안의 "불러온 답안 지우기" 가 render() 를 불러 화면을 되살리려 든다.
@@ -1863,7 +1863,10 @@
     // (다른 유형이나 '전체' 로 곧바로 되돌아갈 수 있어야 한다).
     renderTypeFilter();
     elQuestions.textContent = '';
-    elQuestions.appendChild(el('p', 'error-text', message));
+    // 문항 대신 뜨는 실패 안내다 — 조작 없이 나타나므로 보조 기술에도 즉시 읽혀야 한다.
+    var err = el('p', 'error-text', message);
+    err.setAttribute('role', 'alert');
+    elQuestions.appendChild(err);
     var back = el('p', 'hint');
     var a = document.createElement('a');
     a.href = extraLink || '/';
@@ -1872,6 +1875,7 @@
     elQuestions.appendChild(back);
     elBtnbar.hidden = true;
     if (elTools) elTools.hidden = true;
+    renderLoginNotice();   // 문항이 없는 화면에서는 채점 안내도 의미가 없다
   }
 
   /**
@@ -1938,6 +1942,9 @@
     return null;
   }
 
+  // 필터 칩이 남긴 "내부 이동" 표식은 도착과 동시에 지운다 — 그 다음 이탈은 진짜 이탈이다.
+  JPK.store.sessionRemove(INTERNAL_NAV_KEY);
+
   var source = parseSource();
   if (!source) {
     fail('무엇을 풀지 지정되지 않았습니다. 주소에 ?round=회차id 또는 ?set=practice / ?set=wrong 이 필요합니다.');
@@ -1951,7 +1958,7 @@
     state.langFilter = source.lang || '';
     if (source.practiceRounds) state.practiceRounds = source.practiceRounds;
     if (source.practiceCount) state.practiceCount = source.practiceCount;
-    hasSource = true;
+    state.hasSource = true;
     renderTypeFilter();
     loadRoundCounts();
 
@@ -1961,6 +1968,8 @@
           round: state.setKey,
           title: data.title || data.round || state.setKey,
           sourceUrl: data.sourceUrl || '',
+          // 서버가 발급한 세트 토큰 — 모의고사·오답노트 채점 때 그대로 돌려보낸다(보안 C-1)
+          setToken: typeof data.setToken === 'string' ? data.setToken : '',
           questions: data.questions || [],
         };
         document.title = state.round.title + ' 학습 — 정처기 배틀';
@@ -1994,5 +2003,15 @@
       });
   }
 
-  api.me().then(renderNav).catch(function () { renderNav(null); });
+  /** 로그인 여부는 내비뿐 아니라 채점 안내도 정한다 — 한 곳에서 받아 둘 다 갱신한다. */
+  function applyMe(user) {
+    state.me = user || null;
+    state.meLoaded = true;
+    renderNav(state.me);
+    renderLoginNotice();
+  }
+
+  // 조회에 실패하면 비로그인으로 단정하지 않는다 — 일시적 오류로 "로그인하세요" 를 띄우면
+  // 이미 로그인한 사람에게 거짓말이 된다. meLoaded 를 세우지 않아 안내를 내지 않는다.
+  api.me().then(applyMe).catch(function () { renderNav(null); });
 })();
