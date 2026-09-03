@@ -23,16 +23,12 @@ const { gradeQuestion, normalizeValue, NORMALIZE_MODES, VALIDATOR_TYPES } = requ
   path.join(ROOT, 'server', 'grader.js')
 );
 
-// SCHEMA.md 회차 목록 (총 21회차)
-const EXPECTED_ROUNDS = [
-  '2020-1', '2020-2', '2020-3', '2020-4',
-  '2021-1', '2021-2', '2021-3',
-  '2022-1', '2022-2', '2022-3',
-  '2023-1', '2023-2', '2023-3',
-  '2024-1', '2024-2', '2024-3',
-  '2025-1', '2025-2', '2025-3',
-  '2026-1', '2026-2',
-];
+// 회차 목록은 **디스크에서 읽는다**(validate-types/langs/explanations 와 같은 규약).
+// 회차가 22, 23… 으로 늘어도 이 파일을 고칠 필요가 없다.
+//
+// 다만 "디스크가 정본" 은 **회차 파일을 통째로 지운 사고까지 통과시킨다**. 그래서 바닥값 하나만
+// 못박는다: SCHEMA.md 의 동결 회차 수(21). 이보다 적으면 수집이 덜 된 게 아니라 유실이다.
+const MIN_ROUNDS = 21;
 
 const ROUND_KEYS = ['round', 'title', 'sourceUrl', 'questions'];
 const QUESTION_KEYS = [
@@ -356,6 +352,12 @@ function main() {
     console.log(`${tag} ${r.round}  questions=${r.questionCount}${r.failCount ? `  failures=${r.failCount}` : ''}`);
   }
 
+  const shortfall = MIN_ROUNDS - reports.length;
+  if (shortfall > 0) {
+    fail('(전체)', null, 'rounds-floor',
+      `회차 파일이 ${reports.length}개뿐이다 — 최소 ${MIN_ROUNDS}회차(SCHEMA.md 동결 목록)여야 한다. ${shortfall}개가 유실됐다.`);
+  }
+
   if (failures.length > 0) {
     console.log('');
     console.log(`--- 실패 상세 (${failures.length}건) ---`);
@@ -364,21 +366,14 @@ function main() {
     }
   }
 
-  const present = new Set(reports.map((r) => r.round));
-  const missing = EXPECTED_ROUNDS.filter((r) => !present.has(r));
-  const unexpected = reports.map((r) => r.round).filter((r) => !EXPECTED_ROUNDS.includes(r));
-
   console.log('');
   console.log('--- 요약 ---');
   console.log(`  파일 ${reports.length}개, 문항 ${reports.reduce((a, r) => a + r.questionCount, 0)}개, 고유 id ${seenIds.size}개`);
   console.log(`  검증 실패 ${failures.length}건`);
   console.log(
-    `  커버리지: ${EXPECTED_ROUNDS.length}회차 중 ${EXPECTED_ROUNDS.length - missing.length}회차 존재` +
-      (missing.length ? ` — 미수집: ${missing.join(', ')}` : ' — 전 회차 완비')
+    `  커버리지: 회차 ${reports.length}개 (최소 ${MIN_ROUNDS})` +
+      (shortfall > 0 ? ` — ${shortfall}개 유실!` : reports.length > MIN_ROUNDS ? ' — 회차 추가됨' : ' — 전 회차 완비')
   );
-  if (unexpected.length) {
-    console.log(`  (경고) 회차 목록에 없는 파일: ${unexpected.join(', ')}`);
-  }
 
   if (failures.length > 0) {
     console.log('');
@@ -393,4 +388,4 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   main();
 }
 
-export { main, EXPECTED_ROUNDS };
+export { main, MIN_ROUNDS };

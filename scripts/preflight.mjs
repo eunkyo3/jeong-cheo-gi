@@ -10,11 +10,14 @@
  *   ④ 종단 대전     node scripts/e2e-battle.js (격리 임시 DATA_DIR, 실서버 2인 소켓 대전)
  *   ⑤ 커버리지 집계 data/PROGRESS.md + data/excluded.md 판독 (게이트 아님, 보고)
  *   ⑥ 해설 검증   node scripts/validate-explanations.mjs (전체 모드)
- *                 — data/explanations 에 json 이 하나도 없으면 집필 전이므로 SKIP
  *   ⑦ 유형 검증   node scripts/validate-types.mjs (전체 모드)
- *                 — data/types 에 json 이 하나도 없으면 분류 전이므로 SKIP
  *   ⑧ 언어 검증   node scripts/validate-langs.mjs (전체 모드)
- *                 — data/langs 에 json 이 하나도 없으면 분류 전이므로 SKIP
+ *   ⑨ 문항 서명   node scripts/fingerprint-questions.mjs (재번호·문항 교체 탐지)
+ *
+ * ⑥⑦⑧ 은 예전에 "디렉터리에 json 이 0개면 집필/분류 전이므로 SKIP" 이었다. 세 자산이 모두
+ * 전 회차 완비된 지금은 그 SKIP 이 **디렉터리 통째 삭제를 조용히 통과시키는 구멍**이라
+ * FAIL 로 바꿨다(프런트 리뷰 6-4). 새 자산 종류를 도입해 집필 전 단계를 다시 겪는다면
+ * 그때는 `--partial` 모드를 쓰거나 이 단계를 잠시 빼라 — 0개를 통과시키지는 않는다.
  *
  * 회차 파일이 20개 더 늘어나도 그대로 동작해야 하므로 현재 상태를 하나도 못박지 않는다.
  * 테스트 파일 목록도 회차 목록도 진행 표도 전부 **디스크에서 읽어** 센다.
@@ -35,6 +38,7 @@ const TYPES_DIR = path.join(DATA_DIR, 'types');
 const LANGS_DIR = path.join(DATA_DIR, 'langs');
 const PROGRESS_FILE = path.join(DATA_DIR, 'PROGRESS.md');
 const EXCLUDED_FILE = path.join(DATA_DIR, 'excluded.md');
+const FINGERPRINT_FILE = path.join(DATA_DIR, '.qfingerprint.json');
 
 // --------------------------------------------------------------- 표 유틸
 
@@ -259,8 +263,7 @@ function main() {
     results.push({ name: '⑤ 커버리지 집계', ok: null, ms: 0, detail: '미실행' });
   }
 
-  // ⑥ 해설 검증 — 해설 파일이 하나라도 있으면 **전체 모드**로 게이트한다.
-  // 집필 전(파일 0개)에는 게이트할 것이 없으므로 건너뛴다. 집필이 끝나면 자동으로 전 회차 필수가 된다.
+  // ⑥ 해설 검증 — **전체 모드**로 게이트한다. 파일이 0개면 FAIL(디렉터리 유실 탐지).
   let explainFiles = 0;
   try {
     explainFiles = fs.readdirSync(EXPLAIN_DIR).filter((f) => f.toLowerCase().endsWith('.json')).length;
@@ -271,15 +274,16 @@ function main() {
   } else if (explainFiles === 0) {
     console.log('');
     console.log('=== ⑥ 해설 검증 ===');
-    console.log('    data/explanations/*.json 이 0개 — 집필 전이므로 건너뜁니다.');
-    results.push({ name: '⑥ 해설 검증', ok: null, ms: 0, detail: '해설 파일 0개 — 건너뜀' });
+    console.error('    data/explanations/*.json 이 0개입니다 — 해설 자산이 통째로 사라졌습니다.');
+    results.push({ name: '⑥ 해설 검증', ok: false, ms: 0, detail: 'data/explanations/*.json 0개' });
+    failed = '⑥ 해설 검증';
   } else {
     const r = run('⑥ 해설 검증', [path.join(ROOT, 'scripts', 'validate-explanations.mjs')]);
     results.push({ name: '⑥ 해설 검증', ok: r.ok, ms: r.ms, detail: r.detail });
     if (!r.ok) failed = '⑥ 해설 검증';
   }
 
-  // ⑦ 유형 검증 — 분류 파일이 하나라도 있으면 **전체 모드**로 게이트한다(⑥ 와 같은 규칙).
+  // ⑦ 유형 검증 — ⑥ 과 같은 규칙(전체 모드 게이트, 0개면 FAIL).
   let typeFiles = 0;
   try {
     typeFiles = fs.readdirSync(TYPES_DIR).filter((f) => f.toLowerCase().endsWith('.json')).length;
@@ -290,15 +294,16 @@ function main() {
   } else if (typeFiles === 0) {
     console.log('');
     console.log('=== ⑦ 유형 검증 ===');
-    console.log('    data/types/*.json 이 0개 — 분류 전이므로 건너뜁니다.');
-    results.push({ name: '⑦ 유형 검증', ok: null, ms: 0, detail: '분류 파일 0개 — 건너뜀' });
+    console.error('    data/types/*.json 이 0개입니다 — 유형 분류 자산이 통째로 사라졌습니다.');
+    results.push({ name: '⑦ 유형 검증', ok: false, ms: 0, detail: 'data/types/*.json 0개' });
+    failed = '⑦ 유형 검증';
   } else {
     const r = run('⑦ 유형 검증', [path.join(ROOT, 'scripts', 'validate-types.mjs')]);
     results.push({ name: '⑦ 유형 검증', ok: r.ok, ms: r.ms, detail: r.detail });
     if (!r.ok) failed = '⑦ 유형 검증';
   }
 
-  // ⑧ 언어 검증 — 코드 문항 언어 오버레이. ⑦ 과 같은 규칙(파일이 하나라도 있으면 전체 모드 게이트).
+  // ⑧ 언어 검증 — 코드 문항 언어 오버레이. ⑦ 과 같은 규칙(전체 모드 게이트, 0개면 FAIL).
   let langFiles = 0;
   try {
     langFiles = fs.readdirSync(LANGS_DIR).filter((f) => f.toLowerCase().endsWith('.json')).length;
@@ -309,12 +314,29 @@ function main() {
   } else if (langFiles === 0) {
     console.log('');
     console.log('=== ⑧ 언어 검증 ===');
-    console.log('    data/langs/*.json 이 0개 — 분류 전이므로 건너뜁니다.');
-    results.push({ name: '⑧ 언어 검증', ok: null, ms: 0, detail: '분류 파일 0개 — 건너뜀' });
+    console.error('    data/langs/*.json 이 0개입니다 — 언어 분류 자산이 통째로 사라졌습니다.');
+    results.push({ name: '⑧ 언어 검증', ok: false, ms: 0, detail: 'data/langs/*.json 0개' });
+    failed = '⑧ 언어 검증';
   } else {
     const r = run('⑧ 언어 검증', [path.join(ROOT, 'scripts', 'validate-langs.mjs')]);
     results.push({ name: '⑧ 언어 검증', ok: r.ok, ms: r.ms, detail: r.detail });
     if (!r.ok) failed = '⑧ 언어 검증';
+  }
+
+  // ⑨ 문항 서명 — data/.qfingerprint.json 대조. 파일이 없으면 **건너뛰지 않고 FAIL** 한다
+  // (그 파일은 커밋 대상이고, 없다는 것 자체가 재번호 사고를 못 잡는 상태라는 뜻이다).
+  if (failed) {
+    results.push({ name: '⑨ 문항 서명', ok: null, ms: 0, detail: '미실행' });
+  } else if (!fs.existsSync(FINGERPRINT_FILE)) {
+    console.log('');
+    console.log('=== ⑨ 문항 서명 ===');
+    console.error('    data/.qfingerprint.json 이 없습니다 — `node scripts/fingerprint-questions.mjs --write` 로 만들고 커밋하십시오.');
+    results.push({ name: '⑨ 문항 서명', ok: false, ms: 0, detail: 'data/.qfingerprint.json 없음' });
+    failed = '⑨ 문항 서명';
+  } else {
+    const r = run('⑨ 문항 서명', [path.join(ROOT, 'scripts', 'fingerprint-questions.mjs')]);
+    results.push({ name: '⑨ 문항 서명', ok: r.ok, ms: r.ms, detail: r.detail });
+    if (!r.ok) failed = '⑨ 문항 서명';
   }
 
   // ------------------------------------------------------------- 요약 출력

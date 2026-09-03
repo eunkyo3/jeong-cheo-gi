@@ -63,7 +63,7 @@
 node scripts/validate-explanations.mjs --partial   # 존재하는 파일만 검사
 ```
 
-통과하면 `data/explanations/PROGRESS.md` 의 자기 행을 `완료` 로 바꾸고 다음 회차로 넘어간다.
+통과하면 `docs/explanations/PROGRESS.md` 의 자기 행을 `완료` 로 바꾸고 다음 회차로 넘어간다.
 전 회차가 끝나면 `npm run validate:explain` (전체 모드)가 통과해야 한다.
 
 ## 예시 (형태 참고용 — 실제 문항 해설 아님)

@@ -12,3 +12,18 @@ data/app.json.tmp-*
 data/reports.json
 data/reports.json.tmp-*
 .omc/
+
+# 환경·에디터·로그
+.env
+.env.*
+coverage/
+*.log
+.vscode/
+.idea/
+.DS_Store
+
+# 런타임 산출물 (레인 A: JSONL 신고 적재 + DB 마이그레이션 백업)
+data/reports.jsonl
+data/reports.json.migrated
+data/app.db.bak-*
+data/app.json.bak-*

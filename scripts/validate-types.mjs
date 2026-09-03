@@ -20,6 +20,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import qtypes from '../server/qtypes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(__filename), '..');
@@ -27,14 +28,12 @@ const DATA_DIR = path.join(ROOT, 'data');
 const ROUNDS_DIR = path.join(DATA_DIR, 'rounds');
 const TYPES_DIR = path.join(DATA_DIR, 'types');
 
-/** 동결 값 집합. 서버(server/rounds.js)의 TYPES 와 반드시 같아야 한다. */
-const TYPES = ['code', 'sql', 'theory'];
-const TYPE_SET = new Set(TYPES);
+// 동결 값 집합과 값 판정은 `server/qtypes.js` 한 곳에서 온다 — 검증기와 서버가 어긋날 수 없다.
+// (qtypes.js 는 fs 를 건드리지 않는 순수 모듈이라 여기서 import 해도 회차 데이터를 읽지 않는다.)
+const TYPES = qtypes.TYPES;
 
 /** 값 하나가 계약을 만족하는가. 단위 테스트가 직접 부를 수 있도록 순수 함수로 뽑아 둔다. */
-function isValidType(v) {
-  return typeof v === 'string' && TYPE_SET.has(v);
-}
+const isValidType = qtypes.isType;
 
 // ------------------------------------------------------------------ 유틸
 
