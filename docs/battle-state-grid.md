@@ -21,6 +21,12 @@
 - **`playing` 의 `leave` 는 즉시 제출로 간주한다**(비가역). 미제출이었다면 `submittedAt=at` 이 박히므로
   `leave` 도 `submit` 과 마찬가지로 **종료 트리거가 될 수 있다**(이탈로 명부 전원 제출이 완성되는 경우).
 - 타이머 key 는 `"{roomId}:{kind}"`. 존재하지 않는 key 의 `cancel` 은 무해(no-op).
+- `broadcast(battle:progress)` 는 **디바운스 여부와 무관하게 언제나 `debounceKey = "{roomId}:progress:{userId}"` 를 단다.**
+  `debounceMs` 가 붙은 것(=`answer`)만 실제로 지연되고, 붙지 않은 것(=`submit`·`playing` 의 `leave`)은
+  즉시 나가면서 **같은 키로 지연 중인 방송을 버린다**. 그래야 400ms 뒤 도착한 옛 진행 상황이
+  "제출 완료" 표시를 지우지 않는다. 버리는 일은 어댑터(`battle-io.js`)가 하고 리듀서는 키만 붙인다.
+- 방당 인원 상한은 `MAX_PLAYERS = 8` 이고 **리듀서가 유일한 집행 지점**이다 — 명부를 늘리는 길은 `join` 뿐이다.
+  전체 방 수(200)·사용자당 방 수(3) 상한은 방 **생성** 시점의 관심사라 `POST /api/rooms` 가 본다.
 
 ---
 
@@ -28,7 +34,7 @@
 
 | 이벤트 | 결과 상태 | 효과 |
 |---|---|---|
-| `join` | `waiting` | 신규면 명부 추가, 기존이면 `connected=true`·`left=false` 로 복귀. **방장이 비어 있으면(전원 퇴장 후 GC 유예 중) 입장자가 방장.** `cancel(roomGc)` + `broadcast(room:state)` |
+| `join` | `waiting` | 신규면 명부 추가, 기존이면 `connected=true`·`left=false` 로 복귀. **방장이 비어 있으면(전원 퇴장 후 GC 유예 중) 입장자가 방장.** `cancel(roomGc)` + `broadcast(room:state)`. **명부가 이미 `MAX_PLAYERS`(8)명이면 신규 입장만 거부 → 무시(ROOM_FULL 에러)** — 이미 명부에 있는 사람의 복귀는 정원을 늘리지 않으므로 언제나 통과한다 |
 | `leave` | `waiting` | 명부에서 제거. 방장이 나가면 `playerOrder[0]` 로 방장 승계. `broadcast(room:state)`. 0명이 되면 `schedule(roomGc, at+60s)`. 명부에 없는 유저면 **무시(비참가자)** |
 | `start` | `countdown` | 방장 + 2인 이상일 때만. `cancel(roomGc)` + `schedule(countdown, at+3s)` + `broadcast(room:state)`. 방장 아님 → **무시(NOT_HOST 에러)**, 2인 미만 → **무시(NEED_TWO_PLAYERS 에러)** |
 | `answer` | `waiting` | **무시(NOT_PLAYING 에러)** — 대전 시작 전 |
@@ -72,7 +78,7 @@
 | `tick` | `at >= deadline` → `finished`<br>그 외 → `playing` | 마감 전이면 `broadcast(battle:tick,{remainingMs})`. **`at >= deadline` 이면 즉시 종료 처리**(절전 복귀 방어 — 서버 재검증) |
 | `timeout(countdown)` | `playing` | **무시(stale)** |
 | `timeout(deadline)` | `at >= deadline` → `finished`<br>그 외 → `playing` | 정상이면 종료 처리. 타이머가 이르게 깨어났으면 **무시하고 `schedule(deadline)` 재예약** |
-| `timeout(abandon)` | 접속자 0 → `abandoned`<br>그 외 → `playing` | 접속자 0이면 `abandoned` + `cancel(deadline)`, **`persist` 이펙트 없음(전적 미기록)**. 누군가 돌아왔으면 **무시(stale)** |
+| `timeout(abandon)` | 접속자 0 → `abandoned`<br>그 외 → `playing` | 접속자 0이면 `abandoned` + `cancel(deadline)` + `cancel(abandon)`, **`persist` 이펙트 없음(전적 미기록)**, **`broadcast` 도 없음** — 접속자 0 이 전제라 수신자가 정의상 0명이고 방은 곧바로 파기된다(빈 `waiting` 방의 `timeout(roomGc)` 와 같은 취급). 누군가 돌아왔으면 **무시(stale)** |
 | `timeout(roomGc)` | `playing` | **무시(stale — start 에서 cancel 됨)** |
 
 ## 4. `finished` (12 셀)

@@ -10,28 +10,104 @@
 | GET | `/api/auth/me` | – | `{user}` 또는 `{user:null}` |
 | GET | `/api/rounds` | – | `[{round,title,questionCount,counts:{code,sql,theory},langs:{c,java,python}}]` (연도 그룹핑은 클라이언트. `langs` 는 그 회차 **코드 문항**의 언어별 개수) |
 | GET | `/api/rounds/:id` | `?type=code\|sql\|theory` · `?lang=c\|java\|python` (둘 다 선택) | `{round,title,sourceUrl,type,lang,questions:[{id,num,prompt,bodyHtml,type,lang,fields:[{label}]}]}` |
-| POST | `/api/rounds/:id/grade` | `{answers:{qid:[string]}, type?:"code"\|"sql"\|"theory", lang?:"c"\|"java"\|"python"}` | `{round,type,lang,correctCount,totalCount,score,details[],bodyTexts{},explanations{}}` (로그인 시 `study_results` 적재) |
-| GET | `/api/practice` | `?rounds=all\|<id,id,…>&count=<5..60>&type=&lang=` (선택) | `{setKey:"practice", title, roundIds[], type, lang, questions:[…공개 문항]}` / 400 |
-| POST | `/api/practice/grade` | `{setKey:"practice"\|"wrong", answers:{qid:[string]}}` | 회차 채점과 동일 형태(`round`=setKey) / 400 |
-| GET | `/api/me/history` | – (로그인 필수) | `{rounds:{setKey:{count,best,last,lastAt}}, recent:[{round,score,takenAt,total,correct}](≤20, 최신 먼저), wrongCount}` — `round==="battle"` 인 recent 항목에는 `matchId, roomName` 이 더 붙는다(`match_id` 가 없는 예전 기록은 안 붙는다) |
-| GET | `/api/me/wrong` | `?type=&lang=` (선택, 로그인 필수) | `{setKey:"wrong", title:"오답노트", type, lang, round:null, questions:[…공개 문항]}` |
+| POST | `/api/rounds/:id/grade` | `{answers:{qid:[string]}, type?:"code"\|"sql"\|"theory", lang?:"c"\|"java"\|"python"}` (**로그인 필수**) | `{round,type,lang,correctCount,totalCount,score,details[],bodyTexts{},explanations{}}` + `study_results` 적재 / 401 / 409 / 429 |
+| GET | `/api/practice` | `?rounds=all\|<id,id,…>&count=<5..60>&type=&lang=` (선택) | `{setKey:"practice", title, roundIds[], type, lang, setToken, questions:[…공개 문항]}` / 400 — `setToken` 은 로그인했을 때만 채워진다(비로그인은 `""`) |
+| POST | `/api/practice/grade` | `{setKey:"practice"\|"wrong", setToken, answers:{qid:[string]}}` (**로그인 필수**) | 회차 채점과 동일 형태(`round`=setKey) / 400 / 401 / 409 / 429 |
+| GET | `/api/me/history` | – (로그인 필수) | `{rounds:{setKey:{count,best,last,lastAt}}, recent:[{round,score,takenAt,total,correct}](≤20, 최신 먼저), wrongCount, truncated}` — `round==="battle"` 인 recent 항목에는 `matchId, roomName` 이 더 붙는다(`match_id` 가 없는 예전 기록은 안 붙는다). `truncated:true` 면 집계가 최근 1000건만 훑은 것이다(`best` 는 DB 집계라 그래도 정확하다) |
+| GET | `/api/me/wrong` | `?type=&lang=` (선택, 로그인 필수) | `{setKey:"wrong", title:"오답노트", type, lang, round:null, setToken, questions:[…공개 문항]}` |
 | GET | `/api/me/wrong` | `?round=<회차 id>[&type=][&lang=]` | 그 회차의 **현재 오답**만. `title:"오답노트 · 2024년 1회"`, `round` 는 회차 id / 없는 회차는 400 |
-| GET | `/api/me/wrong` | `?match=<매치 id>[&type=][&lang=]` | **그 대전에서 틀린 문항 전부**(지금은 맞힌 것 포함, 과거 스냅샷). `{…, title:"오답노트 · 대전 <방이름>", match, battle:{…아래 대전 머리말}, resolvedIds:[지금은 오답이 아닌 id], questions}` / 정수가 아닌 값 400 / 내 대전이 아니거나 없는 id 404 |
+| GET | `/api/me/wrong` | `?match=<매치 id>[&type=][&lang=]` | **그 대전에서 틀린 문항 전부**(지금은 맞힌 것 포함, 과거 스냅샷). `{…, title:"오답노트 · 대전 <방이름>", match, battle:{…아래 대전 머리말}, resolvedIds:[지금은 오답이 아닌 id], setToken, questions}` / 정수가 아닌 값 400 / 내 대전이 아니거나 없는 id 404 |
 | GET | `/api/me/wrong/summary` | – (로그인 필수) | `{total, byRound:[{round,title,count,counts:{code,sql,theory},langs:{c,java,python}}], byBattle:[{…대전 머리말, wrongCount, stillWrongCount, wrongQuestions:[{id,num,prompt,type,lang,stillWrong}]}]}` — byRound 는 회차 순·오답 0 인 회차 제외, byBattle 은 최신 먼저 |
-| GET | `/api/me/wrong/explain` | `?ids=<qid,qid,…>` 1~50개 (로그인 필수) | `{explanations:{qid:{display,html}}}` — **채점 전 비노출의 유일한 예외**. 사용자가 이미 채점 기록을 가진 문항만 담고 나머지는 조용히 생략한다(403 아님). 비로그인 401 / ids 가 비었거나 50개 초과면 400 |
-| POST | `/api/reports` | `{questionId, myAnswer, comment}` | `{ok:true}` → `data/reports.json` 적재 |
+| GET | `/api/me/wrong/explain` | `?ids=<qid,qid,…>` 1~50개 (로그인 필수) | `{explanations:{qid:{display,html}}}` — **채점 전 비노출의 유일한 예외**. 사용자가 이미 채점 기록을 가진 문항만 담고 나머지는 조용히 생략한다(403 아님). **지금 진행 중인 대전에 걸린 문항도 같은 규칙으로 생략한다**(전부 잠기면 빈 맵 200). 비로그인 401 / ids 가 비었거나 50개 초과면 400 |
+| POST | `/api/reports` | `{questionId, myAnswer, comment}` | `{ok:true}` → `data/reports.jsonl` 한 줄 적재 (**로그인 필수**, 사용자당 분당 5건, `myAnswer` 10칸·칸당 500자, 파일 8MB 상한 초과 시 507) |
 | POST | `/api/rooms` | `{name, mode:"round"\|"random", roundIds[], questionCount(5\|10\|20, random만), type?:"code"\|"sql"\|"theory", lang?:"c"\|"java"\|"python", timeLimitS(600\|1200\|1800), inviteUserIds?:number[](최대 8, 생성자·정수 아닌 값 무시)}` | `{roomId}` |
-| GET | `/api/rooms` | – | `[{roomId,name,host,playerCount,mode,state,questionCount,type,lang,timeLimitS}]` (waiting 이면서 참가자 1명 이상인 방만 — 전원 퇴장 후 GC 유예 중인 빈 방은 제외) |
+| GET | `/api/rooms` | – (**로그인 필수**) | `[{roomId,name,host,playerCount,mode,state,questionCount,type,lang,timeLimitS}]` (waiting 이면서 참가자 1명 이상인 방만 — 전원 퇴장 후 GC 유예 중인 빈 방은 제외) |
 | GET | `/api/ranking` | – | `[{rank,userId,nickname,wins,draws,losses,points}]` |
 
 **에러 규약**: REST 는 400 `{error:"사유"}` (잘못된 설정값, **선택 회차의 유효 문항 총합 < questionCount**),
-401(미로그인), 404(없는 방/회차, **내 것이 아니거나 없는 매치 id**). 소켓은 `error` 이벤트 `{code, message}`.
+401(미로그인), 404(없는 방/회차, **내 것이 아니거나 없는 매치 id**),
+409(**진행 중인 대전의 문항을 채점하려 함**), 429(사용자당 동시 방 3개 초과, **사용자당 채점 분당 20회 초과**),
+503(전체 동시 방 200개 초과). 소켓은 `error` 이벤트 `{code, message}`.
+
+**방 수·인원 상한 (동결)**: 전체 동시 방 **200**개(초과 시 `POST /api/rooms` 503), 사용자당 방장인 방 **3**개(429),
+방당 참가자 **8**명(소켓 `error` 코드 `ROOM_FULL`). 앞의 둘은 방 생성 라우트가, 마지막은 리듀서의 `join` 이 집행한다.
+방 이름은 제어문자·폭 0 문자·양방향 재정의 문자를 **제거**한 뒤 30자로 자르고, 남는 게 없으면 `"<닉네임>의 방"` 이 된다.
+
+**소켓 `error` 코드 목록 (동결)**
+
+| 코드 | 언제 |
+|---|---|
+| `BAD_PAYLOAD` | `roomId` 누락, `questionId` 누락·빈 문자열·**64자 초과** |
+| `NO_ROOM` | 없는 방으로 `room:join`, 또는 참여 중인 방 없이 `room:start`/`battle:answer`/`battle:submit` |
+| `ROOM_FULL` | `join` 시 명부가 이미 8명 (신규 입장만 거부 — 기존 참가자의 복귀는 통과) |
+| `ROOM_NOT_JOINABLE` | `countdown`/`playing` 방에 `join` |
+| `NOT_HOST` | 방장이 아닌 사람의 `room:start` |
+| `NEED_TWO_PLAYERS` | 2인 미만에서 `room:start` |
+| `ALREADY_STARTED` | `countdown`/`playing` 에서 `room:start` |
+| `NOT_PLAYING` | `waiting`/`countdown` 에서 `battle:answer`/`battle:submit` |
+| `NOT_IN_ROOM` | 명부에 없는 사용자의 `battle:answer`/`battle:submit` |
+| `ALREADY_SUBMITTED` | 제출 후의 `battle:answer`/`battle:submit` (제출은 비가역) |
+| `UNKNOWN_QUESTION` / `BAD_FIELD` | 이 방의 문항이 아니거나 없는 입력 칸 |
+| `SESSION_REPLACED` | 같은 계정이 다른 곳에서 접속해 이 소켓을 끊는다 |
+
+`battle:answer` 는 **소켓당 레이트리밋**이 걸린다(초당 20건, 폴백은 50ms 최소 간격).
+상한을 넘긴 이벤트는 `error` 를 되돌리지 않고 **조용히 버린다** — 에러 방송이 그 자체로 부하가 되기 때문이다.
 
 **모의고사·오답노트**: `/api/practice` 는 `battle.js` 의 `buildQuestionSet({mode:'random'})` 을 그대로 쓴다(회차별 균등 배분).
-`/api/practice/grade` 는 회차가 고정돼 있지 않으므로 **제출한 `answers` 의 키**로 문항 집합을 복원한다 —
-모르는 문항 id 는 무시하고, 실존 문항이 0개면 400, 한 번에 최대 200문항까지 채점한다.
 오답노트 판정은 **문항별 가장 최근 채점 결과**를 따른다: `wrong_ids` 에 있으면 오답, `question_ids` 에만 있으면 해제.
 `question_ids` 가 없는 예전 기록은 문항 단위 판정이 불가능하므로 건너뛴다.
+
+### 채점 (동결) — 누가·무엇을 채점하는지는 서버가 정한다
+
+두 채점 경로 모두 **`requireAuth` 뒤에 있다**. 채점 응답에는 정답 표기(`display`)와 해설이 실리므로,
+무인증으로 열려 있으면 문항 id 만 알면 정답을 받아낼 수 있는 **오라클**이 된다(보안 C-1).
+라우트 순서는 `requireAuth` → 레이트리밋 → 본문 검증이다 — 잘못된 본문이라도 비로그인이면 401 이지 400 이 아니다.
+
+**채점 집합은 클라이언트가 정하지 못한다.**
+
+| 경로 | 집합을 정하는 것 |
+|---|---|
+| `POST /api/rounds/:id/grade` | 경로의 회차 + 본문 `type`·`lang` 필터. 서버가 회차 파일에서 직접 고른다 |
+| `POST /api/practice/grade` | 본문 `setToken` — **서버가 발급한 서명 토큰**뿐이다 |
+
+`setToken` 은 `GET /api/practice` 와 `GET /api/me/wrong`(세 갈래 전부) 응답에 실려 나온다.
+`server/settoken.js` 가 만들고 검증한다 — `base64url({uid, qs:[문항 id], iat}) + "." + HMAC-SHA256`,
+키는 세션 쿠키와 같은 `auth.loadSecret()`, **만료 6시간**, 상수시간 비교, 문항 200개 상한.
+토큰이 없거나·위조됐거나·다른 사용자 것이거나·만료됐으면 **400** 이다(채점도 해설도 나가지 않는다).
+
+**서명 도메인 접두사 (동결)**: 세 가지 토큰이 `auth.loadSecret()` **한 키**를 공유하므로,
+HMAC 입력 앞에 용도 문자열을 붙여 서로 통하지 않게 한다. 접두사는 **토큰 문자열에 나타나지 않고**
+서명 입력에만 들어간다 — 토큰 모양은 전부 `base64url(payload).base64url(sig)` 그대로다.
+
+| 토큰 | 접두사 | 만드는 곳 |
+|---|---|---|
+| 세션 쿠키 `jpk_sess` | `jpk_sess.v1:` | `server/auth.js` |
+| 관리자 쿠키 `jpk_admin` | `jpk_admin.v1:` | `server/admin.js` |
+| 채점 세트 토큰 `setToken` | `jpk_set.v1:` | `server/settoken.js` |
+
+접두사가 없던 동안 `GET /api/practice` 의 `setToken` 을 `Cookie: jpk_sess=…` 로 넣으면
+**세션 쿠키로 통했다**(Phase 3 재검토에서 PoC 확인 — `/api/auth/me` 가 그 사용자를 돌려줬다).
+payload 모양으로 거르는 방어는 다른 모듈의 규율에 기대는 것이라 언제든 어긋난다 —
+도메인 분리는 **서명 자체**가 한다. **새 용도의 토큰을 추가하면 새 접두사를 반드시 붙여라.**
+`jpk_set.v1:` 에는 접두사 이전 토큰을 받아 주는 갈래가 **없다**(두면 구멍이 그대로 남는다).
+최대 6시간짜리라 영향은 "그 순간 풀던 세트를 다시 불러와야 한다" 가 전부다.
+
+`answers` 는 "토큰이 정한 각 칸에 뭘 적었는가" 만 말한다. 토큰 밖의 문항 id 는 `sanitizeAnswers` 가
+조용히 버리므로 `totalCount`·`details`·`bodyTexts`·`explanations`·`study_results.question_ids` 는
+전부 **토큰의 집합** 기준이다. 답을 적지 않은 문항도 집합에 있으면 분모에 든다(회차 채점과 같은 규칙).
+
+**진행 중인 대전의 문항은 채점할 수 없다** — `ctx.battleIo.activeBattleQuestionIds(userId)` 가 돌려준
+집합과 채점 집합이 하나라도 겹치면 **409** `{error:"진행 중인 대전의 문항은 채점할 수 없습니다."}` 다.
+`battle-io` 가 붙지 않은 기동(소켓 없이 띄운 경우)에서는 이 검사가 통과된다 — 부가 방어벽이고,
+정답 유출 자체는 로그인과 세트 토큰이 막는다.
+
+이 잠금은 **`display`·해설을 내보내는 모든 경로**에 걸린다. 판정은 `server/battlelock.js`
+(`create(ctx) → {activeIds, blocks}`) 한 곳에만 두고 두 경로가 같은 객체를 쓴다 —
+채점은 `blocks()` 로 집합을 통째로 거절(409)하고, `GET /api/me/wrong/explain` 은 `activeIds()` 로
+잠긴 문항만 조용히 생략한다. **새로 정답·해설을 내보내는 경로를 추가하면 여기를 반드시 통과시켜라.**
+
+**레이트리밋**: 사용자당 **분당 20회**(`server/ratelimit.js`, 키는 사용자 id). 초과하면 **429** 이고
+`Retry-After` 헤더가 붙는다. 거부된 요청은 카운터를 더 밀지 않는다.
 
 **오답노트 허브 — 회차별 / 대전별 (동결)**
 
@@ -58,6 +134,10 @@
 (각각 결과 화면 AI 질문 복사용·유형 뱃지용·언어 뱃지용).
 `/api/rounds/:id` 는 학습 모드 채점 응답의 `bodyTexts` 맵으로 채점 후에만 내보낸다. `sourceImages` 는 어느 쪽에도 보내지 않는다.
 회차 id 는 **인메모리 화이트리스트**로 검사해 경로 순회를 차단한다.
+
+화이트리스트 구현은 `server/qtypes.js` 의 `publicQuestion(q, opts)` **하나뿐이다**.
+`rounds.publicQuestion()` 은 옵션 없이, `battle.publicQuestion()` 은 `{bodyText:true, answerMode:true}` 로 부른다 —
+학습 REST 와 대전의 차이는 그 두 필드가 전부이고, 금지 필드 제거 규칙은 완전히 공통이다(SCHEMA.md 의 표).
 
 ### 문항 유형 필터 (동결)
 
@@ -127,7 +207,8 @@
 - **나가지 않는 곳**: `GET /api/rounds/:id`, `GET /api/practice`, `GET /api/me/wrong`(`?round=`·`?match=` 포함),
   `GET /api/me/wrong/summary`, `battle:questions`, `battle:resync`, `battle:marks` — 전부 `publicQuestion()`
   화이트리스트(요약은 `id`·`num`·`prompt`·`type`·`lang` 만 싣는 더 좁은 목록)를 거치므로 `explanationHtml` 은 구조적으로 실리지 않는다.
-- **나가는 곳(채점 후에만)**:
+- **나가는 곳(채점 후에만)** — 두 채점 경로 모두 **로그인 필수**이고 채점 집합을 서버가 정한다
+  (위 "채점" 절). 그래서 "채점 후" 는 "그 사용자가 서버가 내준 세트를 실제로 제출한 뒤" 라는 뜻이다:
   - `POST /api/rounds/:id/grade` · `POST /api/practice/grade` → 최상위 `explanations: {qid: html}`
     (`bodyTexts` 와 같은 패턴. 해설이 없는 문항은 **빈 문자열**이므로 키는 언제나 전 문항을 덮는다)
   - `battle:finished` → 최상위 `explanations: {qid: html}` (수신자와 무관하게 **모두 같은 맵**)
@@ -139,6 +220,16 @@
   이 경로에서만 `display`(정답 표기)도 채점 전에 나간다. 권한이 없거나 없는 문항 id 는
   **조용히 생략**한다 — 403 을 주면 "그 문항이 존재하는가"가 새기 때문이다.
   **이 한 경로 말고는** 어떤 경로로도 채점 전 해설·`display` 가 나가지 않는다.
+- **예외의 예외 — 대전 잠금**: "이미 채점받았으니 새로 새는 정보가 없다" 는 전제는 **대전 중에는
+  성립하지 않는다**. 지금 그 답을 맞히면 점수가 되기 때문이다. 그래서 이 경로도 채점 라우트와
+  **같은 잠금**을 통과한다 — `ctx.battleIo.activeBattleQuestionIds(userId)` 에 든 문항 id 는
+  채점 이력이 있어도 **조용히 생략**한다(권한 없는 id 와 같은 처리다. 이 경로는 409 를 쓰지 않는다 —
+  응답 형태를 하나로 두면 프런트가 분기할 게 없고, 잠긴 문항만 빠진 부분 응답도 그대로 쓸 수 있다).
+  전부 잠겨 있으면 `{explanations:{}}` 200 이다. 판정은 `server/battlelock.js` **한 곳**에만 있고
+  `routes/study.js`(채점 409)와 `routes/me.js`(해설 생략)가 같은 객체를 쓴다 — 사본을 두면 어긋난다.
+  **막힌 경위**: 잠금이 채점 라우트에만 있던 동안, 예전에 학습 모드로 채점해 둔 회차로 대전을
+  시작하면 `POST /api/rounds/2023-3/grade` 는 409 인데 `GET /api/me/wrong/explain` 으로는
+  그 회차 전 문항의 `display` 가 그대로 나왔다(Phase 3 재검토에서 PoC 확인).
 
 프런트는 채점 결과에서만 이 맵을 읽어 "해설 보기" 토글로 `.explain-box` 에 `innerHTML` 로 넣는다 —
 서버가 `validate:explain` 으로 태그 화이트리스트를 강제한 신뢰 마크업이기 때문이다.
@@ -169,8 +260,8 @@
 | `room:invite` | S→C | `{roomId, name, fromUserId, fromNickname, settings:{mode, roundIds, questionCount, type, lang, timeLimitS}}` — `POST /api/rooms` 의 `inviteUserIds` 중 **지금 소켓이 붙어 있는** 대상에게 1회 배달. 상태를 만들지 않으며(보관·재시도 없음) 받은 쪽이 `room:join` 을 보내야 참가다 |
 | `room:state` | S→C | `{state, players:[{userId,nickname,connected}], settings:{roomId,name,hostUserId,mode,roundIds,questionCount,type,lang,timeLimitS}}` — 방 상태 변경 시 브로드캐스트. `settings.type`·`settings.lang` 은 방 생성 시 고정된 유형·언어(전체면 `null`) |
 | `battle:questions` | S→C | `{questions[](정답·sampleAnswer 제외, 각 문항에 `type`·`lang` 포함), deadlineInfo}` — countdown 종료 시 |
-| `battle:answer` | C→S | `{questionId, fieldIndex, value}` — 서버가 실시간 보관(제출 아님) |
-| `battle:progress` | S→C | `{userId, answeredCount}` — 400ms 디바운스 브로드캐스트, **정오 비공개** |
+| `battle:answer` | C→S | `{questionId, fieldIndex, value}` — 서버가 실시간 보관(제출 아님). `questionId` 는 **64자 이하 문자열**, `value` 는 500자에서 잘린다. 소켓당 레이트리밋 초과분은 조용히 버려진다 |
+| `battle:progress` | S→C | `{userId, answeredCount, submitted?}` — **정오 비공개**. `answer` 로 나가는 것은 400ms 트레일링 디바운스, 제출·이탈로 나가는 것(`submitted:true`)은 **즉시** 나가면서 같은 사용자의 지연 중인 방송을 **버린다**(옛 진행 상황이 제출 표시를 덮어쓰지 않게) |
 | `battle:submit` | C→S | `{}` — **명시적·비가역**. 서버가 submitted_at 기록, 이후 `battle:answer` 거부 |
 | `battle:marks` | S→C | `{players:[{userId, nickname, marks:{"<qid>": true\|false}}]}` — **제출자에게만 개별 발송(`to=userId`)**. 새 제출이 생길 때마다 제출 완료자 전원에게 최신 전체 목록 재발송. **정오 불리언만** |
 | `battle:tick` | S→C | `{remainingMs}` — 10초 주기 재동기 |
@@ -197,7 +288,7 @@ waiting → countdown(3s) → playing → finished(방 파기)
 ```
 
 전이 규칙:
-- `join` 은 **waiting 에서만**.
+- `join` 은 **waiting 에서만**, 그리고 **명부 8명까지**(초과 시 `ROOM_FULL`).
 - `start` 는 **방장 + 2인 이상**.
 - countdown 중 1인이 되면 **취소 → waiting**.
 - **playing → finished 트리거 2종**: ① 전원 제출, ② deadline 경과(서버 재검증).

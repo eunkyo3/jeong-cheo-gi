@@ -14,7 +14,15 @@
  *   (2) tests/grader.test.mjs 에 해당 타입 단위 테스트 추가
  *   (3) `npm run validate` 전 회차 재실행 통과
  * 이 절차 밖의 grader 수정은 금지.
+ *
+ * 절차의 유일한 예외(서버 H-1, 2026-09-02): **validator 예외를 오답으로 강등하는 방어벽**.
+ * `runValidator` 는 카탈로그에 없는 타입·깨진 CIDR 같은 데이터 오류에 예외를 던진다. 그 예외가
+ * `gradeSet` 밖으로 나가면 대전 리듀서 안에서 삼켜져 방이 영구 정지하고 전적이 사라졌다.
+ * 채점 규칙은 한 글자도 바뀌지 않는다 — 던지던 자리가 `correct:false` 가 될 뿐이고,
+ * 원인은 `logErr` 로 (문항 id, validator 타입) 당 한 번 남는다.
  */
+
+const logger = require('./logger.js');
 
 // ---------------------------------------------------------------- normalize
 
@@ -132,7 +140,35 @@ function runValidator(spec, rawValue) {
 
 // -------------------------------------------------------------- 필드 매칭
 
-function fieldAccepts(field, rawValue) {
+/**
+ * validator 예외를 이미 한 번 보고한 (문항 id, validator 타입) 짝.
+ * 20문항 × 채점 수천 번이어도 로그는 짝당 한 줄이다. 크기는 데이터가 가진 짝 수로 묶여 있다.
+ */
+const reportedValidatorFaults = new Set();
+
+/**
+ * fieldAccepts(field, rawValue, questionId?) → boolean
+ * `questionId` 는 로그용이다(없어도 판정은 같다 — golden-check 처럼 필드만 들고 부르는 곳이 있다).
+ *
+ * validator 가 던지면 **오답으로 강등**한다. 데이터 오류 하나가 대전 한 판을 멈추게 하는 것보다,
+ * 그 문항만 오답이 되고 서버 로그에 원인이 남는 편이 낫다(서버 H-1).
+ */
+function fieldAccepts(field, rawValue, questionId) {
+  try {
+    return acceptsOrThrow(field, rawValue);
+  } catch (e) {
+    const key = String(questionId == null ? '(문항 미상)' : questionId) + '|'
+      + (field && field.validator ? String(field.validator.type) : 'normalize:' + String(field && field.normalize));
+    if (!reportedValidatorFaults.has(key)) {
+      reportedValidatorFaults.add(key);
+      logger.logErr('채점 규칙 예외 — 해당 필드를 오답 처리했습니다.', key, '-', e && e.message);
+    }
+    return false;
+  }
+}
+
+/** 원래의 판정 로직. 던지는 경로가 여기 남아 있고, 강등은 위 `fieldAccepts` 가 한다. */
+function acceptsOrThrow(field, rawValue) {
   if (field.validator) return runValidator(field.validator, rawValue);
   const mode = field.normalize || 'default';
   const got = normalizeValue(mode, rawValue);
@@ -147,13 +183,13 @@ function fieldAccepts(field, rawValue) {
 
 // -------------------------------------------------------------- 문항 채점
 
-function gradeOrdered(fields, answers) {
+function gradeOrdered(fields, answers, questionId) {
   return fields.map(function (f, i) {
     return {
       fieldIndex: i,
       label: f.label == null ? null : f.label,
       given: String(answers[i] == null ? '' : answers[i]),
-      correct: fieldAccepts(f, answers[i]),
+      correct: fieldAccepts(f, answers[i], questionId),
     };
   });
 }
@@ -165,8 +201,11 @@ function gradeOrdered(fields, answers) {
  *   → 중복 제거 후 입력 수 < 필드 수 이면 완전 매칭 실패(오답).
  * 전제: unordered 문항은 전 필드가 동일 normalize (validate-data.mjs 에서 강제 — dedupe 기준 단일화).
  */
-function gradeUnordered(fields, answers) {
-  const mode = (fields[0] && fields[0].normalize) || 'default';
+function gradeUnordered(fields, answers, questionId) {
+  // 카탈로그에 없는 normalize 값은 dedupe 기준을 세울 수 없다 — default 로 떨어뜨린다.
+  // (그런 필드는 아래 fieldAccepts 에서 어차피 전부 오답으로 강등된다. 서버 H-1 과 같은 취지.)
+  const raw0 = (fields[0] && fields[0].normalize) || 'default';
+  const mode = NORMALIZERS[raw0] ? raw0 : 'default';
 
   // 원본 슬롯 인덱스를 유지한 채 정규화 후 중복 제거
   const seen = new Set();
@@ -182,7 +221,7 @@ function gradeUnordered(fields, answers) {
   // 인접 리스트: candidate c 가 field f 를 만족하는가
   const adj = candidates.map(function (c) {
     const ok = [];
-    for (let f = 0; f < fields.length; f++) if (fieldAccepts(fields[f], c.raw)) ok.push(f);
+    for (let f = 0; f < fields.length; f++) if (fieldAccepts(fields[f], c.raw, questionId)) ok.push(f);
     return ok;
   });
 
@@ -238,10 +277,10 @@ function gradeQuestion(question, answers) {
     return { questionId: question.id, correct: false, fieldResults: [], display: display };
   }
   if (question.answerMode === 'unordered') {
-    const r = gradeUnordered(fields, given);
+    const r = gradeUnordered(fields, given, question.id);
     return { questionId: question.id, correct: r.complete, fieldResults: r.fieldResults, display: display };
   }
-  const fieldResults = gradeOrdered(fields, given);
+  const fieldResults = gradeOrdered(fields, given, question.id);
   return {
     questionId: question.id,
     correct: fieldResults.every(function (r) { return r.correct; }),

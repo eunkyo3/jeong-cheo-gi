@@ -15,10 +15,11 @@
  *
  * 상태×이벤트 60셀 전수 표는 `docs/battle-state-grid.md` 에 있다.
  *
- * require 는 grader.js 하나뿐이다 — 순수 함수 모듈이라 리듀서의 순수성을 깨지 않는다.
+ * require 는 grader.js·qtypes.js 둘뿐이다 — 둘 다 순수 함수 모듈이라 리듀서의 순수성을 깨지 않는다.
  */
 
 const { gradeSet } = require('./grader.js');
+const qtypes = require('./qtypes.js');
 
 // --------------------------------------------------------------- 상수
 
@@ -26,10 +27,33 @@ const STATES = ['waiting', 'countdown', 'playing', 'finished', 'abandoned'];
 const EVENTS = ['join', 'leave', 'start', 'answer', 'submit', 'disconnect', 'connect', 'tick', 'timeout'];
 const TIMEOUT_KINDS = ['countdown', 'deadline', 'abandon', 'roomGc'];
 
-const COUNTDOWN_MS = 3000;      // waiting → playing 사이 카운트다운
-const ABANDON_GRACE_MS = 60000; // playing 중 전원 끊김 유예
-const ROOM_GC_MS = 60000;       // 빈 waiting 방 삭제 유예
+/**
+ * 타이머 상수 3종은 **env 로 줄일 수 있다**. e2e 가 60초짜리 유예(abandon·roomGc)와 3초 카운트다운을
+ * 실시간으로 기다리지 않고 그 경로를 검증하기 위한 것이다(서버 M-14).
+ * `BATTLE_TIME_OVERRIDE_S` 와 같은 규율을 따른다:
+ *   - `NODE_ENV=production` 이면 **무조건 기본값**(실서버에서 켜질 수 없다).
+ *   - 값이 없거나 0 이상의 정수가 아니면 기본값.
+ * 모듈 로드 시 1회만 읽으므로 리듀서는 여전히 순수하다(호출마다 달라지는 입력이 아니다).
+ */
+function envMs(name, fallback) {
+  if (process.env.NODE_ENV === 'production') return fallback;
+  const raw = process.env[name];
+  if (raw == null || raw === '') return fallback;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0) return fallback;
+  return n;
+}
+
+const COUNTDOWN_MS = envMs('BATTLE_COUNTDOWN_MS', 3000);          // waiting → playing 사이 카운트다운
+const ABANDON_GRACE_MS = envMs('BATTLE_ABANDON_GRACE_MS', 60000); // playing 중 전원 끊김 유예
+const ROOM_GC_MS = envMs('BATTLE_ROOM_GC_MS', 60000);             // 빈 waiting 방 삭제 유예
 const PROGRESS_DEBOUNCE_MS = 400;
+/**
+ * 방 1개의 참가자 상한. 종료 페이로드가 참가자 수의 제곱에 비례해 커지고(answersByUser × marksByUser)
+ * 결과 화면도 그 이상은 읽을 수 없다 — 보안 리뷰 M-6 의 "방당 8명".
+ * 여기(리듀서)가 유일한 집행 지점이다: REST 로 들어오든 소켓으로 들어오든 명부를 늘리는 길은 `join` 뿐이다.
+ */
+const MAX_PLAYERS = 8;
 
 // --------------------------------------------------------- effect 생성기
 
@@ -132,49 +156,52 @@ function connectedCount(s) {
   return n;
 }
 
-/** 문항 유형 동결 집합. server/rounds.js · scripts/validate-types.mjs 와 반드시 같아야 한다. */
-const TYPES = ['code', 'sql', 'theory'];
-const DEFAULT_TYPE = 'theory';
-
-/** 문항·방 설정의 유형 정규화. 허용되지 않은 값은 null(= 전체). */
-function normalizeType(v) {
-  return typeof v === 'string' && TYPES.indexOf(v) !== -1 ? v : null;
-}
-
-/** 코드 문항 언어 동결 집합. server/rounds.js · scripts/validate-langs.mjs 와 반드시 같아야 한다. */
-const LANGS = ['c', 'java', 'python'];
-
-/** 문항·방 설정의 언어 정규화. 허용되지 않은 값은 null(= 전체). */
-function normalizeLang(v) {
-  return typeof v === 'string' && LANGS.indexOf(v) !== -1 ? v : null;
-}
-
+// 유형·언어 동결 집합과 정규화기는 전부 `server/qtypes.js` 한 곳에서 온다
+// (rounds.js·validate-types.mjs·validate-langs.mjs 도 같은 곳을 본다 — 복제 금지).
+const TYPES = qtypes.TYPES;
+const DEFAULT_TYPE = qtypes.DEFAULT_TYPE;
+const LANGS = qtypes.LANGS;
+const normalizeType = qtypes.normalizeType;
+const normalizeLang = qtypes.normalizeLang;
 /** 문항의 언어. **코드 유형에만** 값이 있다 — 유형과 달리 기본값이 없다(rounds.langOf 와 같은 규칙). */
-function questionLang(q) {
-  if ((normalizeType(q.type) || DEFAULT_TYPE) !== 'code') return null;
-  return normalizeLang(q.lang);
+const questionLang = qtypes.langOf;
+
+/**
+ * 문항 배열 → `Map(id → q)` 메모이제이션.
+ *
+ * `cloneState` 는 `questions` 를 **참조 그대로** 물려주므로(불변 데이터) 한 방의 전 이벤트가 같은 배열을
+ * 공유한다 → 방 생성 시 한 번 만든 색인을 방 수명 내내 재사용한다(보안 M-7 의 선형 탐색 제거).
+ * WeakMap 이라 방이 파기되면 색인도 함께 회수된다. 순수성은 유지된다 — 순수 함수의 메모이제이션이라
+ * 같은 입력에 같은 출력이고 상태를 밖으로 흘리지 않는다. `Map` 을 쓰므로 `constructor` 같은
+ * 프로토타입 키를 문항 id 로 보내도 오탐이 없다.
+ */
+const QUESTION_INDEX = new WeakMap();
+
+function questionIndexOf(questions) {
+  let idx = QUESTION_INDEX.get(questions);
+  if (idx) return idx;
+  idx = new Map();
+  for (let i = 0; i < questions.length; i++) {
+    if (!idx.has(questions[i].id)) idx.set(questions[i].id, questions[i]);
+  }
+  QUESTION_INDEX.set(questions, idx);
+  return idx;
 }
 
 function questionById(s, id) {
-  for (let i = 0; i < s.questions.length; i++) if (s.questions[i].id === id) return s.questions[i];
-  return null;
+  const q = questionIndexOf(s.questions).get(id);
+  return q === undefined ? null : q;
 }
 
-/** 클라이언트로 나가는 문항에서 정답 계열 필드를 전부 제거한다(치팅 방어 1차선). */
+/**
+ * 클라이언트로 나가는 문항에서 정답 계열 필드를 전부 제거한다(치팅 방어 1차선).
+ * 화이트리스트 본체는 `qtypes.publicQuestion()` 하나뿐이고, 대전만 쓰는 두 필드를 옵션으로 켠다.
+ *   · bodyText   결과 화면 "AI에게 질문하기" 프롬프트용 — 정답 정보가 아니므로 허용 (PROTOCOL 치팅 방어)
+ *   · answerMode 답 배열의 순서 무관 여부 — 대전 클라이언트 전용
+ * explanationHtml 은 화이트리스트에 없다 — 정답을 그대로 담고 있어 battle:finished 에서만 나간다.
+ */
 function publicQuestion(q) {
-  return {
-    id: q.id,
-    num: q.num,
-    prompt: q.prompt,
-    bodyHtml: q.bodyHtml,
-    bodyText: q.bodyText, // 결과 화면 "AI에게 질문하기" 프롬프트용 — 정답 정보가 아니므로 허용 (PROTOCOL 치팅 방어 참조)
-    type: normalizeType(q.type) || DEFAULT_TYPE, // 유형 뱃지용 — 정답 정보가 아니다
-    lang: questionLang(q), // 코드 문항 언어 뱃지용(c|java|python|null) — 정답 정보가 아니다
-    // explanationHtml 은 화이트리스트에 없다 — 정답을 그대로 담고 있어 battle:finished 에서만 나간다.
-
-    answerMode: q.answerMode === 'unordered' ? 'unordered' : 'ordered',
-    fields: (q.fields || []).map(function (f) { return { label: f.label == null ? null : f.label }; }),
-  };
+  return qtypes.publicQuestion(q, { bodyText: true, answerMode: true });
 }
 
 /** answeredCount = 모든 필드가 비어 있지 않은 문항 수. */
@@ -372,6 +399,24 @@ function pushMarks(ctx, s) {
   }
 }
 
+/**
+ * `battle:progress` 이펙트 1건.
+ *
+ * `debounceKey` 는 **디바운스를 거는지와 무관하게 항상** 붙인다 — 제출·이탈이 내는 즉시 방송이
+ * 같은 키로 지연 중인 `answer` 방송을 어댑터에서 취소하기 위한 식별자다(서버 M-1: 400ms 뒤 도착한
+ * 옛 방송이 "제출 완료" 뱃지를 지우던 경합). 실제로 지연할지는 `debounceMs` 유무로만 정해진다.
+ *
+ * @param {boolean} submitted true 면 `{submitted:true}` 를 싣고 디바운스를 걸지 않는다(즉시 방송).
+ */
+function fxProgress(s, p, submitted) {
+  const payload = { userId: p.userId, answeredCount: answeredCount(s, p) };
+  if (submitted) payload.submitted = true;
+  const fx = fxBroadcast(s, 'battle:progress', payload);
+  fx.debounceKey = s.roomId + ':progress:' + p.userId;
+  if (!submitted) fx.debounceMs = PROGRESS_DEBOUNCE_MS;
+  return fx;
+}
+
 function addPlayer(s, userId, nickname, at) {
   s.players[userId] = {
     userId: userId,
@@ -563,6 +608,11 @@ function handleWaiting(s, ev, ctx) {
         existing.connected = true;
         existing.left = false;
       } else {
+        // 인원 상한은 **신규 입장에만** 건다 — 이미 명부에 있는 사람의 복귀는 정원을 늘리지 않는다.
+        if (s.playerOrder.length >= MAX_PLAYERS) {
+          errorTo(ctx, s, uid, 'ROOM_FULL', '방 정원(' + MAX_PLAYERS + '명)이 찼습니다.');
+          return;
+        }
         addPlayer(s, uid, ev.nickname, at);
       }
       // 전원이 나가 방장이 비어 있던 방(GC 유예 중)에 들어오면 입장자가 방장이 된다 —
@@ -706,11 +756,7 @@ function handlePlaying(s, ev, ctx) {
         p.submittedAt = at;
         p.marks = marksOf(s, p); // 보관 답안 그대로 1회 채점 — 이후 답안이 바뀌지 않으므로 재채점 없음
         justSubmitted = true;
-        ctx.effects.push(fxBroadcast(s, 'battle:progress', {
-          userId: p.userId,
-          answeredCount: answeredCount(s, p),
-          submitted: true,
-        }));
+        ctx.effects.push(fxProgress(s, p, true));
       }
       p.left = true;
       p.connected = false;
@@ -748,13 +794,7 @@ function handlePlaying(s, ev, ctx) {
       while (arr.length < fields.length) arr.push('');
       arr[idx] = String(ev.value == null ? '' : ev.value);
       p.lastAnswerAt = at;
-      const progress = fxBroadcast(s, 'battle:progress', {
-        userId: p.userId,
-        answeredCount: answeredCount(s, p),
-      });
-      progress.debounceMs = PROGRESS_DEBOUNCE_MS;
-      progress.debounceKey = s.roomId + ':progress:' + p.userId;
-      ctx.effects.push(progress);
+      ctx.effects.push(fxProgress(s, p, false));
       return;
     }
     case 'submit': {
@@ -766,11 +806,7 @@ function handlePlaying(s, ev, ctx) {
       }
       p.submittedAt = at;
       p.marks = marksOf(s, p); // 제출은 비가역 — 이 시점 답안이 최종이라 여기서 한 번만 채점한다
-      ctx.effects.push(fxBroadcast(s, 'battle:progress', {
-        userId: p.userId,
-        answeredCount: answeredCount(s, p),
-        submitted: true,
-      }));
+      ctx.effects.push(fxProgress(s, p, true));
       pushRoomState(ctx, s);
       if (allSubmitted(s)) { finish(s, ctx, 'allSubmitted'); return; }
       pushMarks(ctx, s);
@@ -814,7 +850,9 @@ function handlePlaying(s, ev, ctx) {
         s.finishedAt = at;
         ctx.effects.push(fxCancel(s, 'deadline'));
         ctx.effects.push(fxCancel(s, 'abandon'));
-        pushRoomState(ctx, s);
+        // **broadcast 없음.** 이 셀은 접속자 0 이 전제라 room 브로드캐스트의 수신자가 정의상 0명이고,
+        // 방은 곧바로 파기된다. 빈 waiting 방의 `timeout(roomGc)` 도 같은 이유로 아무것도 내지 않는다.
+        // (서버 리뷰 L-11 의 격자표 drift — 코드에 있던 room:state 방송을 없애 표와 맞췄다.)
         return; // persist 없음 — 전적 미기록
       }
       return; // countdown/roomGc 는 stale
@@ -981,4 +1019,5 @@ module.exports = {
   ABANDON_GRACE_MS: ABANDON_GRACE_MS,
   ROOM_GC_MS: ROOM_GC_MS,
   PROGRESS_DEBOUNCE_MS: PROGRESS_DEBOUNCE_MS,
+  MAX_PLAYERS: MAX_PLAYERS,
 };

@@ -2,19 +2,17 @@
 //
 // 두 층으로 나뉜다.
 //   ① 순수 단위 — rounds.js / battle.js / validate-types.mjs 를 직접 부른다.
-//   ② 종단(REST) — 실서버를 임의 포트 + 격리 임시 DATA_DIR 로 띄우고 fetch 로 두드린다
+//   ② 종단(REST) — 실서버를 임시 포트(PORT=0) + 격리 임시 DATA_DIR 로 띄우고 fetch 로 두드린다
 //      (practice-api.test.mjs 와 같은 방식. 실제 data/ 는 건드리지 않는다).
 //
 // **회차별 유형 개수를 못박지 않는다.** 분류 데이터는 계속 손질되므로 테스트는 언제나
 // "서버가 말하는 개수"와 "필터 결과"의 **관계**만 검증한다.
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { startServer } from './lib/server.mjs';
 
 import { isValidType, TYPES } from '../scripts/validate-types.mjs';
 
@@ -254,17 +252,24 @@ describe('createRoom / settingsPayload — 유형은 방 설정으로 보존된�
 // ------------------------------------------------------------- ② 종단 REST
 
 let srv = null;
-let tmp = '';
 let base = '';
+
+const jar = new Map(); // 채점은 로그인 필수다(보안 C-1) — before 에서 한 번 가입해 쿠키를 물고 다닌다
 
 async function api(method, p, body) {
   const headers = {};
   if (body !== undefined) headers['content-type'] = 'application/json; charset=utf-8';
+  if (jar.size) headers.cookie = [...jar.entries()].map(([k, v]) => `${k}=${v}`).join('; ');
   const resp = await fetch(base + p, {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+  for (const line of resp.headers.getSetCookie ? resp.headers.getSetCookie() : []) {
+    const kv = line.split(';')[0];
+    const i = kv.indexOf('=');
+    jar.set(kv.slice(0, i).trim(), kv.slice(i + 1));
+  }
   const text = await resp.text();
   let json = null;
   try { json = text ? JSON.parse(text) : null; } catch { /* JSON 이 아닐 수 있다 */ }
@@ -272,28 +277,14 @@ async function api(method, p, body) {
 }
 
 before(async () => {
-  tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jpk-types-'));
-  const port = 3000 + Math.floor(Math.random() * 20000);
-  base = 'http://localhost:' + port;
-  srv = spawn(process.execPath, [path.join(ROOT, 'server', 'index.js')], {
-    env: { ...process.env, PORT: String(port), DATA_DIR: tmp },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  let out = '';
-  srv.stdout.on('data', (d) => { out += d; });
-  srv.stderr.on('data', (d) => { out += d; });
-  await new Promise((res, rej) => {
-    const iv = setInterval(() => {
-      if (out.includes('종료: Ctrl+C')) { clearInterval(iv); clearTimeout(to); res(); }
-      else if (/EADDRINUSE/.test(out)) { clearInterval(iv); clearTimeout(to); rej(new Error('server: ' + out)); }
-    }, 100);
-    const to = setTimeout(() => { clearInterval(iv); rej(new Error('server start timeout\n' + out)); }, 20000);
-  });
+  // PORT=0 → OS 가 비어 있는 포트를 고른다. 포트 추첨·충돌 없음 (서버 M-16).
+  srv = await startServer({ prefix: 'jpk-types-' });
+  base = srv.base;
 });
 
-after(() => {
-  try { srv.kill(); } catch { /* 이미 종료 */ }
-  try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* best effort */ }
+after(async () => {
+  // 자식이 정말 끝난 뒤에 임시 디렉터리를 지운다 — kill 만 하고 넘어가면 Windows 에서 EBUSY 가 난다.
+  await srv.stop();
 });
 
 describe('GET /api/rounds — 회차마다 counts 가 실린다', () => {
@@ -377,6 +368,14 @@ describe('GET /api/rounds/:id?type=', () => {
 });
 
 describe('POST /api/rounds/:id/grade — type 은 채점 부분집합을 정한다', () => {
+  // 채점은 로그인 필수다(보안 C-1). 이 묶음이 보는 것은 "유형이 채점 부분집합을 정하는가" 이지
+  // 인증 자체가 아니므로 여기서만 로그인하고, 끝나면 로그아웃해 아래 비로그인 검증을 남겨 둔다.
+  before(async () => {
+    const up = await api('POST', '/api/auth/signup', { nickname: '유형테스터', password: 'pw123456' });
+    if (up.status !== 200) throw new Error('가입 실패: ' + up.text);
+  });
+  after(async () => { await api('POST', '/api/auth/logout'); });
+
   test('type=code 면 totalCount 가 code 문항 수(20이 아니다)', async () => {
     const list = await api('GET', '/api/rounds');
     const counts = list.json.find((x) => x.round === ROUND_ID).counts;

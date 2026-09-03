@@ -35,10 +35,55 @@ const MAX_ROUND_IDS = 32;
 const MAX_INVITES = 8;                  // 방 생성 시 한 번에 보낼 수 있는 초대 수
 const ROOM_ID_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 0/O/1/I 제외 (구두 전달용)
 
-/** BATTLE_TIME_OVERRIDE_S — 설정 시 요청의 timeLimitS 대신 이 값을 쓴다(스모크 테스트용). */
+// ------------------------------------------------------------ 남용 방어 상수
+//
+// 보안 리뷰 M-6 "방 무제한 생성" / M-7 "소켓 레이트리밋 없음". 지인 간 LAN 사용이라도
+// 실수로 도는 루프 하나가 메모리와 타이머를 무한히 늘릴 수 있어 상한을 못박는다.
+// 방당 인원 상한(MAX_PLAYERS=8)은 리듀서(`battle.js`)가 집행한다 — 명부를 늘리는 길은 join 뿐이다.
+
+const MAX_ROOMS_TOTAL = 200;      // 전체 동시 방 수 (초과 시 503)
+const MAX_ROOMS_PER_USER = 3;     // 한 사용자가 방장인 동시 방 수 (초과 시 429)
+const ANSWER_MIN_INTERVAL_MS = 50; // battle:answer 최소 간격 (ratelimit.js 가 없을 때의 폴백)
+const ANSWER_RATE = { windowMs: 1000, max: 20 }; // ratelimit.makeLimiter 용 — 초당 20건
+const QUESTION_ID_MAX = 64;       // 소켓 questionId 길이 상한 (실제 id 는 "2026-2#1" 꼴)
+
+/**
+ * 레인 A 의 `server/ratelimit.js` 가 있으면 그 `makeLimiter` 를 쓰고, 없으면 null.
+ * 대전 어댑터는 그 모듈 없이도 떠야 하므로(학습 모드 단독 기동과 같은 이유) 실패를 삼킨다.
+ */
+function loadMakeLimiter() {
+  try {
+    const rl = require('./ratelimit.js');
+    return rl && typeof rl.makeLimiter === 'function' ? rl.makeLimiter : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * BATTLE_TIME_OVERRIDE_S — 설정 시 요청의 timeLimitS 대신 이 값을 쓴다(스모크 테스트용).
+ *
+ * **production 에서는 무시한다**(서버 M-13): 실서버에 env 가 새어 들어가면 모든 대전이
+ * 몇 초짜리로 시작돼 조용히 망가진다. 개발·테스트에서 켜져 있으면 기동 배너가 경고한다.
+ */
 function timeOverrideS() {
+  if (process.env.NODE_ENV === 'production') return null;
   const v = Number(process.env.BATTLE_TIME_OVERRIDE_S);
   return Number.isFinite(v) && v > 0 ? Math.floor(v) : null;
+}
+
+/**
+ * 방 이름 정리. 닉네임과 같은 기준으로 제어문자를 걷어내고(보안 L-10 — 콘솔 로그 인젝션),
+ * 폭 0 문자·양방향 재정의 문자도 함께 지운다(보안 L-11 — 방 이름으로 남을 사칭·표시 뒤집기).
+ * **거절이 아니라 제거**다: 이름은 선택 입력이라 비면 기본값("<닉네임>의 방")으로 떨어지면 그만이고,
+ * 400 으로 막으면 사용자가 원인을 알 수 없는 실패만 본다.
+ */
+function sanitizeRoomName(raw) {
+  return String(raw == null ? '' : raw)
+    .normalize('NFC')
+    .replace(/[\u0000-\u001f\u007f]/g, '')                        // 제어문자
+    .replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '') // 폭 0 · RTL override · BOM
+    .trim();
 }
 
 // -------------------------------------------------------------------- 부착
@@ -51,6 +96,9 @@ function attach(ctx) {
   const auth = ctx.auth;
   const log = typeof ctx.log === 'function' ? ctx.log : function () {};
   const logErr = typeof ctx.logErr === 'function' ? ctx.logErr : log;
+  // LOG_LEVEL=debug 일 때만 찍힌다. 없으면 조용히 버린다(대전은 로거 없이도 떠야 한다).
+  const logDebug = typeof ctx.logDebug === 'function' ? ctx.logDebug : function () {};
+  const makeLimiter = loadMakeLimiter();
 
   /** @type {Map<string, object>} roomId → 리듀서 state */
   const rooms = new Map();
@@ -89,7 +137,19 @@ function attach(ctx) {
 
   // -------------------------------------------------------------- 이펙트 배달
 
+  /** 키 하나에 걸려 있는 지연 방송을 버린다(발송하지 않는다). 없으면 no-op. */
+  function dropDebounced(key) {
+    const prev = debounces.get(key);
+    if (!prev) return false;
+    clearTimeout(prev.timer);
+    debounces.delete(key);
+    return true;
+  }
+
   function deliver(fx) {
+    // 같은 키로 지연 중인 방송이 있으면 **버린다**. 즉시 방송(제출·이탈)이 더 새로운 사실이라
+    // 400ms 뒤 도착할 옛 진행 상황이 "제출 완료" 뱃지를 지우는 경합을 여기서 끊는다(서버 M-1).
+    if (fx.debounceKey) dropDebounced(fx.debounceKey);
     if (fx.to !== undefined && fx.to !== null) {
       const m = members.get(fx.to);
       if (m && m.socket) m.socket.emit(fx.event, fx.payload);
@@ -149,7 +209,9 @@ function attach(ctx) {
       const fx = effects[i];
       switch (fx.type) {
         case 'broadcast':
-          if (fx.debounceKey) deliverDebounced(fx);
+          // 지연 여부는 **debounceMs 로만** 정한다. debounceKey 는 즉시 방송에도 붙어 오는데
+          // 그건 "같은 키로 지연 중인 것을 버려라" 는 뜻이다(deliver 참조).
+          if (fx.debounceMs) deliverDebounced(fx);
           else deliver(fx);
           break;
         case 'persist': doPersist(fx); break;
@@ -227,7 +289,11 @@ function attach(ctx) {
     runEffects(result.effects);
 
     const label = event.type === 'timeout' ? 'timeout:' + event.kind : event.type;
-    log('battle', roomId, label,
+    // answer·tick 은 대전 1회에 수백~수천 건이 나오고 Windows TTY 의 stdout 은 동기라
+    // 그대로 찍으면 이벤트 루프를 잡아먹는다(서버 M-12). 이 둘만 debug 레벨로 내리고
+    // **상태 전이(join/leave/start/submit/connect/disconnect/timeout)는 info 로 남긴다** — 사후 추적의 근거다.
+    const line = event.type === 'answer' || event.type === 'tick' ? logDebug : log;
+    line('battle', roomId, label,
       event.userId == null ? '-' : '#' + event.userId,
       before.state + '→' + result.state.state,
       'fx=' + result.effects.length);
@@ -244,23 +310,20 @@ function attach(ctx) {
 
   // ------------------------------------------------------------- 소켓 인증
 
+  // 세션 판정은 **전부 auth.userFromCookie 한 곳**에 맡긴다 — 쿠키 서명·만료뿐 아니라
+  // `sv`(session_version)까지 대조하므로 `bumpSessionVersion` 으로 폐기한 세션이 소켓에서만
+  // 살아 있던 구멍이 닫힌다(보안 M-5, 레인 A 요청 1번). 조회 실패는 그 함수가 삼키고 null 을 준다 —
+  // 여기서 사유를 나눠 봐야 클라이언트에 줄 답("로그인이 필요합니다")이 같아 의미가 없다.
   io.use(function (socket, next) {
-    let sess = null;
+    let user = null;
     try {
-      sess = auth.readSession(socket.handshake && socket.handshake.headers && socket.handshake.headers.cookie);
+      user = auth.userFromCookie(db, socket.handshake && socket.handshake.headers && socket.handshake.headers.cookie);
     } catch (e) {
-      sess = null;
+      logErr('socket 인증 실패', '-', e.message);
+      user = null;
     }
-    if (!sess) return next(new Error('로그인이 필요합니다.'));
-    let row = null;
-    try {
-      row = db.findUserById(sess.uid);
-    } catch (e) {
-      logErr('socket 인증 조회 실패', '-', e.message);
-      return next(new Error('로그인이 필요합니다.'));
-    }
-    if (!row) return next(new Error('로그인이 필요합니다.'));
-    socket.data.user = auth.publicUser(row);
+    if (!user) return next(new Error('로그인이 필요합니다.'));
+    socket.data.user = user;
     next();
   });
 
@@ -288,6 +351,19 @@ function attach(ctx) {
 
     function fail(code, message) {
       socket.emit('error', { code: code, message: message });
+    }
+
+    // battle:answer 레이트리밋 — **소켓 하나에 하나씩**이라 연결이 끊기면 같이 사라진다(보안 M-7).
+    // 레인 A 의 ratelimit.makeLimiter 가 있으면 초당 20건 창을 쓰고, 없으면 50ms 최소 간격으로 떨어진다.
+    // 사람 타자 속도(빨라야 10회/초)의 두 배라 정상 입력은 걸리지 않는다.
+    const answerLimiter = makeLimiter ? makeLimiter(ANSWER_RATE) : null;
+    let lastAnswerAt = 0;
+    function answerAllowed() {
+      if (answerLimiter) return answerLimiter.allow(socket.id);
+      const now = Date.now();
+      if (now - lastAnswerAt < ANSWER_MIN_INTERVAL_MS) return false;
+      lastAnswerAt = now;
+      return true;
     }
 
     socket.on('room:join', function (payload) {
@@ -330,8 +406,14 @@ function attach(ctx) {
       const roomId = roomIdOf(uid);
       if (!roomId) return fail('NO_ROOM', '참여 중인 방이 없습니다.');
       const p = payload && typeof payload === 'object' ? payload : {};
-      if (typeof p.questionId !== 'string' || p.questionId === '') {
+      if (typeof p.questionId !== 'string' || p.questionId === '' || p.questionId.length > QUESTION_ID_MAX) {
         return fail('BAD_PAYLOAD', 'questionId 가 필요합니다.');
+      }
+      // 상한을 넘긴 입력은 **조용히 버린다**. 에러를 되돌리면 초당 수천 건의 error 방송이 되어
+      // 리밋의 목적(부하 차단)을 스스로 깬다 — 남는 건 debug 로그 한 줄뿐이다.
+      if (!answerAllowed()) {
+        logDebug('battle', roomId, 'answer 레이트리밋 초과 — 버림', socket.id);
+        return;
       }
       const value = typeof p.value === 'string' ? p.value.slice(0, ANSWER_VALUE_MAX) : '';
       dispatch(roomId, {
@@ -385,8 +467,27 @@ function attach(ctx) {
     return '사용자#' + state.hostUserId;
   }
 
+  /** 지금 살아 있는 방 중 이 사용자가 방장인 것의 수. 파기된 방은 레지스트리에 없다. */
+  function roomsHostedBy(userId) {
+    let n = 0;
+    for (const s of rooms.values()) if (s.hostUserId === userId) n++;
+    return n;
+  }
+
   app.post('/api/rooms', auth.requireAuth, function (req, res) {
     const body = req.body && typeof req.body === 'object' ? req.body : {};
+
+    // 남용 방어(보안 M-6). 검증보다 **먼저** 본다 — 상한에 걸린 요청에 문항 풀을 구성해 줄 이유가 없다.
+    // 503 = 서버 전체 용량, 429 = 이 사용자 몫. 둘의 원인이 다르므로 코드도 다르게 준다.
+    if (rooms.size >= MAX_ROOMS_TOTAL) {
+      logErr('battle 방 생성 거절 — 전체 상한', rooms.size + '/' + MAX_ROOMS_TOTAL, 'by ' + req.user.nickname);
+      return res.status(503).json({ error: '지금은 방이 너무 많습니다. 잠시 후 다시 시도하세요.' });
+    }
+    if (roomsHostedBy(req.user.id) >= MAX_ROOMS_PER_USER) {
+      return res.status(429).json({
+        error: '동시에 만들 수 있는 방은 ' + MAX_ROOMS_PER_USER + '개까지입니다. 기존 방을 정리해 주세요.',
+      });
+    }
 
     const mode = body.mode === 'random' ? 'random' : body.mode === 'round' ? 'round' : null;
     if (!mode) return res.status(400).json({ error: '출제 방식은 round 또는 random 이어야 합니다.' });
@@ -470,7 +571,8 @@ function attach(ctx) {
       }
     }
 
-    const rawName = typeof body.name === 'string' ? body.name.trim() : '';
+    // 제어문자·폭 0·RTL override 를 걷어낸 뒤 남는 게 없으면 기본 이름으로 떨어진다(보안 L-10·L-11).
+    const rawName = sanitizeRoomName(body.name);
     const name = (rawName || req.user.nickname + '의 방').slice(0, ROOM_NAME_MAX);
 
     const roomId = newRoomId();
@@ -521,7 +623,9 @@ function attach(ctx) {
     res.json({ roomId: roomId });
   });
 
-  app.get('/api/rooms', function (req, res) {
+  // 로그인 필수 — 방 이름과 방장 닉네임이 실리므로 비로그인 열거를 막는다(보안 L-9).
+  // 어차피 방에 들어가려면 로그인이 필요하고(소켓 io.use), 목록만 미인증으로 열려 있을 이유가 없다.
+  app.get('/api/rooms', auth.requireAuth, function (req, res) {
     const list = [];
     for (const state of rooms.values()) {
       if (state.state !== 'waiting') continue; // PROTOCOL: waiting 방만
@@ -547,8 +651,59 @@ function attach(ctx) {
     res.json(ranking.computeRanking(db));
   });
 
+  // ------------------------------------------------- 다른 계층에 여는 창구
+
+  /**
+   * 지금 이 사용자가 **풀고 있는** 대전 문항 id 집합. 없으면 null.
+   *
+   * 학습 채점 API(`/api/rounds/:id/grade`·`/api/practice/grade`)가 정답 오라클로 쓰이는 것을
+   * 막기 위한 것이다(보안 C-1) — 대전 중인 문항이 섞여 있으면 라우트가 409 로 거절한다.
+   * **제출을 마쳤으면 제외한다**: 답안이 비가역으로 고정된 뒤라 정답을 알아내도 자기 점수는 못 바꾼다.
+   * `playing` 만 본다 — countdown 이전에는 문항이 배포되지 않아 클라이언트가 id 를 모른다.
+   */
+  function activeBattleQuestionIds(userId) {
+    let out = null;
+    for (const s of rooms.values()) {
+      if (s.state !== 'playing') continue;
+      const p = s.players[userId];
+      if (!p || p.submittedAt != null) continue;
+      if (!out) out = new Set();
+      for (let i = 0; i < s.questionIds.length; i++) out.add(s.questionIds[i]);
+    }
+    return out;
+  }
+
+  /** 살아 있는 방 수(waiting·countdown·playing 전부). 파기된 방은 세지 않는다. */
+  function roomCount() {
+    return rooms.size;
+  }
+
+  /** 관리자 화면용 방 목록. `GET /api/rooms` 와 달리 **모든 상태**의 방을 그대로 준다. */
+  function listRooms() {
+    const out = [];
+    for (const s of rooms.values()) {
+      out.push({
+        id: s.roomId,
+        name: s.name,
+        state: s.state,
+        hostUserId: s.hostUserId,
+        players: s.playerOrder.length,
+        createdAt: s.createdAt,
+      });
+    }
+    out.sort(function (a, b) { return a.createdAt - b.createdAt; });
+    return out;
+  }
+
   // 테스트/진단용 내부 핸들 — 라우트나 프로토콜의 일부가 아니다.
-  return { rooms: rooms, members: members, timers: timers, ticks: ticks, dispatch: dispatch };
+  return {
+    rooms: rooms, members: members, timers: timers, ticks: ticks, debounces: debounces,
+    dispatch: dispatch,
+    activeBattleQuestionIds: activeBattleQuestionIds,
+    roomCount: roomCount,
+    listRooms: listRooms,
+    timeOverrideS: timeOverrideS,
+  };
 }
 
 module.exports = attach;
@@ -556,3 +711,9 @@ module.exports.attach = attach;
 module.exports.TICK_MS = TICK_MS;
 module.exports.QUESTION_COUNTS = QUESTION_COUNTS;
 module.exports.TIME_LIMITS = TIME_LIMITS;
+module.exports.MAX_ROOMS_TOTAL = MAX_ROOMS_TOTAL;
+module.exports.MAX_ROOMS_PER_USER = MAX_ROOMS_PER_USER;
+module.exports.QUESTION_ID_MAX = QUESTION_ID_MAX;
+module.exports.ANSWER_MIN_INTERVAL_MS = ANSWER_MIN_INTERVAL_MS;
+module.exports.timeOverrideS = timeOverrideS;
+module.exports.sanitizeRoomName = sanitizeRoomName;

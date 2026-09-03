@@ -374,14 +374,23 @@ describe('db adapter: sqlite 스키마 마이그레이션', () => {
     const Database = require('better-sqlite3');
 
     // ① 예전 스키마 그대로 만든 DB + 기존 기록 1건
+    //    study_results.user_id 는 이제 실제 FK 라 소유자 행이 있어야 한다(id 7 을 맞춰 만든다).
     const legacy = new Database(file);
-    legacy.exec(`CREATE TABLE study_results (
+    legacy.exec(`CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nickname TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE TABLE study_results (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
       round TEXT NOT NULL,
       score INTEGER NOT NULL,
       taken_at TEXT NOT NULL
     );`);
+    legacy.prepare('INSERT INTO users (id, nickname, password_hash, created_at) VALUES (?, ?, ?, ?)')
+      .run(7, '옛사람', '$2a$10$notarealbcrypthashvalue000000000000000000000000000000', '2020-01-01T00:00:00.000Z');
     legacy.prepare('INSERT INTO study_results (user_id, round, score, taken_at) VALUES (?, ?, ?, ?)')
       .run(7, '2026-2', 60, '2026-08-01T00:00:00.000Z');
     legacy.close();
@@ -416,6 +425,343 @@ describe('db adapter: sqlite 스키마 마이그레이션', () => {
     assert.ok(cols.includes('wrong_ids'), cols.join(','));
     assert.ok(cols.includes('match_id'), cols.join(','));
 
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+// ---------------------------------------------------------------- 신규 조회 계약
+// listMatchNames / bestScoresByRound 는 두 어댑터가 같은 모양을 돌려줘야 한다.
+for (const adapter of ADAPTERS) {
+  describe(`db adapter: ${adapter} — 조회 보조 메서드`, () => {
+    test('listMatchNames 는 요청한 id 의 방 이름만 id 오름차순으로 돌려준다', () => {
+      const dir = tmpDir();
+      const d = db.open({ dir, adapter });
+      try {
+        const u = d.createUser('이름조회', 'h');
+        const mk = name => d.saveMatch({
+          roomName: name, mode: 'round', roundIds: ['2026-2'], questionIds: ['2026-2#1'],
+          timeLimitS: 600, startedAt: 't0', finishedAt: 't1', winnerUserId: u.id,
+        }, [{ userId: u.id, correctCount: 1, submittedAt: 't1', answers: {} }]);
+        const m1 = mk('첫방');
+        const m2 = mk('둘째방');
+        const m3 = mk('셋째방');
+
+        assert.deepEqual(d.listMatchNames([m3, m1]), [
+          { id: m1, room_name: '첫방' },
+          { id: m3, room_name: '셋째방' },
+        ]);
+        // 없는 id 는 조용히 빠지고, 중복은 한 번만 나온다
+        assert.deepEqual(d.listMatchNames([m2, m2, 99999]), [{ id: m2, room_name: '둘째방' }]);
+        assert.deepEqual(d.listMatchNames([]), []);
+        assert.deepEqual(d.listMatchNames(null), []);
+        assert.deepEqual(d.listMatchNames(['x', -1, 0]), []);
+      } finally {
+        d.close();
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    test('bestScoresByRound 는 집합 키별 최고점과 응시 횟수를 준다', () => {
+      const dir = tmpDir();
+      const d = db.open({ dir, adapter });
+      try {
+        const u = d.createUser('최고점', 'h');
+        const other = d.createUser('남', 'h');
+        d.saveStudyResult(u.id, '2026-2', 40);
+        d.saveStudyResult(u.id, '2026-2', 90);
+        d.saveStudyResult(u.id, '2026-2', 70);
+        d.saveStudyResult(u.id, 'practice', 55);
+        d.saveStudyResult(other.id, '2026-2', 100); // 남의 기록은 섞이지 않는다
+
+        const byRound = new Map(d.bestScoresByRound(u.id).map(r => [r.round, r]));
+        assert.equal(byRound.size, 2);
+        assert.equal(byRound.get('2026-2').best, 90);
+        assert.equal(byRound.get('2026-2').count, 3);
+        assert.equal(byRound.get('practice').best, 55);
+        assert.equal(byRound.get('practice').count, 1);
+        assert.deepEqual(d.bestScoresByRound(99999), []);
+      } finally {
+        d.close();
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    test('updatePasswordHash / bumpSessionVersion 은 그 사용자만 바꾼다', () => {
+      const dir = tmpDir();
+      const d = db.open({ dir, adapter });
+      try {
+        const a = d.createUser('해시A', 'old-hash');
+        const b = d.createUser('해시B', 'keep-hash');
+        assert.equal(d.findUserById(a.id).session_version, 0); // 새 계정의 세션 세대는 0
+
+        d.updatePasswordHash(a.id, 'scrypt$salt$key');
+        assert.equal(d.findUserById(a.id).password_hash, 'scrypt$salt$key');
+        assert.equal(d.findUserById(b.id).password_hash, 'keep-hash');
+
+        assert.equal(d.bumpSessionVersion(a.id), 1);
+        assert.equal(d.bumpSessionVersion(a.id), 2);
+        assert.equal(d.findUserById(a.id).session_version, 2);
+        assert.equal(d.findUserById(b.id).session_version, 0);
+      } finally {
+        d.close();
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    test('flushSync / close 뒤에도 디스크에 남는다 (JSON 어댑터 디바운스 안전망)', () => {
+      const dir = tmpDir();
+      const d1 = db.open({ dir, adapter });
+      let id;
+      try {
+        id = d1.createUser('디바운스', 'h').id;
+        d1.saveStudyResult(id, '2026-2', 77);
+        d1.flushSync(); // close 하기 전에도 즉시 내려간다
+      } finally {
+        d1.close();
+      }
+      const d2 = db.open({ dir, adapter });
+      try {
+        assert.equal(d2.listStudyResults(id, 10).length, 1);
+        assert.equal(d2.schemaVersion(), 4); // 두 어댑터가 같은 눈금을 쓴다
+      } finally {
+        d2.close();
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
+}
+
+// ------------------------------------------------- sqlite 마이그레이션 프레임
+describe('db adapter: sqlite user_version 마이그레이션', () => {
+  const Database = require('better-sqlite3');
+
+  /** user_version 0 인 예전 스키마 DB 를 만든다(FK 없음·session_version 없음). */
+  function makeLegacyDb(file) {
+    const legacy = new Database(file);
+    legacy.exec(`
+      CREATE TABLE users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, nickname TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL, created_at TEXT NOT NULL);
+      CREATE TABLE matches (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, room_name TEXT NOT NULL, mode TEXT NOT NULL,
+        round_ids TEXT NOT NULL, question_ids TEXT NOT NULL, time_limit_s INTEGER NOT NULL,
+        started_at TEXT NOT NULL, finished_at TEXT NOT NULL, winner_user_id INTEGER);
+      CREATE TABLE match_players (
+        match_id INTEGER NOT NULL, user_id INTEGER NOT NULL, correct_count INTEGER NOT NULL,
+        submitted_at TEXT, answers TEXT NOT NULL, PRIMARY KEY (match_id, user_id));
+      CREATE TABLE study_results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, round TEXT NOT NULL,
+        score INTEGER NOT NULL, taken_at TEXT NOT NULL);
+    `);
+    legacy.prepare('INSERT INTO users (nickname, password_hash, created_at) VALUES (?, ?, ?)')
+      .run('옛계정', '$2a$10$legacyhash', '2020-01-01T00:00:00.000Z');
+    legacy.prepare(`INSERT INTO matches
+      (room_name, mode, round_ids, question_ids, time_limit_s, started_at, finished_at, winner_user_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run('옛방', 'round', '[]', '[]', 600, 't0', 't1', 1);
+    legacy.prepare('INSERT INTO match_players VALUES (?, ?, ?, ?, ?)').run(1, 1, 2, 't1', '{}');
+    legacy.prepare('INSERT INTO study_results (user_id, round, score, taken_at) VALUES (?, ?, ?, ?)')
+      .run(1, '2026-2', 60, '2026-08-01T00:00:00.000Z');
+    assert.equal(legacy.pragma('user_version', { simple: true }), 0);
+    legacy.close();
+  }
+
+  test('v0 DB 를 열면 v4 까지 올라가고 데이터는 그대로다', () => {
+    const dir = tmpDir();
+    const file = path.join(dir, 'app.db');
+    makeLegacyDb(file);
+
+    const d = db.createSqliteAdapter(file);
+    try {
+      assert.equal(d.schemaVersion(), 4);
+      assert.equal(d.listUsers().length, 1);
+      assert.equal(d.listMatches().length, 1);
+      assert.equal(d.listMatchPlayers(1).length, 1);
+      const rows = d.listStudyResults(1, 10);
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0].score, 60);
+      assert.equal(rows[0].question_ids, null); // v1 이 더한 컬럼
+      assert.equal(d.findUserById(1).session_version, 0); // v2 가 더한 컬럼
+    } finally {
+      d.close();
+    }
+
+    const check = new Database(file, { readonly: true });
+    try {
+      // v3 — 복합 인덱스
+      const idx = check.pragma('index_list(study_results)').map(i => i.name);
+      assert.ok(idx.includes('idx_sr_user_id'), idx.join(','));
+      // v4 — 실제 FK (ON DELETE CASCADE)
+      const mp = check.pragma('foreign_key_list(match_players)');
+      assert.equal(mp.length, 2);
+      assert.ok(mp.every(f => f.on_delete === 'CASCADE'), JSON.stringify(mp));
+      const sr = check.pragma('foreign_key_list(study_results)');
+      assert.equal(sr.length, 1);
+      assert.equal(sr[0].table, 'users');
+      assert.equal(sr[0].on_delete, 'CASCADE');
+    } finally {
+      check.close();
+    }
+  });
+
+  test('마이그레이션 전에 app.db.bak-<시각> 백업을 남긴다', () => {
+    const dir = tmpDir();
+    const file = path.join(dir, 'app.db');
+    makeLegacyDb(file);
+    assert.equal(fs.readdirSync(dir).filter(n => /^app\.db\.bak-\d{8}-\d{6}$/.test(n)).length, 0);
+
+    const d = db.createSqliteAdapter(file);
+    d.close();
+    const backups = fs.readdirSync(dir).filter(n => /^app\.db\.bak-\d{8}-\d{6}$/.test(n));
+    assert.equal(backups.length, 1, backups.join(','));
+    assert.match(backups[0], /^app\.db\.bak-\d{8}-\d{6}$/);
+    // 백업은 마이그레이션 이전 모양이어야 한다
+    const old = new Database(path.join(dir, backups[0]), { readonly: true });
+    try {
+      assert.equal(old.pragma('user_version', { simple: true }), 0);
+      assert.equal(old.pragma('foreign_key_list(match_players)').length, 0);
+    } finally {
+      old.close();
+    }
+
+    // 이미 최신이면 다시 열어도 백업이 늘지 않는다
+    const again = db.createSqliteAdapter(file);
+    again.close();
+    assert.equal(fs.readdirSync(dir).filter(n => /^app\.db\.bak-\d{8}-\d{6}$/.test(n)).length, 1);
+  });
+
+  test('FK 는 실제로 걸린다 — 사용자를 지우면 매치 참가·학습 기록이 함께 사라진다', () => {
+    const dir = tmpDir();
+    const file = path.join(dir, 'app.db');
+    makeLegacyDb(file);
+    const d = db.createSqliteAdapter(file);
+    d.close();
+
+    const conn = new Database(file);
+    try {
+      conn.pragma('foreign_keys = ON');
+      conn.prepare('DELETE FROM users WHERE id = ?').run(1);
+      assert.equal(conn.prepare('SELECT COUNT(*) c FROM match_players').get().c, 0);
+      assert.equal(conn.prepare('SELECT COUNT(*) c FROM study_results').get().c, 0);
+      assert.equal(conn.prepare('SELECT COUNT(*) c FROM matches').get().c, 1); // 매치 자체는 남는다
+    } finally {
+      conn.close();
+    }
+  });
+
+  test('새로 만든 DB 도 마이그레이션을 끝낸 DB 와 같은 스키마다', () => {
+    const fresh = tmpDir();
+    const migrated = tmpDir();
+    const freshFile = path.join(fresh, 'app.db');
+    const migratedFile = path.join(migrated, 'app.db');
+    makeLegacyDb(migratedFile);
+
+    const a = db.createSqliteAdapter(freshFile);
+    const b = db.createSqliteAdapter(migratedFile);
+    a.close();
+    b.close();
+    // 새 DB 는 밀린 마이그레이션이 없으므로 백업도 만들지 않는다
+    assert.equal(fs.readdirSync(fresh).filter(n => /^app\.db\.bak-\d{8}-\d{6}$/.test(n)).length, 0);
+
+    function shape(file) {
+      const c = new Database(file, { readonly: true });
+      try {
+        const tables = c.prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+        ).all().map(r => r.name);
+        const out = { version: c.pragma('user_version', { simple: true }), tables: {} };
+        for (const t of tables) {
+          out.tables[t] = {
+            cols: c.pragma(`table_info(${t})`).map(x => `${x.name}:${x.type}`).sort(),
+            fks: c.pragma(`foreign_key_list(${t})`).map(f => `${f.from}->${f.table}.${f.to}:${f.on_delete}`).sort(),
+            idx: c.pragma(`index_list(${t})`).map(i => i.name).filter(n => !n.startsWith('sqlite_')).sort(),
+          };
+        }
+        return out;
+      } finally {
+        c.close();
+      }
+    }
+    assert.deepEqual(shape(migratedFile), shape(freshFile));
+  });
+});
+
+// ------------------------------------------------------ JSON 어댑터 회복 규약
+describe('db adapter: json seq 복구 · schemaVersion', () => {
+  test('seq 하위 키가 빠져 있어도 id 가 NaN 이 되지 않는다', () => {
+    const dir = tmpDir();
+    const file = path.join(dir, 'app.json');
+    // seq 에 users 만 있고 study_results 가 없는 파일 (예전 버전이 남긴 모양)
+    fs.writeFileSync(file, JSON.stringify({
+      users: [{ id: 1, nickname: 'ㄱ', password_hash: 'h', created_at: 't' }],
+      matches: [], match_players: [], study_results: [],
+      seq: { users: 1 },
+    }), 'utf8');
+
+    const d = db.open({ dir, adapter: 'json' });
+    try {
+      d.saveStudyResult(1, '2026-2', 50);
+      const rows = d.listStudyResults(1, 10);
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0].id, 1);            // NaN 이 아니라 1
+      assert.equal(Number.isInteger(rows[0].id), true);
+      const u = d.createUser('ㄴ', 'h');
+      assert.equal(u.id, 2);
+    } finally {
+      d.close();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('seq 가 실제 최대 id 보다 작으면 최대 id 로 끌어올린다 (id 충돌 방지)', () => {
+    const dir = tmpDir();
+    const file = path.join(dir, 'app.json');
+    fs.writeFileSync(file, JSON.stringify({
+      users: [{ id: 9, nickname: 'ㄱ', password_hash: 'h', created_at: 't' }],
+      matches: [], match_players: [],
+      study_results: [{ id: 4, user_id: 9, round: '2026-2', score: 10, taken_at: 't' }],
+      seq: { users: 1, matches: 0, study_results: 0 },
+    }), 'utf8');
+
+    const d = db.open({ dir, adapter: 'json' });
+    try {
+      assert.equal(d.createUser('ㄴ', 'h').id, 10);
+      d.saveStudyResult(9, '2026-1', 20);
+      const ids = d.listStudyResults(9, 10).map(r => r.id).sort((x, y) => x - y);
+      assert.deepEqual(ids, [4, 5]); // 4 를 덮어쓰지 않는다
+    } finally {
+      d.close();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('schemaVersion 없는 파일은 열면서 형태가 맞춰지고 백업이 남는다', () => {
+    const dir = tmpDir();
+    const file = path.join(dir, 'app.json');
+    fs.writeFileSync(file, JSON.stringify({
+      users: [{ id: 1, nickname: 'ㄱ', password_hash: 'h', created_at: 't' }],
+      matches: [], match_players: [],
+      study_results: [{ id: 1, user_id: 1, round: '2026-2', score: 10, taken_at: 't' }],
+      seq: { users: 1, matches: 0, study_results: 1 },
+    }), 'utf8');
+
+    const d = db.open({ dir, adapter: 'json' });
+    try {
+      assert.equal(d.schemaVersion(), 4);
+      assert.equal(d.findUserById(1).session_version, 0);   // v2
+      const row = d.listStudyResults(1, 10)[0];
+      assert.equal(row.question_ids, null);                  // v1
+      assert.equal(row.wrong_ids, null);
+      assert.equal(row.match_id, null);
+    } finally {
+      d.close();
+    }
+    const backups = fs.readdirSync(dir).filter(n => /^app\.json\.bak-\d{8}-\d{6}$/.test(n));
+    assert.equal(backups.length, 1, backups.join(','));
+
+    // 두 번째 기동은 이미 최신이라 백업하지 않는다
+    const again = db.open({ dir, adapter: 'json' });
+    again.close();
+    assert.equal(fs.readdirSync(dir).filter(n => /^app\.json\.bak-\d{8}-\d{6}$/.test(n)).length, 1);
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });

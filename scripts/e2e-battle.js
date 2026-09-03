@@ -11,41 +11,70 @@ const { spawn } = require('child_process');
 const { io } = require('socket.io-client');
 
 const ROOT = path.resolve(__dirname, '..');
-const PORT = 3000 + Math.floor(Math.random() * 20000);
-const BASE = 'http://localhost:' + PORT;
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'jpk-e2e-'));
+// 포트는 **추첨하지 않는다**. `PORT=0` 으로 띄우고 OS 가 잡아 준 번호를 `LISTEN_PORT=<n>` 줄에서
+// 읽는다. 그래야 ① 실서버 포트 3000 과 부딪힐 길이 아예 없고 ② 병렬 실행이 서로를 밀어내지 않는다.
 const T0 = Date.now();
 const log = (...a) => console.log('[' + String(Date.now() - T0).padStart(5) + 'ms]', ...a);
 
-const srv = spawn(process.execPath, [path.join(ROOT, 'server', 'index.js')], {
-  env: { ...process.env, PORT: String(PORT), DATA_DIR: TMP },
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-let srvLog = '';
-srv.stdout.on('data', d => { srvLog += d; });
-srv.stderr.on('data', d => { srvLog += d; });
+/**
+ * 격리 서버 하나를 띄운다. `env` 로 상수 백도어(BATTLE_*)를 주입할 수 있다.
+ * 반환된 `base` 를 `req`/`sock` 의 마지막 인자로 넘기면 그 서버에 대고 시나리오를 돌린다.
+ * 띄운 서버는 전부 `extras` 에 모아 두고 `shutdown` 이 한꺼번에 정리한다.
+ */
+function spawnServer(env, label) {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jpk-e2e-'));
+  const proc = spawn(process.execPath, [path.join(ROOT, 'server', 'index.js')], {
+    env: { ...process.env, PORT: '0', DATA_DIR: tmp, ...(env || {}) },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const box = { proc: proc, port: null, tmp: tmp, base: '', log: '', label: label || 'srv' };
+  proc.stdout.on('data', d => { box.log += d; });
+  proc.stderr.on('data', d => { box.log += d; });
+  box.ready = new Promise((res, rej) => {
+    const t = setInterval(() => {
+      // 준비 신호는 **`LISTEN_PORT=<n>`** 다 — boot.js 가 `server.listen` 콜백 안에서 찍는다.
+      // `battle-io.js 연결 완료` 는 listen **이전**(index.js 로드 중)에 나온다. 그걸 신호로 쓰면
+      // 아직 듣지 않는 포트에 접속해 빈 메시지 AggregateError(ECONNREFUSED ×2)로 죽는다 —
+      // 폴링 간격이 짧을수록 잘 터진다(실측 1/12).
+      const m = /LISTEN_PORT=(\d+)/.exec(box.log);
+      if (m && box.log.includes('battle-io.js 연결 완료')) {
+        clearInterval(t);
+        box.port = Number(m[1]);
+        box.base = 'http://localhost:' + box.port;
+        res(box);
+      } else if (/EADDRINUSE|battle-io\.js 없음|로드 실패/.test(box.log)) {
+        clearInterval(t); rej(new Error(box.label + ': ' + box.log));
+      }
+    }, 50);
+    setTimeout(() => { clearInterval(t); rej(new Error(box.label + ' start timeout\n' + box.log)); }, 20000);
+  });
+  return box;
+}
 
-const ready = new Promise((res, rej) => {
-  const t = setInterval(() => {
-    if (srvLog.includes('battle-io.js 연결 완료')) { clearInterval(t); res(); }
-    else if (/EADDRINUSE|battle-io\.js 없음|로드 실패/.test(srvLog)) { clearInterval(t); rej(new Error('server: ' + srvLog)); }
-  }, 100);
-  setTimeout(() => { clearInterval(t); rej(new Error('server start timeout\n' + srvLog)); }, 15000);
-});
+const extras = [];
+function stopServer(box) {
+  try { box.proc.kill(); } catch (_) { /* already gone */ }
+  try { fs.rmSync(box.tmp, { recursive: true, force: true }); } catch (_) { /* best effort */ }
+}
+
+const main = spawnServer({}, 'main');
+const TMP = main.tmp;
+let BASE = ''; // LISTEN_PORT 를 읽은 뒤 채워진다 — req/sock 의 기본 대상
+const ready = main.ready.then(() => { BASE = main.base; });
 
 function shutdown(code) {
-  try { srv.kill(); } catch (_) { /* already gone */ }
-  try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (_) { /* best effort */ }
+  stopServer(main);
+  for (const box of extras) stopServer(box);
   process.exit(code);
 }
 
-function req(method, p, body, cookie) {
+function req(method, p, body, cookie, base) {
   return new Promise((res, rej) => {
     const data = body ? Buffer.from(JSON.stringify(body), 'utf8') : null;
     const headers = { 'content-type': 'application/json; charset=utf-8' };
     if (data) headers['content-length'] = data.length;
     if (cookie) headers.cookie = cookie;
-    const r = http.request(BASE + p, { method, headers }, resp => {
+    const r = http.request((base || BASE) + p, { method, headers }, resp => {
       let s = '';
       resp.on('data', c => { s += c; });
       resp.on('end', () => res({ status: resp.statusCode, json: s ? JSON.parse(s) : null, cookie: (resp.headers['set-cookie'] || [])[0]?.split(';')[0] }));
@@ -56,16 +85,36 @@ function req(method, p, body, cookie) {
   });
 }
 
-const sock = (cookie, name) => new Promise((res, rej) => {
-  const s = io(BASE, { extraHeaders: { cookie }, transports: ['websocket'] });
+const sock = (cookie, name, base) => new Promise((res, rej) => {
+  const s = io(base || BASE, { extraHeaders: { cookie }, transports: ['websocket'] });
   // 연결 직후(서버 connect 핸들러)에서 날아오는 battle:resync 를 놓치지 않으려면
   // 리스너를 소켓 생성 시점에 붙여 두고 이름만 기록해 둔다.
   s.__seen = [];
   // battle:finished 이전(=종료 전) 페이로드에 상대 답안 맵이 섞이면 치팅이다. 받는 즉시 훑어 기록한다.
   s.__answerLeaks = [];
-  s.on('connect', () => { log(name, 'socket connected'); res(s); });
+  // ---- 접속 직후 폭주분(burst) 보관 ----
+  // 서버는 `connection` 핸들러 안에서 곧바로 room:state·battle:resync 를 쏜다. 그 프레임들은
+  // 클라이언트가 'connect' 를 내는 것과 **같은 동기 구간**에서 파싱되므로, `await sock()` 뒤에
+  // (= 마이크로태스크에서) 리스너를 다는 호출자는 이미 지나간 이벤트를 영영 보지 못한다.
+  // 부하를 걸고 35회 돌려 2회 재현했다 — 로그에는 `B2 <- battle:resync` 가 찍혀 있는데
+  // waitFor 만 5초 뒤 타임아웃했다. **배달은 됐고 리스너가 늦었다.**
+  // 그래서 connect 직후 한 틱 동안 도착한 것을 여기 담아 두고 waitFor 가 먼저 이걸 뒤진다.
+  // 창은 **소켓 생성 시점부터** 열어 둔다 — socket.io 는 handshake 이전에 받아 둔 패킷을
+  // `emitBuffered()` 로 'connect' **보다 먼저** 흘리기도 한다. 그 경로까지 같이 덮는다.
+  s.__burst = [];
+  let burstOpen = true;
+  s.on('connect', () => {
+    log(name, 'socket connected');
+    setTimeout(() => { burstOpen = false; }, 0); // 같은 동기 구간이 끝나면 닫는다
+    res(s);
+  });
   s.on('connect_error', e => rej(new Error(name + ' connect_error: ' + e.message)));
+  // 에러는 이름만으로는 무엇이 왔는지 알 수 없다 — 코드까지 남겨야 사후에 단언할 수 있다
+  // (예: 같은 계정이 새 소켓으로 붙었을 때 옛 소켓이 받는 SESSION_REPLACED).
+  s.__errors = [];
   s.onAny((ev, p) => {
+    if (burstOpen) s.__burst.push({ ev: ev, p: p });
+    if (ev === 'error') s.__errors.push(p);
     s.__seen.push(ev);
     if (ev !== 'battle:finished' && /answersByUser|marksByUser/.test(JSON.stringify(p === undefined ? null : p))) {
       s.__answerLeaks.push(ev);
@@ -78,9 +127,30 @@ const sock = (cookie, name) => new Promise((res, rej) => {
   });
 });
 
+/**
+ * `ev` 가 `pred` 를 만족하며 올 때까지 기다린다.
+ *
+ * 먼저 **접속 직후 폭주분**(`sock` 의 `__burst`)을 뒤진다. 리스너를 달기 전에 이미 지나간
+ * 이벤트를 여기서 건진다. 한 번 훑고 나면 폭주분은 비운다 — 뒤늦은 느슨한 조건
+ * (`() => true` 짜리 error 대기 등)이 옛 이벤트에 잘못 걸리지 않게 하기 위해서다.
+ * 타임아웃·성공 어느 쪽이든 리스너를 뗀다(대전 시나리오가 길어 리스너가 쌓인다).
+ */
 const waitFor = (s, ev, pred = () => true, ms = 15000) => new Promise((res, rej) => {
-  const t = setTimeout(() => rej(new Error('timeout waiting ' + ev)), ms);
-  s.on(ev, p => { if (pred(p)) { clearTimeout(t); res(p); } });
+  const burst = s.__burst || [];
+  for (let i = 0; i < burst.length; i++) {
+    let ok = false;
+    if (burst[i].ev === ev) { try { ok = pred(burst[i].p); } catch (_) { ok = false; } }
+    if (ok) { const p = burst[i].p; burst.length = 0; return res(p); }
+  }
+  burst.length = 0;
+  const t = setTimeout(() => { s.off(ev, onEvent); rej(new Error('timeout waiting ' + ev)); }, ms);
+  function onEvent(p) {
+    if (!pred(p)) return;
+    clearTimeout(t);
+    s.off(ev, onEvent);
+    res(p);
+  }
+  s.on(ev, onEvent);
 });
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -111,10 +181,10 @@ function readStudyResults() {
 }
 
 (async () => {
-  await ready; log("server up on", PORT, "DATA_DIR", TMP);
+  await ready; log("server up on", main.port, "DATA_DIR", TMP);
   const uA = 'e2eA' + (T0 % 10000), uB = 'e2eB' + (T0 % 10000);
-  const a = await req('POST', '/api/auth/signup', { nickname: uA, password: 'pw1234' });
-  const b = await req('POST', '/api/auth/signup', { nickname: uB, password: 'pw1234' });
+  const a = await req('POST', '/api/auth/signup', { nickname: uA, password: 'pw12345678' });
+  const b = await req('POST', '/api/auth/signup', { nickname: uB, password: 'pw12345678' });
   log('signup', a.status, b.status, 'ids', a.json.user.id, b.json.user.id);
   const room = await req('POST', '/api/rooms', { name: 'e2e', mode: 'random', roundIds: ['2026-2', '2023-3'], questionCount: 5, timeLimitS: 600 }, a.cookie);
   log('POST /api/rooms', room.status, JSON.stringify(room.json));
@@ -227,8 +297,25 @@ function readStudyResults() {
   const marksCount = s => s.__seen.filter(e => e === 'battle:marks').length;
   check(marksCount(sA) === 1, '종료 이벤트에는 marks 를 내지 않는다 — A 의 battle:marks 누계 1건 (실제 ' + marksCount(sA) + ')');
   check(marksCount(sB2) === 0, 'B 는 마지막 제출자였으므로 marks 를 한 건도 받지 않는다 (실제 ' + marksCount(sB2) + ')');
+  // ---- 전적: 방금 끝난 매치 1건이 랭킹에 그대로 반영되는가 (1등 +3, 그 외 참가 +1 — ranking.js)
   const rank = await req('GET', '/api/ranking', null, a.cookie);
-  log('ranking:', JSON.stringify(rank.json.filter(r => [a.json.user.id, b.json.user.id].includes(r.userId)).map(r => [r.nickname, r.wins, r.draws, r.losses, r.points])));
+  const rowOf = id => (rank.json || []).find(r => r.userId === id);
+  const rA = rowOf(a.json.user.id), rB = rowOf(b.json.user.id);
+  log('ranking:', JSON.stringify([rA, rB].map(r => r && [r.nickname, r.wins, r.draws, r.losses, r.points, r.played])));
+  check(!!rA && !!rB, '/api/ranking 에 두 사용자가 모두 실린다');
+  check(rA.played === 1 && rB.played === 1, '둘 다 참가 1건으로 잡힌다 (A ' + rA.played + ' / B ' + rB.played + ')');
+  // 승자는 결과 페이로드가 이미 정했다 — 여기서 다시 계산하지 않고 그 값과의 정합만 본다.
+  const winner = fin.winnerUserId;
+  check(winner === a.json.user.id,
+    '첫 대전은 정답 수 동률 + 먼저 제출한 A 의 승리다 (winnerUserId ' + winner + ', A ' + a.json.user.id + ')');
+  const won = rowOf(winner), lost = rowOf(winner === a.json.user.id ? b.json.user.id : a.json.user.id);
+  check(won.wins === 1 && won.draws === 0 && won.losses === 0,
+    '승자 행: 1승 0무 0패 (실제 ' + [won.wins, won.draws, won.losses].join('/') + ')');
+  check(lost.wins === 0 && lost.draws === 0 && lost.losses === 1,
+    '패자 행: 0승 0무 1패 (실제 ' + [lost.wins, lost.draws, lost.losses].join('/') + ')');
+  check(won.points === 3, '승자 승점 = 3 (실제 ' + won.points + ')');
+  check(lost.points === 1, '패자 승점 = 참가 1점 (실제 ' + lost.points + ')');
+  check(won.rank < lost.rank, '승점이 높은 승자가 더 앞 순위 (승자 ' + won.rank + ' vs 패자 ' + lost.rank + ')');
 
   // ---------------------------------------------- 이탈 = 즉시 제출 간주 (별도 방)
   // 규칙(PROTOCOL "playing → finished 트리거"): playing 중 room:leave 는 보관 답안 그대로
@@ -359,6 +446,13 @@ function readStudyResults() {
 
   // ---------------------------------------------- 방 코드 참여 + 재대전 초대 (A3/C1, feat-battle)
   // 이 시점의 살아 있는 B 소켓은 sB3 다 — 위에서 새 소켓(B3)이 붙으며 SESSION_REPLACED 로 B2 가 끊겼다.
+  // PROTOCOL "동일 유저 다중 탭: 최신 소켓만 유효, 이전 강제 종료" 를 여기서 실제로 단언한다.
+  check(sB2.__errors.some(e => e && e.code === 'SESSION_REPLACED'),
+    '같은 계정이 새 소켓(B3)으로 붙으면 옛 소켓 B2 가 SESSION_REPLACED 를 받는다: ' +
+    JSON.stringify(sB2.__errors.map(e => e && e.code)));
+  check(sB2.connected === false, '그리고 B2 는 서버가 끊어 실제로 연결이 닫혀 있다 (connected=' + sB2.connected + ')');
+  check(sB3.connected === true && !sB3.__errors.some(e => e && e.code === 'SESSION_REPLACED'),
+    '새 소켓 B3 은 살아 있고 SESSION_REPLACED 를 받지 않는다');
   log('room-code join + invite scenario start');
   const pInvite = waitFor(sB3, 'room:invite', () => true, 3000);
   const room3 = await req('POST', '/api/rooms',
@@ -491,7 +585,131 @@ function readStudyResults() {
     '언어 필터 시나리오까지 종료 전 answersByUser/marksByUser 누출 0건 (A ' +
     JSON.stringify(sA.__answerLeaks) + ' / B3 ' + JSON.stringify(sB3.__answerLeaks) + ')');
 
+  // ---------------------------------------------- 타이머 3경로 (서버 M-14)
+  //
+  // deadline 종료 · abandon 유예 · 빈 방 GC 는 실제로는 각각 제한시간·60초·60초짜리라
+  // 벽시계로는 e2e 에서 확인할 수 없다. `server/battle.js` 의 상수 백도어(BATTLE_*)를 넣은
+  // **별도 서버**를 띄워 그 세 경로를 실제 소켓으로 통과시킨다.
+  // 본 서버에 같은 env 를 넣으면 위 시나리오가 전부 2초짜리 대전이 되므로 서버를 나눈다.
+  log('timer scenarios: spawning a second server with BATTLE_* overrides');
+  const T = spawnServer({
+    BATTLE_COUNTDOWN_MS: '200',      // 3s → 0.2s
+    BATTLE_TIME_OVERRIDE_S: '2',     // 요청한 timeLimitS 를 무시하고 2초짜리 대전으로
+    BATTLE_ABANDON_GRACE_MS: '1000', // 60s → 1s
+    BATTLE_ROOM_GC_MS: '1000',       // 60s → 1s
+  }, 'timers');
+  extras.push(T);
+  await T.ready;
+  log('timer server up on', T.port);
+
+  const tag = String(T0 % 100000);
+  const tA = await req('POST', '/api/auth/signup', { nickname: 'e2eTA' + tag, password: 'pw12345678' }, null, T.base);
+  const tB = await req('POST', '/api/auth/signup', { nickname: 'e2eTB' + tag, password: 'pw12345678' }, null, T.base);
+  check(tA.status === 200 && tB.status === 200, '타이머 서버 가입 2건 (' + tA.status + '/' + tB.status + ')');
+  const tAid = tA.json.user.id, tBid = tB.json.user.id;
+  const sTA = await sock(tA.cookie, 'TA', T.base);
+  const sTB = await sock(tB.cookie, 'TB', T.base);
+
+  /** 두 사람이 방에 들어가 host 가 start 까지 누른 뒤 battle:questions 를 돌려준다. */
+  async function playTogether(name) {
+    const created = await req('POST', '/api/rooms',
+      { name: name, mode: 'round', roundIds: ['2026-2'], timeLimitS: 600 }, tA.cookie, T.base);
+    check(created.status === 200, name + ' 방 생성 (' + created.status + ')');
+    const id = created.json.roomId;
+    sTA.emit('room:join', { roomId: id });
+    await waitFor(sTA, 'room:state', p => p.settings.roomId === id && p.players.length === 1, 5000);
+    sTB.emit('room:join', { roomId: id });
+    await waitFor(sTA, 'room:state', p => p.players.length === 2, 5000);
+    sTA.emit('room:start', {});
+    const qs = await waitFor(sTA, 'battle:questions', () => true, 8000);
+    return { roomId: id, questions: qs.questions };
+  }
+
+  // ---- (1) deadline 만료: 아무도 제출하지 않아도 마감이 대전을 끝낸다
+  const d0 = Date.now();
+  const t1 = await playTogether('t-deadline');
+  const pDeadline = waitFor(sTA, 'battle:finished', () => true, 12000);
+  sTA.emit('battle:answer', { questionId: t1.questions[0].id, fieldIndex: 0, value: 'deadline-typed' });
+  const finD = await pDeadline;
+  const elapsed = Date.now() - d0;
+  log('deadline scenario finished in', elapsed + 'ms', 'reason', finD.reason);
+  check(finD.reason === 'deadline', '아무도 제출하지 않으면 reason=deadline 으로 끝난다 (실제 ' + finD.reason + ')');
+  check(elapsed < 8000,
+    'BATTLE_TIME_OVERRIDE_S=2 가 먹어 timeLimitS=600 요청이 몇 초 만에 끝난다 (' + elapsed + 'ms)');
+  check(finD.results.every(r => r.submittedAt == null),
+    '마감 종료의 참가자는 전원 미제출로 남는다: ' + JSON.stringify(finD.results.map(r => [r.userId, r.submittedAt])));
+  check(!!finD.answersByUser && !!finD.marksByUser &&
+    finD.answersByUser[tAid][t1.questions[0].id][0] === 'deadline-typed',
+    '마감 종료에도 두 맵이 실리고 미제출자의 보관 답안이 그대로 들어 있다');
+
+  // ---- (2) abandon 유예: playing 중 전원이 끊기면 유예 뒤 방이 전적 없이 파기된다
+  const t2 = await playTogether('t-abandon');
+  sTA.disconnect(); sTB.disconnect();
+  log('abandon scenario: both sockets disconnected, waiting the 1s grace');
+  await sleep(1600);
+  const sTA2 = await sock(tA.cookie, 'TA2', T.base);
+  await sleep(300);
+  check(!sTA2.__seen.includes('battle:resync'),
+    '유예가 지난 뒤 돌아온 소켓에는 resync 가 없다 — 방이 이미 없다 (수신: ' + JSON.stringify(sTA2.__seen) + ')');
+  const pAbandonErr = waitFor(sTA2, 'error', () => true, 3000).catch(() => null);
+  sTA2.emit('room:join', { roomId: t2.roomId });
+  const abandonErr = await pAbandonErr;
+  check(!!abandonErr && abandonErr.code === 'NO_ROOM',
+    'abandon 으로 파기된 방으로의 room:join 은 NO_ROOM: ' + JSON.stringify(abandonErr));
+  const rankT = await req('GET', '/api/ranking', null, tA.cookie, T.base);
+  const tRowA = (rankT.json || []).find(r => r.userId === tAid);
+  check(!!tRowA && tRowA.played === 1,
+    'abandoned 매치는 전적에 남지 않는다 — deadline 대전 1건만 집계 (played ' + (tRowA && tRowA.played) + ')');
+
+  // ---- (3) 빈 waiting 방 GC: 아무도 들어가지 않은 방은 유예가 지나면 사라진다
+  const t3 = await req('POST', '/api/rooms',
+    { name: 't-gc', mode: 'round', roundIds: ['2026-2'], timeLimitS: 600 }, tA.cookie, T.base);
+  check(t3.status === 200, 't-gc 방 생성 (' + t3.status + ')');
+  await sleep(1600); // 소켓으로 아무도 들어가지 않는다 → 생성 시 걸린 roomGc 가 만료된다
+  const pGcErr = waitFor(sTA2, 'error', () => true, 3000).catch(() => null);
+  sTA2.emit('room:join', { roomId: t3.json.roomId });
+  const gcErr = await pGcErr;
+  check(!!gcErr && gcErr.code === 'NO_ROOM',
+    '빈 waiting 방은 roomGc 유예가 지나면 사라진다 → NO_ROOM: ' + JSON.stringify(gcErr));
+  // 대조군: 같은 서버 · 같은 소켓으로 방금 만든 방에는 곧바로 들어가진다(join 경로 자체는 멀쩡하다)
+  const t4 = await req('POST', '/api/rooms',
+    { name: 't-gc-control', mode: 'round', roundIds: ['2026-2'], timeLimitS: 600 }, tA.cookie, T.base);
+  const pCtl = waitFor(sTA2, 'room:state', p => p.settings.roomId === t4.json.roomId, 3000);
+  sTA2.emit('room:join', { roomId: t4.json.roomId });
+  const ctl = await pCtl;
+  check(ctl.settings.roomId === t4.json.roomId,
+    '대조군: 유예 안에 들어간 방은 정상 입장된다 (' + ctl.settings.roomId + ')');
+  sTA2.close();
+
+  // ---- (4) production 잠금: 같은 env 를 넣어도 실서버 모드에서는 무시된다 (서버 M-13/M-14)
+  log('production gate: BATTLE_* must be ignored under NODE_ENV=production');
+  const P = spawnServer({ NODE_ENV: 'production', BATTLE_ROOM_GC_MS: '1000', BATTLE_TIME_OVERRIDE_S: '2' }, 'prod');
+  extras.push(P);
+  await P.ready;
+  const pA = await req('POST', '/api/auth/signup', { nickname: 'e2ePA' + tag, password: 'pw12345678' }, null, P.base);
+  const pRoom = await req('POST', '/api/rooms',
+    { name: 'p-gc', mode: 'round', roundIds: ['2026-2'], timeLimitS: 600 }, pA.cookie, P.base);
+  check(pRoom.status === 200, 'production 서버 방 생성 (' + pRoom.status + ')');
+  await sleep(1600); // BATTLE_ROOM_GC_MS 가 먹었다면 이미 파기됐을 시간
+  const sPA = await sock(pA.cookie, 'PA', P.base);
+  const pProd = waitFor(sPA, 'room:state', p => p.settings.roomId === pRoom.json.roomId, 4000);
+  sPA.emit('room:join', { roomId: pRoom.json.roomId });
+  const prodState = await pProd;
+  check(prodState.settings.roomId === pRoom.json.roomId,
+    'NODE_ENV=production 이면 BATTLE_ROOM_GC_MS 백도어가 무시된다 — 1.6초 뒤에도 방이 살아 있다');
+  check(prodState.settings.timeLimitS === 600,
+    'BATTLE_TIME_OVERRIDE_S 도 무시된다 — 요청한 600초가 그대로다 (실제 ' +
+    prodState.settings.timeLimitS + ')');
+  sPA.close();
+
   sA.close(); sB2.close(); sB3.close();
   console.log(leak ? 'E2E FAIL (leak)' : 'E2E OK');
   shutdown(leak ? 1 : 0);
-})().catch(e => { console.error("E2E ERROR", e.message); shutdown(1); });
+})().catch(e => {
+  // 메시지가 빈 오류도 있다(happy-eyeballs 실패로 오는 AggregateError). 스택·원인까지 남긴다 —
+  // "E2E ERROR" 한 줄만 찍히면 다음 사람이 아무것도 못 한다.
+  console.error("E2E ERROR", (e && e.message) || e);
+  if (e && e.stack) console.error(e.stack);
+  if (e && Array.isArray(e.errors)) for (const sub of e.errors) console.error('  cause:', sub && sub.message);
+  shutdown(1);
+});

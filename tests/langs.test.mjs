@@ -1,16 +1,15 @@
 // langs.test.mjs — 코드 문항 언어 오버레이(data/langs) 단위 + REST 종단 검증.
 //
 // 앞부분은 순수 모듈(server/rounds.js · server/battle.js · scripts/validate-langs.mjs) 단위 검사,
-// 뒷부분은 practice-api.test.mjs 와 같은 방식으로 실서버를 임의 포트 + 격리된 임시 DATA_DIR 로
+// 뒷부분은 practice-api.test.mjs 와 같은 방식으로 실서버를 임시 포트(PORT=0) + 격리된 임시 DATA_DIR 로
 // 띄우고 fetch 로 두드린다(실제 data/ 는 건드리지 않는다. 회차·유형·언어 JSON 은 repo 것을 읽는다).
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { startServer } from './lib/server.mjs';
 
 import { isValidLang, LANGS as VALIDATOR_LANGS } from '../scripts/validate-langs.mjs';
 import { io as ioClient } from 'socket.io-client';
@@ -152,7 +151,6 @@ describe('언어 상수·조회기 (server/rounds.js)', () => {
 // ================================================================ REST 종단
 
 let srv = null;
-let tmp = '';
 let base = '';
 const jar = new Map();
 
@@ -178,28 +176,16 @@ async function api(method, p, body) {
 }
 
 before(async () => {
-  tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jpk-langs-'));
-  const port = 3000 + Math.floor(Math.random() * 20000);
-  base = 'http://localhost:' + port;
-  srv = spawn(process.execPath, [path.join(ROOT, 'server', 'index.js')], {
-    env: { ...process.env, PORT: String(port), DATA_DIR: tmp },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  let out = '';
-  srv.stdout.on('data', (d) => { out += d; });
-  srv.stderr.on('data', (d) => { out += d; });
-  await new Promise((res, rej) => {
-    const iv = setInterval(() => {
-      if (out.includes('종료: Ctrl+C')) { clearInterval(iv); clearTimeout(to); res(); }
-      else if (/EADDRINUSE/.test(out)) { clearInterval(iv); clearTimeout(to); rej(new Error('server: ' + out)); }
-    }, 100);
-    const to = setTimeout(() => { clearInterval(iv); rej(new Error('server start timeout\n' + out)); }, 20000);
-  });
+  // PORT=0 → OS 가 비어 있는 포트를 고른다. 포트 추첨·충돌 없음 (서버 M-16).
+  // BATTLE_COUNTDOWN_MS 로 3초 카운트다운을 80ms 로 줄인다 — 아래 대전 시나리오 2건이
+  // 벽시계로 3초씩 자던 것을 없앤다(`server/battle.js` 의 envMs, production 에서는 무시된다).
+  srv = await startServer({ prefix: 'jpk-langs-', env: { BATTLE_COUNTDOWN_MS: '80' } });
+  base = srv.base;
 });
 
-after(() => {
-  try { srv.kill(); } catch { /* 이미 종료 */ }
-  try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* best effort */ }
+after(async () => {
+  // 자식이 정말 끝난 뒤에 임시 디렉터리를 지운다 — kill 만 하고 넘어가면 Windows 에서 EBUSY 가 난다.
+  await srv.stop();
 });
 
 describe('GET /api/rounds — 회차 목록의 langs 집계', () => {
@@ -291,7 +277,7 @@ describe('GET /api/me/wrong/explain (C5 — 채점 전 해설 예외)', () => {
   });
 
   test('가입 → 코드 문항만 채점해 이력을 만든다', async () => {
-    const up = await api('POST', '/api/auth/signup', { nickname: '언어테스터', password: 'pw1234' });
+    const up = await api('POST', '/api/auth/signup', { nickname: '언어테스터', password: 'pw12345678' });
     assert.equal(up.status, 200, up.text);
 
     // 유형을 걸어 채점하면 question_ids 도 그 부분집합이다 — 권한 경계를 만들기 좋다
@@ -673,7 +659,7 @@ describe('/api/me/wrong/explain — 권한 경계', () => {
     assert.ok(forA.json.explanations[mine], 'A 는 자기 채점 문항을 볼 수 있어야 한다');
 
     // 다른 사용자로 가입해 **같은 id** 를 요청한다
-    const up = await as('', 'POST', '/api/auth/signup', { nickname: '교차테스터', password: 'pw1234' });
+    const up = await as('', 'POST', '/api/auth/signup', { nickname: '교차테스터', password: 'pw12345678' });
     assert.equal(up.status, 200, up.text);
     cookieB = up.cookie;
     assert.ok(cookieB && cookieB !== cookieA);
@@ -709,7 +695,8 @@ describe('/api/me/wrong/explain — 권한 경계', () => {
     await waitFor(sA, 'room:state', (p) => p.players.length === 2);
 
     sA.emit('room:start', {});
-    const qs = await waitFor(sA, 'battle:questions', null, 15000); // 카운트다운 3초
+    // 카운트다운은 BATTLE_COUNTDOWN_MS=80 으로 줄여 뒀다(before 참조) — 벽시계로 3초를 자지 않는다.
+    const qs = await waitFor(sA, 'battle:questions', null, 15000);
     assert.ok(qs.questions.length > 0);
 
     sA.emit('battle:submit', {});

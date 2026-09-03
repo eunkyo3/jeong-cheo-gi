@@ -12,42 +12,22 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const qtypes = require('./qtypes.js');
 
 const ROUNDS_DIR = path.join(__dirname, '..', 'data', 'rounds');
 const EXPLAIN_DIR = path.join(__dirname, '..', 'data', 'explanations');
 const TYPES_DIR = path.join(__dirname, '..', 'data', 'types');
 const LANGS_DIR = path.join(__dirname, '..', 'data', 'langs');
 
-/** 문항 유형 동결 집합. scripts/validate-types.mjs 의 TYPES 와 반드시 같아야 한다. */
-const TYPES = ['code', 'sql', 'theory'];
-const DEFAULT_TYPE = 'theory';
-
-/** 값 하나가 계약을 만족하는가. 쿼리 파라미터 검사도 이 함수를 쓴다. */
-function isType(v) {
-  return typeof v === 'string' && TYPES.indexOf(v) !== -1;
-}
-
-/** 문항의 유형. 분류가 없거나 깨졌으면 기본값(theory). */
-function typeOf(q) {
-  return q && isType(q.type) ? q.type : DEFAULT_TYPE;
-}
-
-/** 코드 문항 언어 동결 집합. scripts/validate-langs.mjs 의 LANGS 와 반드시 같아야 한다. */
-const LANGS = ['c', 'java', 'python'];
-
-/** 값 하나가 계약을 만족하는가. 쿼리 파라미터 검사도 이 함수를 쓴다. */
-function isLang(v) {
-  return typeof v === 'string' && LANGS.indexOf(v) !== -1;
-}
-
-/**
- * 문항의 프로그래밍 언어. **코드 유형 문항에만** 값이 있다.
- * 비코드 문항·미분류·깨진 값은 전부 null 이다 — 유형과 달리 기본값이 없다.
- */
-function langOf(q) {
-  if (!q || typeOf(q) !== 'code') return null;
-  return isLang(q.lang) ? q.lang : null;
-}
+// 유형·언어 동결 집합과 정규화기는 전부 `server/qtypes.js` 한 곳에서 온다
+// (battle.js·validate-types.mjs·validate-langs.mjs 도 같은 곳을 본다 — 복제 금지).
+const TYPES = qtypes.TYPES;
+const DEFAULT_TYPE = qtypes.DEFAULT_TYPE;
+const LANGS = qtypes.LANGS;
+const isType = qtypes.isType;
+const typeOf = qtypes.typeOf;
+const isLang = qtypes.isLang;
+const langOf = qtypes.langOf;
 
 /** @type {Array<object>} 연도→회차 오름차순 정렬된 회차 원본 */
 let ordered = [];
@@ -106,7 +86,7 @@ function validateRound(data, file) {
  *
  * 해설은 부가 자산이므로, 파일이 없거나 깨져도 서버는 그냥 뜬다(경고 후 건너뜀).
  *
- * @returns {{ files: number, attached: number }}
+ * @returns {{ files: number, attached: number, missing: number }}
  */
 function loadExplanations() {
   let files = [];
@@ -145,7 +125,24 @@ function loadExplanations() {
       attached++;
     }
   }
-  return { files: ok, attached: attached };
+
+  // 해설이 닿지 않은 문항 — 그 문항은 채점 후 해설 패널이 **빈 채로** 나간다.
+  // 예전에는 아무 로그도 없어 조용히 비었다(프런트 리뷰 6-3). 유형·언어와 같은 방식으로
+  // 문항 단위가 아니라 **회차 단위로 요약**해 한 줄씩 찍는다.
+  let missing = 0;
+  const missingByRound = new Map();
+  for (const r of ordered) {
+    for (const q of r.questions) {
+      if (typeof q.explanationHtml === 'string' && q.explanationHtml !== '') continue;
+      missing++;
+      missingByRound.set(r.round, (missingByRound.get(r.round) || 0) + 1);
+    }
+  }
+  for (const entry of missingByRound) {
+    console.warn('[rounds] 해설 미작성 ' + entry[0] + ': ' + entry[1] + '문항 — 해설 패널이 비어 나갑니다.');
+  }
+
+  return { files: ok, attached: attached, missing: missing };
 }
 
 // ---------------------------------------------------------------- 유형 부착
@@ -351,6 +348,7 @@ function reload() {
     skipped: skipped,
     explanationFiles: ex.files,
     explanations: ex.attached,
+    explanationsMissing: ex.missing,
     typeFiles: ty.files,
     types: ty.attached,
     typesDefaulted: ty.defaulted,
@@ -464,29 +462,17 @@ function explanationOf(qid) {
 }
 
 /**
- * 클라이언트 전송용 문항 사본.
+ * 학습 REST 용 클라이언트 전송 사본 — 화이트리스트는 `qtypes.publicQuestion()` 한 곳뿐이다.
+ *
  * 남기는 것: id, num, prompt, bodyHtml, type, lang, fields[].label
  * 제거하는 것: accept, sampleAnswer, validator, normalize, display, bodyText, sourceImages,
- *              answerMode, explanationHtml
- * (SCHEMA.md "클라이언트에 절대 전송 금지")
+ *              answerMode, explanationHtml (SCHEMA.md "클라이언트에 절대 전송 금지")
  *
  * `type`·`lang` 은 **정답 정보가 아니다** — 문항 카드의 유형·언어 뱃지와 필터에 필요하므로 채점 전에도 나간다.
- *
- * **화이트리스트 방식**이라 문항 객체에 무슨 필드가 새로 붙든 자동으로 걸러진다 —
- * explanationHtml 도 여기서는 절대 나가지 않는다(채점 응답에서만 나간다).
+ * `bodyText` 는 채점 응답의 `bodyTexts` 맵으로만 나간다(PROTOCOL.md "채점 전 비노출") — 여기서는 뺀다.
  */
 function publicQuestion(q) {
-  return {
-    id: q.id,
-    num: q.num,
-    prompt: q.prompt == null ? '' : q.prompt,
-    bodyHtml: q.bodyHtml == null ? '' : q.bodyHtml,
-    type: typeOf(q),
-    lang: langOf(q), // 코드 문항의 언어(c|java|python) 또는 null — 유형과 같은 이유로 채점 전에도 나간다
-    fields: (q.fields || []).map(function (f) {
-      return { label: f.label == null ? null : f.label };
-    }),
-  };
+  return qtypes.publicQuestion(q);
 }
 
 const stats = reload();

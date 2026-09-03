@@ -1,19 +1,16 @@
 // practice-api.test.mjs — 학습 이력 · 오답노트 · 랜덤 모의고사 REST 종단 검증.
 //
-// 실서버를 임의 포트 + 격리된 임시 DATA_DIR 로 띄우고 fetch 로 두드린다(실제 data/ 는 건드리지 않는다).
+// 실서버를 임시 포트(PORT=0) + 격리된 임시 DATA_DIR 로 띄우고 fetch 로 두드린다(실제 data/ 는 건드리지 않는다).
 // 회차 JSON 은 항상 repo 의 data/rounds 를 읽으므로 sampleAnswer 를 그대로 정답으로 쓸 수 있다.
 // 테스트는 위에서 아래로 이어지는 하나의 시나리오다(가입 → 채점 → 이력 → 오답노트 → 오답 정리).
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { startServer } from './lib/server.mjs';
 
 const require = createRequire(import.meta.url);
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ROUND_ID = '2026-2';
 const ROUND = require(`../data/rounds/${ROUND_ID}.json`);
 const TOTAL = ROUND.questions.length;
@@ -52,28 +49,15 @@ async function api(method, p, body) {
 }
 
 before(async () => {
-  tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'jpk-practice-'));
-  const port = 3000 + Math.floor(Math.random() * 20000);
-  base = 'http://localhost:' + port;
-  srv = spawn(process.execPath, [path.join(ROOT, 'server', 'index.js')], {
-    env: { ...process.env, PORT: String(port), DATA_DIR: tmp },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  let out = '';
-  srv.stdout.on('data', (d) => { out += d; });
-  srv.stderr.on('data', (d) => { out += d; });
-  await new Promise((res, rej) => {
-    const iv = setInterval(() => {
-      if (out.includes('종료: Ctrl+C')) { clearInterval(iv); clearTimeout(to); res(); }
-      else if (/EADDRINUSE/.test(out)) { clearInterval(iv); clearTimeout(to); rej(new Error('server: ' + out)); }
-    }, 100);
-    const to = setTimeout(() => { clearInterval(iv); rej(new Error('server start timeout\n' + out)); }, 20000);
-  });
+  // PORT=0 → OS 가 비어 있는 포트를 고른다. 포트 추첨·충돌 없음 (서버 M-16).
+  srv = await startServer({ prefix: 'jpk-practice-' });
+  tmp = srv.tmp;
+  base = srv.base;
 });
 
-after(() => {
-  try { srv.kill(); } catch { /* 이미 종료 */ }
-  try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* best effort */ }
+after(async () => {
+  // 자식이 정말 끝난 뒤에 임시 디렉터리를 지운다 — kill 만 하고 넘어가면 Windows 에서 EBUSY 가 난다.
+  await srv.stop();
 });
 
 // --------------------------------------------------------------- 모의고사
@@ -109,50 +93,116 @@ describe('GET /api/practice', () => {
   });
 });
 
-describe('POST /api/practice/grade', () => {
-  test('정답 2문항이면 100점 + bodyTexts 동봉', async () => {
-    const [a, b] = ROUND.questions;
-    const r = await api('POST', '/api/practice/grade', {
-      setKey: 'practice',
-      answers: { [a.id]: sampleAnswerOf(a), [b.id]: sampleAnswerOf(b) },
-    });
-    assert.equal(r.status, 200);
-    assert.equal(r.json.round, 'practice');
-    assert.equal(r.json.correctCount, 2);
-    assert.equal(r.json.totalCount, 2);
-    assert.equal(r.json.score, 100);
-    assert.equal(r.json.details.length, 2);
-    // 채점 후에는 지문 원문을 내보낸다 (AI 질문 프롬프트 조립용)
-    assert.ok(r.json.bodyTexts[a.id].length > 0);
-    assert.ok(r.json.bodyTexts[b.id].length > 0);
+// ------------------------------------------------- 채점은 로그인 필수 (보안 C-1)
+//
+// 채점 응답에는 정답 표기(display)와 해설이 들어 있다. 무인증으로 열려 있으면 문항 id 만 알면
+// 정답을 받아낼 수 있는 오라클이 된다 — 대전 중인 문항까지 포함해서. 그래서 두 채점 경로는
+// 로그인 필수이고, 채점 집합은 클라이언트가 아니라 **서버가 발급한 세트 토큰**이 정한다.
+
+describe('채점 오라클 차단 — 비로그인', () => {
+  test('두 채점 경로 모두 401 이고, 본문 검증보다 인증이 먼저다', async () => {
+    assert.equal(jar.size, 0);
+
+    const round = await api('POST', `/api/rounds/${ROUND_ID}/grade`, { answers: {} });
+    assert.equal(round.status, 401);
+    assert.equal(round.json.error, '로그인이 필요합니다.');
+
+    // setKey 가 엉망이어도 401 이다(인증이 먼저 걸린다 — 400 이면 라우트 순서가 뒤집힌 것)
+    assert.equal((await api('POST', '/api/practice/grade', { setKey: 'nope' })).status, 401);
+    assert.equal((await api('POST', '/api/rounds/없는회차/grade', { answers: {} })).status, 401);
+
+    assert.equal((await api('GET', '/api/me/history')).status, 401);
+    assert.equal((await api('GET', '/api/me/wrong')).status, 401);
   });
 
-  test('모르는 setKey / 실존 문항 0개는 400', async () => {
-    const badKey = await api('POST', '/api/practice/grade', { setKey: 'nope', answers: {} });
-    assert.equal(badKey.status, 400);
+  test('비로그인 /api/practice 는 문항만 주고 세트 토큰은 주지 않는다', async () => {
+    const r = await api('GET', '/api/practice?rounds=all&count=5');
+    assert.equal(r.status, 200);
+    assert.equal(r.json.setToken, '');
+  });
 
-    const empty = await api('POST', '/api/practice/grade', {
-      setKey: 'practice', answers: { '없는문항#9': ['x'] },
-    });
-    assert.equal(empty.status, 400);
-    assert.equal(empty.json.error, '채점할 문항이 없습니다.');
+  test('가입 — 이 뒤로는 로그인 상태다', async () => {
+    const up = await api('POST', '/api/auth/signup', { nickname: '이력테스터', password: 'pw1234567856' });
+    assert.equal(up.status, 200, up.text);
+    assert.ok(jar.size > 0);
+  });
+});
+
+describe('POST /api/practice/grade — 채점 집합은 세트 토큰이 정한다', () => {
+  let setToken = '';
+  let setIds = [];
+
+  test('로그인하면 /api/practice 가 세트 토큰을 준다', async () => {
+    const r = await api('GET', `/api/practice?rounds=${ROUND_ID}&count=5`);
+    assert.equal(r.status, 200, r.text);
+    assert.equal(typeof r.json.setToken, 'string');
+    assert.ok(r.json.setToken.length > 0);
+    setToken = r.json.setToken;
+    setIds = r.json.questions.map((q) => q.id);
+    assert.equal(setIds.length, 5);
+  });
+
+  test('토큰이 없거나 위조되면 400 — 채점도 해설도 없다', async () => {
+    const byId = new Map(ROUND.questions.map((q) => [q.id, q]));
+    const answers = {};
+    for (const id of setIds) answers[id] = sampleAnswerOf(byId.get(id));
+
+    const noToken = await api('POST', '/api/practice/grade', { setKey: 'practice', answers });
+    assert.equal(noToken.status, 400);
+    assert.equal(noToken.json.error, '문제 세트 정보가 없거나 만료되었습니다. 문제를 다시 불러온 뒤 채점하세요.');
+    assert.equal(noToken.json.details, undefined);
+    assert.equal(noToken.json.explanations, undefined);
+
+    const forged = setToken.slice(0, -1) + (setToken.slice(-1) === 'A' ? 'B' : 'A');
+    const bad = await api('POST', '/api/practice/grade', { setKey: 'practice', setToken: forged, answers });
+    assert.equal(bad.status, 400);
+    assert.equal(bad.json.details, undefined);
+  });
+
+  test('모르는 setKey 는 400 (토큰이 유효해도)', async () => {
+    const r = await api('POST', '/api/practice/grade', { setKey: 'nope', setToken, answers: {} });
+    assert.equal(r.status, 400);
+    assert.equal(r.json.error, '알 수 없는 문제 집합입니다.');
+  });
+
+  test('토큰이 정한 세트가 분모다 — 만점 + bodyTexts 동봉', async () => {
+    const byId = new Map(ROUND.questions.map((q) => [q.id, q]));
+    const answers = {};
+    for (const id of setIds) answers[id] = sampleAnswerOf(byId.get(id));
+
+    const r = await api('POST', '/api/practice/grade', { setKey: 'practice', setToken, answers });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.round, 'practice');
+    assert.equal(r.json.correctCount, 5);
+    assert.equal(r.json.totalCount, 5);
+    assert.equal(r.json.score, 100);
+    assert.equal(r.json.details.length, 5);
+    // 채점 후에는 지문 원문을 내보낸다 (AI 질문 프롬프트 조립용)
+    for (const id of setIds) assert.ok(r.json.bodyTexts[id].length > 0, id);
+  });
+
+  test('토큰 밖 문항은 답안을 끼워 넣어도 채점되지 않는다 (오라클 차단)', async () => {
+    const outsider = ROUND.questions.find((q) => !setIds.includes(q.id));
+    assert.ok(outsider, '세트 밖 문항이 있어야 한다');
+
+    const answers = { [outsider.id]: sampleAnswerOf(outsider) };
+    const r = await api('POST', '/api/practice/grade', { setKey: 'practice', setToken, answers });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.totalCount, 5, '분모는 토큰의 세트다');
+    assert.ok(!r.json.details.some((d) => d.questionId === outsider.id));
+    assert.equal(r.json.bodyTexts[outsider.id], undefined);
+    assert.equal(r.json.explanations[outsider.id], undefined);
+    // 끼워 넣은 답안은 버려졌으므로 그 문항의 정답 표기(display)도 새어 나가지 않는다
+    if (typeof outsider.display === 'string' && outsider.display !== '') {
+      assert.ok(!JSON.stringify(r.json).includes(outsider.display), outsider.display);
+    }
   });
 });
 
 // ------------------------------------------------------- 이력 · 오답노트
 
 describe('학습 이력 · 오답노트', () => {
-  test('비로그인 /api/me/history 는 401', async () => {
-    assert.equal(jar.size, 0);
-    const r = await api('GET', '/api/me/history');
-    assert.equal(r.status, 401);
-    assert.equal((await api('GET', '/api/me/wrong')).status, 401);
-  });
-
-  test('가입 → 1문항만 맞혀 채점 → 이력에 집계된다', async () => {
-    const up = await api('POST', '/api/auth/signup', { nickname: '이력테스터', password: 'pw1234' });
-    assert.equal(up.status, 200, up.text);
-
+  test('1문항만 맞혀 채점 → 이력에 집계된다', async () => {
     const first = ROUND.questions[0];
     const graded = await api('POST', `/api/rounds/${ROUND_ID}/grade`, {
       answers: { [first.id]: sampleAnswerOf(first) }, // 나머지 문항은 무응답 = 오답
@@ -171,6 +221,8 @@ describe('학습 이력 · 오답노트', () => {
     assert.equal(h.json.recent[0].total, TOTAL);
     assert.equal(h.json.recent[0].correct, 1);
     assert.equal(h.json.wrongCount, TOTAL - 1);
+    // 스캔 상한에 닿지 않았으므로 집계는 잘리지 않았다 (서버 M-10)
+    assert.equal(h.json.truncated, false);
   });
 
   test('오답노트는 틀린 문항만 담고, 다시 맞히면 빠진다', async () => {
@@ -180,6 +232,7 @@ describe('학습 이력 · 오답노트', () => {
     assert.equal(w.json.title, '오답노트');
     assert.equal(w.json.questions.length, TOTAL - 1);
     assert.ok(!w.json.questions.some((q) => q.id === ROUND.questions[0].id)); // 맞힌 문항은 빠진다
+    assert.ok(typeof w.json.setToken === 'string' && w.json.setToken.length > 0, '오답 세트에도 토큰이 붙는다');
     for (const q of w.json.questions) {
       assert.deepEqual(Object.keys(q).sort(), ['bodyHtml', 'fields', 'id', 'lang', 'num', 'prompt', 'type']);
     }
@@ -188,7 +241,7 @@ describe('학습 이력 · 오답노트', () => {
     const byId = new Map(ROUND.questions.map((q) => [q.id, q]));
     const answers = {};
     for (const q of w.json.questions) answers[q.id] = sampleAnswerOf(byId.get(q.id));
-    const g = await api('POST', '/api/practice/grade', { setKey: 'wrong', answers });
+    const g = await api('POST', '/api/practice/grade', { setKey: 'wrong', setToken: w.json.setToken, answers });
     assert.equal(g.status, 200);
     assert.equal(g.json.round, 'wrong');
     assert.equal(g.json.totalCount, TOTAL - 1);
@@ -223,7 +276,12 @@ let sqliteMode = false;
 describe('오답노트 허브 — GET /api/me/wrong/summary · ?round= · ?match=', () => {
   before(() => {
     sqliteMode = fs.existsSync(path.join(tmp, 'app.db'));
-    if (!sqliteMode) return;
+    // better-sqlite3 는 package.json 의 정식 의존성이다. json 어댑터로 떨어졌다는 것은 네이티브
+    // 모듈이 깨졌다는 뜻이고, 예전에는 그때 아래 5건이 **조용히 skip** 되어 오답노트 허브 계약이
+    // 통째로 미검증인 채 초록불이 켜졌다(서버 M-16). 이제는 여기서 크게 실패한다.
+    assert.ok(sqliteMode,
+      'sqlite 어댑터로 뜨지 않았다 (json 폴백) — 오답노트 허브 시나리오를 검증할 수 없다. '
+      + '`npm rebuild better-sqlite3` 로 네이티브 모듈을 복구하라.');
     const dbModule = require('../server/db.js');
     const d = dbModule.open({ dir: tmp, adapter: 'sqlite' });
     try {
@@ -257,8 +315,7 @@ describe('오답노트 허브 — GET /api/me/wrong/summary · ?round= · ?match
     }
   });
 
-  test('summary — 회차별·대전별 집계가 서로 어긋나지 않는다', async (t) => {
-    if (!sqliteMode) return t.skip('json 어댑터 폴백 환경 — 대전 적재 시나리오를 쓸 수 없다');
+  test('summary — 회차별·대전별 집계가 서로 어긋나지 않는다', async () => {
     const s = await api('GET', '/api/me/wrong/summary');
     assert.equal(s.status, 200, s.text);
     assert.equal(s.json.total, 2); // 앞 시나리오에서 오답 0 이 됐고, 대전에서 2문항이 새로 틀렸다
@@ -290,8 +347,7 @@ describe('오답노트 허브 — GET /api/me/wrong/summary · ?round= · ?match
     }
   });
 
-  test('?round= — 그 회차의 현재 오답만, 없는 회차는 400', async (t) => {
-    if (!sqliteMode) return t.skip('json 어댑터 폴백 환경 — 대전 적재 시나리오를 쓸 수 없다');
+  test('?round= — 그 회차의 현재 오답만, 없는 회차는 400', async () => {
     const w = await api('GET', `/api/me/wrong?round=${ROUND_ID}`);
     assert.equal(w.status, 200);
     assert.equal(w.json.setKey, 'wrong');
@@ -318,8 +374,7 @@ describe('오답노트 허브 — GET /api/me/wrong/summary · ?round= · ?match
     assert.equal((await api('GET', `/api/me/wrong?round=${ROUND_ID}&match=${battleMatchId}`)).status, 400);
   });
 
-  test('?match= — 그 대전에서 틀린 문항 전부, 남의 매치는 404', async (t) => {
-    if (!sqliteMode) return t.skip('json 어댑터 폴백 환경 — 대전 적재 시나리오를 쓸 수 없다');
+  test('?match= — 그 대전에서 틀린 문항 전부, 남의 매치는 404', async () => {
     const w = await api('GET', `/api/me/wrong?match=${battleMatchId}`);
     assert.equal(w.status, 200, w.text);
     assert.equal(w.json.setKey, 'wrong');
@@ -347,8 +402,7 @@ describe('오답노트 허브 — GET /api/me/wrong/summary · ?round= · ?match
     assert.equal((await api('GET', '/api/me/wrong?match=-1')).status, 400);
   });
 
-  test('history recent 의 대전 행에는 matchId·roomName 이 실린다', async (t) => {
-    if (!sqliteMode) return t.skip('json 어댑터 폴백 환경 — 대전 적재 시나리오를 쓸 수 없다');
+  test('history recent 의 대전 행에는 matchId·roomName 이 실린다', async () => {
     const h = await api('GET', '/api/me/history');
     assert.equal(h.status, 200);
     assert.equal(h.json.wrongCount, 2);
@@ -363,13 +417,20 @@ describe('오답노트 허브 — GET /api/me/wrong/summary · ?round= · ?match
     assert.ok(h.json.recent.filter((r) => r.round !== 'battle').every((r) => r.matchId === undefined));
   });
 
-  test('다시 맞히면 ?match= 에는 남고 resolvedIds·stillWrong 으로만 표시된다', async (t) => {
-    if (!sqliteMode) return t.skip('json 어댑터 폴백 환경 — 대전 적재 시나리오를 쓸 수 없다');
+  test('다시 맞히면 ?match= 에는 남고 resolvedIds·stillWrong 으로만 표시된다', async () => {
+    // 지금 오답 세트(WRONG_A·WRONG_B)를 받아 그중 하나만 맞힌다 — 채점 집합은 토큰이 정한다
+    const set = await api('GET', '/api/me/wrong');
+    assert.equal(set.status, 200, set.text);
+    assert.equal(set.json.questions.length, 2);
+
     const g = await api('POST', '/api/practice/grade', {
-      setKey: 'wrong', answers: { [WRONG_A.id]: sampleAnswerOf(WRONG_A) },
+      setKey: 'wrong',
+      setToken: set.json.setToken,
+      answers: { [WRONG_A.id]: sampleAnswerOf(WRONG_A) }, // WRONG_B 는 무응답 = 그대로 오답
     });
-    assert.equal(g.status, 200);
+    assert.equal(g.status, 200, g.text);
     assert.equal(g.json.correctCount, 1);
+    assert.equal(g.json.totalCount, 2);
 
     // 대전 오답노트는 **과거 스냅샷** — 문항은 그대로 2개고, 맞힌 문항만 resolvedIds 로 나온다
     const w = await api('GET', `/api/me/wrong?match=${battleMatchId}`);
@@ -388,5 +449,225 @@ describe('오답노트 허브 — GET /api/me/wrong/summary · ?round= · ?match
     assert.equal(b0.stillWrongCount, 1);  // 그중 지금도 오답인 수만 줄어든다
     assert.equal(b0.wrongQuestions.find((q) => q.id === WRONG_A.id).stillWrong, false);
     assert.equal(b0.wrongQuestions.find((q) => q.id === WRONG_B.id).stillWrong, true);
+  });
+});
+
+// ------------------------------- 대전 잠금(409) · 레이트리밋(429)
+//
+// 둘 다 "누가 요청했는가" 에만 달려 있고 DB·소켓 상태가 필요 없다. 그래서 실서버 대신
+// `routes/study.js` 를 가짜 ctx 로 직접 마운트한다 — 대전 한 판을 실제로 돌리지 않고도
+// `ctx.battleIo.activeBattleQuestionIds` 계약이 지켜지는지 볼 수 있다.
+
+describe('채점 방어벽 — 대전 잠금 · 레이트리밋', () => {
+  const LOCK_USER = 42;
+  const LOCKED = ROUND.questions.slice(0, 3).map((q) => q.id);
+  const FREE = ROUND.questions.slice(10, 13).map((q) => q.id);
+
+  let srv2 = null;
+  let base2 = '';
+  let settoken = null;
+
+  before(async () => {
+    const express = require('express');
+    const roundsMod = require('../server/rounds.js');
+    settoken = require('../server/settoken.js');
+
+    const app = express();
+    app.use(express.json());
+    app.use((req, _res, next) => { req.user = { id: LOCK_USER, nickname: '대전중' }; next(); });
+    require('../server/routes/study.js')(app, {
+      db: { saveStudyResult() { /* 이력은 이 테스트의 관심사가 아니다 */ } },
+      rounds: roundsMod,
+      auth: { requireAuth(_req, _res, next) { next(); } },
+      battleIo: { activeBattleQuestionIds() { return new Set(LOCKED); } },
+      log() {}, logErr() {},
+    });
+
+    srv2 = app.listen(0);
+    await new Promise((res) => srv2.once('listening', res));
+    base2 = 'http://localhost:' + srv2.address().port;
+  });
+
+  after(() => { try { srv2.close(); } catch { /* 이미 닫힘 */ } });
+
+  async function grade(body) {
+    const r = await fetch(base2 + '/api/practice/grade', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+      body: JSON.stringify(body),
+    });
+    const text = await r.text();
+    let json = null;
+    try { json = text ? JSON.parse(text) : null; } catch { /* JSON 이 아닐 수 있다 */ }
+    return { status: r.status, json, text };
+  }
+
+  test('진행 중인 대전의 문항이 섞여 있으면 409 — 정답도 해설도 나가지 않는다', async () => {
+    const token = settoken.signSet(LOCK_USER, [FREE[0], LOCKED[0]]);
+    const r = await grade({ setKey: 'practice', setToken: token, answers: {} });
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error, '진행 중인 대전의 문항은 채점할 수 없습니다.');
+    assert.equal(r.json.details, undefined);
+    assert.equal(r.json.explanations, undefined);
+  });
+
+  test('대전과 겹치지 않는 세트는 그대로 채점된다', async () => {
+    const r = await grade({ setKey: 'practice', setToken: settoken.signSet(LOCK_USER, FREE), answers: {} });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.totalCount, FREE.length);
+  });
+
+  test('사용자당 분당 20회를 넘기면 429', async () => {
+    const token = settoken.signSet(LOCK_USER, FREE);
+    const seen = [];
+    // 앞선 두 테스트가 이미 2회를 썼다 — 상한(20)을 확실히 넘기도록 넉넉히 두드린다.
+    for (let i = 0; i < 25; i++) seen.push((await grade({ setKey: 'practice', setToken: token, answers: {} })).status);
+    assert.ok(seen.includes(429), seen.join(','));
+    assert.equal(seen[seen.length - 1], 429, '한 번 걸리면 창이 끝날 때까지 계속 막힌다');
+    assert.ok(seen.filter((s) => s === 200).length <= 20, seen.join(','));
+  });
+});
+
+// ------------------- 오답노트 해설 조회의 대전 잠금 (Phase 3 재검토)
+//
+// `GET /api/me/wrong/explain` 은 "이미 채점받은 문항이면 정답·해설을 다시 보여 줘도 새로 새는
+// 정보가 없다" 는 전제로 채점 이력만 봤다. 그 전제는 **대전 중에는 성립하지 않는다** —
+// 예전에 학습 모드로 채점해 둔 회차로 대전을 시작하면, 채점 라우트는 409 로 막는데
+// 이 경로로는 같은 문항의 display 가 그대로 나왔다. 채점 라우트와 같은 잠금을 건다.
+
+describe('GET /api/me/wrong/explain — 대전 중 문항은 해설도 막힌다', () => {
+  const GRADED = ROUND.questions.slice(0, 4);          // 예전에 학습 모드로 채점해 둔 문항
+  const LOCKED = GRADED.slice(0, 2);                   // 그중 지금 대전에 걸린 문항
+  const OPEN = GRADED.slice(2);                        // 대전과 무관한 문항
+  const USER = { id: 77, nickname: '대전중' };
+
+  let srv3 = null;
+  let base3 = '';
+  let activeSet = null; // 이 값이 곧 battle-io 의 activeBattleQuestionIds 응답이다
+
+  before(async () => {
+    const express = require('express');
+    const roundsMod = require('../server/rounds.js');
+    const wrongnoteMod = require('../server/wrongnote.js');
+
+    // 저장소만 가짜다 — 집계(gradedIdsOf 등)는 실제 wrongnote.js 를 그대로 태운다.
+    const fakeDb = {
+      listStudyResults() {
+        return [{
+          round: '2026-2',
+          score: 20,
+          taken_at: '2026-09-01T00:00:00.000Z',
+          question_ids: JSON.stringify(GRADED.map((q) => q.id)),
+          wrong_ids: JSON.stringify(GRADED.map((q) => q.id)),
+          match_id: null,
+        }];
+      },
+      listMatchesByUser() { return []; },
+      bestScoresByRound() { return []; },
+      listMatchNames() { return []; },
+    };
+
+    const app = express();
+    app.use(express.json());
+    app.use((req, _res, next) => { req.user = USER; next(); });
+    require('../server/routes/me.js')(app, {
+      db: fakeDb,
+      rounds: roundsMod,
+      auth: { requireAuth(_req, _res, next) { next(); } },
+      wrongnote: wrongnoteMod.create({ db: fakeDb, logErr() {} }),
+      battleIo: { activeBattleQuestionIds() { return activeSet; } },
+      log() {}, logErr() {},
+    });
+
+    srv3 = app.listen(0);
+    await new Promise((res) => srv3.once('listening', res));
+    base3 = 'http://localhost:' + srv3.address().port;
+  });
+
+  after(() => { try { srv3.close(); } catch { /* 이미 닫힘 */ } });
+
+  async function explain(ids) {
+    const r = await fetch(base3 + '/api/me/wrong/explain?ids=' + encodeURIComponent(ids.join(',')));
+    const text = await r.text();
+    let json = null;
+    try { json = text ? JSON.parse(text) : null; } catch { /* JSON 이 아닐 수 있다 */ }
+    return { status: r.status, json, text };
+  }
+
+  test('대전이 없으면 채점 기록이 있는 문항 전부에 display + 해설이 나온다 (전제 확인)', async () => {
+    activeSet = null;
+    const r = await explain(GRADED.map((q) => q.id));
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(Object.keys(r.json.explanations).sort(), GRADED.map((q) => q.id).sort());
+    for (const q of GRADED) assert.equal(r.json.explanations[q.id].display, q.display);
+  });
+
+  test('대전 중이면 그 문항만 조용히 빠진다 — display 가 본문 어디에도 없다', async () => {
+    activeSet = new Set(LOCKED.map((q) => q.id));
+    const r = await explain(GRADED.map((q) => q.id));
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(Object.keys(r.json.explanations).sort(), OPEN.map((q) => q.id).sort());
+    for (const q of LOCKED) {
+      assert.equal(r.json.explanations[q.id], undefined, q.id);
+      assert.ok(!r.text.includes(q.display), q.id + ' 의 display 가 새고 있다: ' + q.display);
+    }
+    // 대전과 무관한 문항은 그대로 나온다 — 잠금이 오답노트 전체를 죽이지 않는다
+    for (const q of OPEN) assert.equal(r.json.explanations[q.id].display, q.display);
+  });
+
+  test('전부 대전 중이면 빈 맵이다 (403·409 가 아니라 조용한 생략)', async () => {
+    activeSet = new Set(GRADED.map((q) => q.id));
+    const r = await explain(GRADED.map((q) => q.id));
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(r.json.explanations, {});
+    for (const q of GRADED) assert.ok(!r.text.includes(q.display), q.id);
+  });
+
+  test('대전이 끝나면 다시 나온다 (제출·종료 뒤 activeBattleQuestionIds 가 비는 경우)', async () => {
+    activeSet = new Set();
+    const r = await explain(GRADED.map((q) => q.id));
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(Object.keys(r.json.explanations).sort(), GRADED.map((q) => q.id).sort());
+  });
+
+  test('battle-io 가 던져도 조회는 살아 있다 (잠금은 부가 방어벽이다)', async () => {
+    activeSet = null;
+    const boom = { activeBattleQuestionIds() { throw new Error('battle-io 고장'); } };
+    const express = require('express');
+    const roundsMod = require('../server/rounds.js');
+    const wrongnoteMod = require('../server/wrongnote.js');
+    const fakeDb = {
+      listStudyResults() {
+        return [{
+          round: '2026-2', score: 20, taken_at: '2026-09-01T00:00:00.000Z',
+          question_ids: JSON.stringify(GRADED.map((q) => q.id)),
+          wrong_ids: JSON.stringify(GRADED.map((q) => q.id)),
+          match_id: null,
+        }];
+      },
+      listMatchesByUser() { return []; },
+    };
+    const app = express();
+    app.use(express.json());
+    app.use((req, _res, next) => { req.user = USER; next(); });
+    require('../server/routes/me.js')(app, {
+      db: fakeDb,
+      rounds: roundsMod,
+      auth: { requireAuth(_req, _res, next) { next(); } },
+      wrongnote: wrongnoteMod.create({ db: fakeDb, logErr() {} }),
+      battleIo: boom,
+      log() {}, logErr() {},
+    });
+    const s = app.listen(0);
+    await new Promise((res) => s.once('listening', res));
+    try {
+      const r = await fetch('http://localhost:' + s.address().port
+        + '/api/me/wrong/explain?ids=' + encodeURIComponent(GRADED[0].id));
+      assert.equal(r.status, 200);
+      const body = await r.json();
+      assert.ok(body.explanations[GRADED[0].id]);
+    } finally {
+      s.close();
+    }
   });
 });

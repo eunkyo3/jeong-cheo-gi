@@ -101,13 +101,60 @@ gradeSet(questions, answersMap /* {questionId: string[]} */)
 ## SQLite 스키마
 
 ```sql
-users(id PK, nickname UNIQUE, password_hash, created_at)
+users(id PK, nickname UNIQUE, password_hash, created_at, session_version INTEGER NOT NULL DEFAULT 0)
 matches(id PK, room_name, mode, round_ids TEXT, question_ids TEXT,
         time_limit_s, started_at, finished_at, winner_user_id)
-match_players(match_id FK, user_id FK, correct_count, submitted_at, answers JSON)
-study_results(id PK, user_id FK, round, score, taken_at,
+match_players(match_id FK→matches(id) ON DELETE CASCADE,
+              user_id  FK→users(id)   ON DELETE CASCADE,
+              correct_count, submitted_at, answers JSON,
+              PRIMARY KEY (match_id, user_id))
+study_results(id PK, user_id FK→users(id) ON DELETE CASCADE, round, score, taken_at,
               question_ids TEXT NULL, wrong_ids TEXT NULL, match_id INTEGER NULL)
 ```
+
+**외래 키는 선언만이 아니라 실제로 걸려 있다.** `PRAGMA foreign_keys = ON` 과 위 `REFERENCES` 절이
+짝을 이루므로, 계정을 지우면 그 사람의 `match_players`·`study_results` 행이 함께 사라진다
+(매치 자체는 남는다 — 다른 참가자의 기록이기도 하기 때문이다).
+`study_results.match_id` 만 **FK 가 아닌 느슨한 참조**다: `battle` 행에서만 값이 있고 NULL 이 정상 상태이며,
+매치를 지운다고 학습 기록까지 지워서는 안 되기 때문이다(아래 `match_id` 설명 참조).
+
+### 인덱스
+
+| 인덱스 | 대상 | 쓰이는 곳 |
+|---|---|---|
+| `idx_mp_user` | `match_players(user_id)` | 내가 참가한 매치 찾기 |
+| `idx_mp_match` | `match_players(match_id)` | 매치별 참가자 조회 |
+| `idx_sr_user` | `study_results(user_id)` | 사용자별 학습 기록 |
+| `idx_sr_user_id` | `study_results(user_id, id DESC)` | `/api/me/*` 의 최신순 조회(정렬 없이 인덱스만 읽는다) |
+
+`users.nickname` 의 UNIQUE 와 `match_players` 의 복합 PK 는 SQLite 가 자동으로 인덱스를 만든다.
+
+### 스키마 버전과 마이그레이션 (`PRAGMA user_version`)
+
+스키마 변경은 **`server/db.js` 의 `MIGRATIONS` 배열에만** 적는다. 기동할 때 `PRAGMA user_version` 을 읽어
+밀린 것만 순서대로, **각각 트랜잭션 안에서** 돌린다. 새로 만든 DB 는 최종 모양(`SCHEMA_SQL`)으로 곧바로
+생기고 번호만 끝으로 찍히므로, "새 DB" 와 "끝까지 마이그레이션한 옛 DB" 의 스키마는 **완전히 같다**
+(`tests/db-adapter.test.mjs` 가 두 파일의 컬럼·FK·인덱스를 비교해 못박는다).
+
+| 버전 | 내용 |
+|---|---|
+| 1 | `study_results` 에 `question_ids` / `wrong_ids` / `match_id` 추가 |
+| 2 | `users.session_version` 추가 (기본 0) |
+| 3 | `idx_sr_user_id(user_id, id DESC)` 생성 |
+| 4 | `match_players` · `study_results` 를 실제 FK(`ON DELETE CASCADE`) 로 재작성 |
+
+**밀린 마이그레이션이 하나라도 있으면 손대기 전에 파일을 통째로 복사한다** —
+`data/app.db.bak-<YYYYMMDD-HHMMSS>` (JSON 어댑터는 `app.json.bak-…`). 최근 **5개**만 남기고 지운다.
+마이그레이션이 중간에 실패하면 트랜잭션이 되감기고 기동이 중단되므로, 그 백업으로 되돌리면 된다.
+4번은 SQLite 규약대로 **트랜잭션 밖에서 `foreign_keys` 를 끄고** 새 테이블 생성 → 복사 → 삭제 → 이름 변경 순으로 진행한다.
+
+각 마이그레이션의 `up()` 은 **여러 번 돌아도 안전하게** 쓴다(컬럼·인덱스·FK 존재를 직접 확인한 뒤에만 손댄다).
+`user_version` 이 0 인 채 이미 최신 모양인 DB 도 그래서 문제없이 통과한다.
+
+JSON 어댑터는 파일 안의 `schemaVersion` 필드로 같은 눈금을 쓴다. 인덱스(3)와 FK(4)는 sqlite 전용이라
+JSON 쪽에서는 대응 동작이 없다. JSON 어댑터는 파일을 읽을 때 `seq` 를 **깊은 병합**하고
+각 테이블의 최대 id 로 끌어올린다(하위 키가 빠져 id 가 `NaN` 이 되거나 id 가 겹치던 문제를 막는다).
+쓰기는 200ms 디바운스로 묶이며 `flushSync()` / `close()` / 프로세스 종료가 반드시 흘려보낸다.
 
 `study_results.round` 는 다음 넷 중 하나다 — **회차 id**(`2026-2` 등), `practice`(랜덤 모의고사),
 `wrong`(오답노트), `battle`(대전). 집계 경로(`/api/me/history`, `/api/me/wrong`)는 이 값을 해석하지 않고
@@ -121,7 +168,15 @@ study_results(id PK, user_id FK, round, score, taken_at,
 유일한 연결고리이며(`GET /api/me/wrong/summary` 의 `byBattle`, `GET /api/me/wrong?match=`), 값이 NULL 인 예전
 대전 행은 대전별 보기에서만 빠지고 회차별 집계에는 그대로 든다 — `scripts/backfill-battle-notes.mjs` 가
 (user, taken_at=finished_at, question_ids 동일) 로 매치를 찾아 UPDATE 로 소급해 채운다(멱등).
-sqlite 어댑터는 기동 시 `PRAGMA table_info` 로 세 컬럼 중 없는 것을 `ALTER TABLE ADD COLUMN` 한다(기존 DB 무중단 마이그레이션).
+이 세 컬럼은 마이그레이션 **1번**이 없는 것만 골라 `ALTER TABLE ADD COLUMN` 으로 붙인다(기존 DB 무중단).
+
+`users.session_version` 은 **세션 일괄 폐기용 세대 번호**다. 세션 쿠키에 같은 값(`sv`)이 실려 나가고,
+`auth.attachUser` 가 두 값이 다르면 비로그인으로 본다. `db.bumpSessionVersion(userId)` 를 부르면
+그 사용자에게 이미 나간 쿠키가 전부 무효가 된다. `sv` 가 없는 예전 쿠키는 0 으로 읽으므로 배포만으로 로그아웃되지 않는다.
+
+`users.password_hash` 는 `scrypt$<salt base64>$<key base64>` (N=16384, r=8, p=1, 32바이트) 다.
+예전 bcrypt 해시(`$2a$…`)도 그대로 검증하며, **로그인에 성공한 그 자리에서** scrypt 로 다시 저장한다
+(`db.updatePasswordHash`). 두 형식이 한 컬럼에 섞여 있는 것이 정상 상태다.
 
 승자 판정 체인: ① 정답 수 → ② 제출 시각(이탈자는 이탈 시각 = 즉시 제출 간주, 끊긴 채 미제출인 유저는 deadline) → ③ 마지막 `battle:answer` 시각
 (입력 전무 시 deadline) → ④ 전부 동률이면 **무승부**(`winner_user_id` NULL).
@@ -161,7 +216,8 @@ sqlite 어댑터는 기동 시 `PRAGMA table_info` 로 세 컬럼 중 없는 것
 **노출 시점**: 서버는 기동 시 이 파일들을 읽어 문항 객체에 `explanationHtml` 로 붙인다(내부 전용).
 클라이언트에는 **채점이 끝난 뒤에만** 나간다 — 아래 "클라이언트에 절대 전송 금지" 참조.
 
-작성 지침은 `data/explanations/_TEMPLATE.md`, 진행 현황은 `data/explanations/PROGRESS.md`.
+작성 지침은 `docs/explanations/_TEMPLATE.md`, 진행 현황은 `docs/explanations/PROGRESS.md`.
+`data/explanations/` 에는 회차 JSON 만 둔다 — 사이드카 디렉터리에 문서를 섞지 않는다.
 
 ## 문항 유형 JSON 스키마 (`data/types/{round}.json`)
 
@@ -259,6 +315,38 @@ sqlite 어댑터는 기동 시 `PRAGMA table_info` 로 세 컬럼 중 없는 것
 그런 문항은 언어 필터에서 빠질 뿐이다. 언어 파일이 없거나 깨져도 서버는 그냥 뜬다(경고만 남긴다).
 따라서 `q.lang` 은 `c` \| `java` \| `python` \| `null` 넷 중 하나다.
 
+## 문항 id 규칙 (동결) 과 지문 서명 (`data/.qfingerprint.json`)
+
+**문항 id 불변 · 삭제 대신 tombstone · 추가는 append only.**
+
+사이드카 3종(해설·유형·언어)은 전부 문항 id 로 회차 파일과 맞물리고, 검증기 3종은 **id 집합**만
+대조한다. 그래서 회차 중간 문항을 지우고 뒤 문항을 한 칸씩 당기면(재번호) id 집합은 그대로인데
+사이드카가 전부 다른 문항을 가리킨다 — **어느 검증기도 실패하지 않는 유일한 무성 오염**이다.
+
+- 한 번 발행한 `id`(=`{round}#{num}`)는 다른 문항에 재사용하지 않는다.
+- 문항을 빼야 하면 뒤를 당기지 않고 그 번호를 비워 둔다(`data/excluded.md` 에 사유 기록).
+- 문항 추가는 뒤에 붙이는 것만 허용한다.
+
+```json
+{
+  "2026-2#1": "3f2c…(sha1 40자)",
+  "2026-2#2": "9a71…"
+}
+```
+
+| 규칙 | 내용 |
+|---|---|
+| 파일 | `data/.qfingerprint.json` — 최상위가 `{ "<문항 id>": "<sha1 hex 40자>" }` 평면 객체 |
+| 커버리지 | 로드되는 **전 문항**을 정확히 덮는다 — 누락·잉여 모두 실패 |
+| 서명 입력 | 정규화한 `prompt` 앞 200자 + `"|"` + `fields.length` + `"|"` + 정규화한 본문(`bodyText`, 없으면 `bodyHtml`) 앞 200자 |
+| 정규화 | NFC → HTML 태그 제거 → 연속 공백 1칸 → trim |
+| 커밋 | **커밋 대상이다.** `.gitignore` 에 넣지 않는다 |
+| 갱신 | `node scripts/fingerprint-questions.mjs --write` (문항을 정당하게 고친 뒤에만) |
+
+검증: `npm run validate:fingerprint` · `npm run preflight` 의 ⑨단계 · `tests/fingerprint.test.mjs`.
+파일이 없으면 **건너뛰지 않고 FAIL** 한다. 본문까지 서명에 넣는 이유는 `prompt` 만으로는 정형 발문
+("다음 설명에서 괄호 안에 들어갈 알맞은 용어를 쓰시오.")끼리 서명이 겹쳐 한 칸 밀림을 놓칠 수 있어서다.
+
 ## 클라이언트에 절대 전송 금지
 
 `accept`, `sampleAnswer`, `validator`, `display`(채점 전), `explanationHtml` — 서버에서 반드시 제거하고 내보낸다.
@@ -267,3 +355,14 @@ sqlite 어댑터는 기동 시 `PRAGMA table_info` 로 세 컬럼 중 없는 것
 `rounds.publicQuestion()` · `battle.publicQuestion()` 은 둘 다 **화이트리스트 방식**이라 문항 객체에
 어떤 필드가 새로 붙어도 자동으로 걸러진다. 해설은 채점 응답의 `explanations{}` 맵과
 `battle:finished` 페이로드로만 나간다(PROTOCOL.md).
+
+화이트리스트 **구현은 `server/qtypes.js` 의 `publicQuestion(q, opts)` 하나뿐이다.**
+`rounds.publicQuestion()` · `battle.publicQuestion()` 은 그 한 함수를 부르는 얇은 껍데기이고,
+두 호출부의 차이는 옵션 두 개로만 갈린다 — 금지 필드 제거 규칙은 완전히 공통이다.
+
+| 필드 | 학습 REST (`rounds`) | 대전 (`battle`) | 이유 |
+|---|---|---|---|
+| `id`·`num`·`prompt`·`bodyHtml`·`type`·`lang`·`fields[].label` | 나간다 | 나간다 | 문항 표시·유형/언어 뱃지·필터 |
+| `bodyText` | **안 나간다** | 나간다 | 학습 모드는 채점 응답의 `bodyTexts` 맵으로만 (PROTOCOL.md "채점 전 비노출") |
+| `answerMode` | 안 나간다 | 나간다 | 대전 클라이언트 전용 |
+| 그 밖의 모든 필드 | 안 나간다 | 안 나간다 | 화이트리스트에 없으면 구조적으로 실리지 않는다 |

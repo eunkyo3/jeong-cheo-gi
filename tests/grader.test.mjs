@@ -509,3 +509,61 @@ test('keywords: VALIDATOR_TYPES 카탈로그에 등재되어 있다', () => {
   assert.ok(VALIDATOR_TYPES.includes('keywords'));
   assert.ok(VALIDATOR_TYPES.includes('ip-in-subnet'));
 });
+
+// ------------------------------- validator 예외 강등 (서버 H-1)
+//
+// `runValidator` 는 카탈로그에 없는 타입·깨진 CIDR 에 예외를 던진다. 그 예외가 `gradeSet` 밖으로
+// 나가면 대전 리듀서 안에서 삼켜져 방이 영구 정지하고 전적이 사라졌다. 지금은 그 필드만
+// 오답이 되고 서버 로그(stderr)에 원인이 남는다. **채점 규칙은 그대로다** — 던지던 자리만 바뀐다.
+
+test('runValidator 자체는 여전히 던진다 (계약 유지)', () => {
+  assert.throws(() => runValidator({ type: '없는타입' }, 'x'), /unknown validator type/);
+  assert.throws(() => runValidator({ type: 'ip-in-subnet', cidr: '엉망' }, '1.2.3.4'), /bad cidr/);
+});
+
+test('fieldAccepts 는 validator 예외를 오답으로 강등한다', () => {
+  assert.equal(fieldAccepts({ validator: { type: '없는타입' }, accept: [] }, 'x', 'X#1'), false);
+  assert.equal(fieldAccepts({ validator: { type: 'ip-in-subnet', cidr: '엉망' }, accept: [] }, '1.2.3.4', 'X#2'), false);
+  assert.equal(fieldAccepts({ validator: { type: 'keywords' }, accept: [] }, 'x', 'X#3'), false);
+  // 문항 id 없이 불러도(golden-check 처럼) 판정은 같다
+  assert.equal(fieldAccepts({ validator: { type: '없는타입' }, accept: [] }, 'x'), false);
+});
+
+test('gradeSet 은 validator 가 깨진 문항에서도 던지지 않는다', () => {
+  const broken = [
+    orderedQ([{ label: '①', accept: [], validator: { type: '없는타입' } }], 'B#1'),
+    orderedQ([{ label: '①', accept: [], validator: { type: 'ip-in-subnet', cidr: '엉망/99' } }], 'B#2'),
+    orderedQ([{ label: '①', accept: ['정답'] }], 'B#3'),
+  ];
+  const r = gradeSet(broken, { 'B#1': ['x'], 'B#2': ['192.168.0.5'], 'B#3': ['정답'] });
+  assert.equal(r.totalCount, 3);
+  assert.equal(r.correctCount, 1, '깨진 두 문항만 오답이 되고 멀쩡한 문항은 그대로 채점된다');
+  assert.equal(r.details[0].correct, false);
+  assert.equal(r.details[1].correct, false);
+  assert.equal(r.details[2].correct, true);
+  assert.equal(r.score, 33);
+});
+
+test('unordered 문항도 validator 예외에 멈추지 않는다', () => {
+  const q = {
+    id: 'U#1', num: 1, prompt: '', bodyHtml: '', answerMode: 'unordered', display: '',
+    fields: [
+      { label: '①', accept: [], validator: { type: '없는타입' } },
+      { label: '②', accept: ['가용성'] },
+    ],
+  };
+  const r = gradeQuestion(q, ['아무거나', '가용성']);
+  assert.equal(r.correct, false);
+  assert.equal(r.fieldResults.length, 2);
+});
+
+test('알 수 없는 normalize 모드도 던지지 않고 오답이 된다', () => {
+  const q = orderedQ([{ label: '①', accept: ['정답'], normalize: '없는모드' }], 'N#1');
+  assert.equal(gradeQuestion(q, ['정답']).correct, false);
+  // unordered 의 dedupe 기준(fields[0].normalize)도 마찬가지다
+  const u = {
+    id: 'N#2', num: 1, prompt: '', bodyHtml: '', answerMode: 'unordered', display: '',
+    fields: [{ label: '①', accept: ['가'], normalize: '없는모드' }, { label: '②', accept: ['나'], normalize: '없는모드' }],
+  };
+  assert.equal(gradeQuestion(u, ['가', '나']).correct, false);
+});

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // headless-study.js — 학습 모드 프런트를 jsdom 으로 실서버에 붙여 종단 검증한다 (브라우저 없이).
 // 격리 임시 DATA_DIR + 임의 포트. 검증 항목: 메인 회차 버튼 수 / 풀이→채점 점수 / 오답 카드의 AI 복사 버튼 →
-// 클립보드 3단 폴백의 최종 단계(모달) 진입 + 프롬프트 4요소 / 인라인 이의 제기 → reports.json 적재 /
+// 클립보드 3단 폴백의 최종 단계(모달) 진입 + 프롬프트 4요소 / 인라인 이의 제기 → reports.jsonl 적재 /
 // 답안 자동 저장·복원 / Enter→다음 칸 / 학습 이력 카드·회차 뱃지 / 오답노트 + 허브(wrong.html) / 랜덤 모의고사 / favicon /
 // 가입→me→로그아웃 / 문항 유형 필터(코드·SQL·이론) — 유형 뱃지·필터 칩·부분집합 채점·메인 유형 구성 /
 // 코드 들여쓰기 정규화(codefmt) / 언어 필터(C·Java·Python) / 오답노트 채점 전 정답·해설 즉시 보기.
@@ -15,8 +15,10 @@ const { spawn } = require('child_process');
 const { JSDOM, VirtualConsole } = require('jsdom');
 
 const ROOT = path.resolve(__dirname, '..');
-const PORT = 3000 + Math.floor(Math.random() * 20000);
-const BASE = 'http://localhost:' + PORT;
+// 포트는 추첨하지 않는다 — `PORT=0` 으로 띄우고 OS 가 잡아 준 번호를 `LISTEN_PORT=<n>` 줄에서
+// 읽는다(e2e-battle.js 와 같은 규칙). 예전 범위는 3000 에서 시작해 **실서버 포트와 부딪힐 수 있었다**.
+let PORT = 0;
+let BASE = '';
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'jpk-headless-'));
 const T0 = Date.now();
 const log = (...a) => console.log('[' + String(Date.now() - T0).padStart(5) + 'ms]', ...a);
@@ -24,14 +26,25 @@ let failures = 0;
 const check = (cond, label, detail) => { log((cond ? 'PASS ' : 'FAIL ') + label + (detail !== undefined ? ' — ' + detail : '')); if (!cond) failures++; };
 
 const srv = spawn(process.execPath, [path.join(ROOT, 'server', 'index.js')], {
-  env: { ...process.env, PORT: String(PORT), DATA_DIR: TMP }, stdio: ['ignore', 'pipe', 'pipe'],
+  env: { ...process.env, PORT: '0', DATA_DIR: TMP }, stdio: ['ignore', 'pipe', 'pipe'],
 });
 let srvLog = '';
 srv.stdout.on('data', d => { srvLog += d; });
 srv.stderr.on('data', d => { srvLog += d; });
 const ready = new Promise((res, rej) => {
-  const t = setInterval(() => { if (srvLog.includes('battle-io.js 연결 완료')) { clearInterval(t); res(); } }, 100);
-  setTimeout(() => { clearInterval(t); rej(new Error('server start timeout\n' + srvLog)); }, 15000);
+  // 준비 신호는 `LISTEN_PORT=<n>` 이다 — boot.js 가 `server.listen` 콜백 안에서 찍는다.
+  // `battle-io.js 연결 완료` 는 listen **이전**에 나오므로 그걸 기다리면 아직 듣지 않는
+  // 포트로 첫 요청이 나갈 수 있다(ECONNREFUSED).
+  const t = setInterval(() => {
+    const m = /LISTEN_PORT=(\d+)/.exec(srvLog);
+    if (m && srvLog.includes('battle-io.js 연결 완료')) {
+      clearInterval(t);
+      PORT = Number(m[1]);
+      BASE = 'http://localhost:' + PORT;
+      res();
+    }
+  }, 50);
+  setTimeout(() => { clearInterval(t); rej(new Error('server start timeout\n' + srvLog)); }, 20000);
 });
 function shutdown(code) {
   try { srv.kill(); } catch (_) { /* gone */ }
@@ -63,9 +76,19 @@ function makeFetch() {
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+/**
+ * fn() 이 참 같은 값을 낼 때까지 50ms 간격으로 되묻는다.
+ *
+ * 마감을 넘겨도 **한 번 더** 본다. 이 프로세스는 jsdom 창 여러 개를 동시에 살려 두는
+ * CPU 바운드 하네스라 이벤트 루프가 통째로 멈추는 구간이 있다(다른 테스트와 같이 돌리면
+ * 관측값 2.1s, 레인 D 는 11.7s 를 봤다). 그때 `Date.now() >= end` 만 보고 던지면
+ * **이미 참이 된 조건**을 마지막으로 확인하지 않은 채 실패로 적는다 — 서버는 멀쩡했다.
+ */
 async function waitFor(fn, label, ms = 8000) {
   const end = Date.now() + ms;
   while (Date.now() < end) { const v = fn(); if (v) return v; await sleep(50); }
+  const last = fn(); // 루프 정지로 마지막 폴링을 건너뛴 경우를 구제한다
+  if (last) return last;
   throw new Error('timeout: ' + label);
 }
 
@@ -181,7 +204,7 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
 
   let logoutBtn = null;
   if (nickInput && pwInput && signupBtn) {
-    nickInput.value = nick; pwInput.value = 'pw1234';
+    nickInput.value = nick; pwInput.value = 'pw12345678';
     nickInput.dispatchEvent(new idx.window.Event('input', { bubbles: true }));
     pwInput.dispatchEvent(new idx.window.Event('input', { bubbles: true }));
     signupBtn.click();
@@ -552,7 +575,7 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
     if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
   }
 
-  // ---------- 4. 정답 이의 제기(인라인 textarea) → reports.json ----------
+  // ---------- 4. 정답 이의 제기(인라인 textarea) → reports.jsonl ----------
   // 토글/전송마다 render() 가 카드를 다시 만든다 — 매번 data-q 로 다시 찾는다.
   const findQ3 = () => d.querySelector('.q[data-q="2026-2#3"]');
   check(!!findQ3(), 'study: 오답 카드를 data-q 로 식별', findQ3() ? findQ3().getAttribute('data-q') : '없음');
@@ -571,8 +594,19 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
       check(!!send, 'report: "보내기" 버튼 존재');
       if (send) {
         send.click();
-        const rep = await waitFor(() => { try { const j = JSON.parse(fs.readFileSync(path.join(TMP, 'reports.json'), 'utf8')); return j.length ? j : null; } catch (_) { return null; } }, 'reports.json entry', 5000).catch(() => null);
-        check(!!rep && rep[0].questionId === '2026-2#3' && /신고/.test(rep[0].comment || ''), 'reports: reports.json 에 1건 적재 (questionId, comment)', JSON.stringify(rep && rep[0]));
+        // 신고는 append-only JSONL 로 쌓인다 (server/reports.js) — 줄 단위로 읽는다.
+        // 상한이 5s 였을 때 간헐 실패가 있었다(레인 D). 원인은 서버가 아니다 —
+        // 격리 서버로 `POST /api/reports` 를 25번 재 봐도 2~5ms 다(동기 append).
+        // 이 하네스가 jsdom 창을 여럿 띄운 채 CPU 를 다 쓰는 바람에 **클릭 직후 요청이
+        // 나가지도 못한 채** 루프가 수 초 멈춘 것이다. 다른 테스트와 같이 돌린 계측에서
+        // 이 지점 완료가 4.5s → 11.6s 로 밀렸다. 여유를 15s 로 둔다.
+        const rep = await waitFor(() => {
+          try {
+            const lines = fs.readFileSync(path.join(TMP, 'reports.jsonl'), 'utf8').split('\n').filter(l => l.trim());
+            return lines.length ? lines.map(l => JSON.parse(l)) : null;
+          } catch (_) { return null; }
+        }, 'reports.jsonl entry', 15000).catch(() => null);
+        check(!!rep && rep[0].questionId === '2026-2#3' && /신고/.test(rep[0].comment || ''), 'reports: reports.jsonl 에 1건 적재 (questionId, comment)', JSON.stringify(rep && rep[0]));
         await sleep(150);
         const done = [...findQ3().querySelectorAll('button')].find(b => /이의 제기 접수됨/.test(b.textContent));
         check(!!done && done.disabled === true, 'report: 접수 후 버튼이 "이의 제기 접수됨" 으로 잠긴다',
@@ -741,7 +775,7 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   const su2 = await makeFetch()('/api/auth/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nickname: nick2, password: 'pw1234' }),
+    body: JSON.stringify({ nickname: nick2, password: 'pw12345678' }),
   });
   check(su2.status === 200, 'auth: 두 번째 계정 가입', su2.status);
   const hist0 = await (await makeFetch()('/api/me/history')).json();
@@ -1137,7 +1171,8 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   {
     const cf = await load('/study.html?round=2020-1');
     const cfDoc = cf.window.document;
-    check(!!cfDoc.querySelector('script[src="/js/codefmt.js"]'),
+    // 서버가 전송 직전에 캐시 버스팅 쿼리(`?v=<기동 ms>`)를 붙이므로 src 를 통째로 비교하면 안 된다.
+    check(!!cfDoc.querySelector('script[src="/js/codefmt.js"], script[src^="/js/codefmt.js?"]'),
       'codefmt: study.html 이 /js/codefmt.js 를 study.js 보다 먼저 읽는다');
     const CF = cf.window.CodeFmt;
     check(!!CF && typeof CF.applyTo === 'function' && typeof CF.normalize === 'function'
@@ -1321,7 +1356,7 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
     const relog = await makeFetch()('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname: nick, password: 'pw1234' }),
+      body: JSON.stringify({ nickname: nick, password: 'pw12345678' }),
     });
     check(relog.status === 200, 'peek: 오답이 있는 계정으로 재로그인', relog.status);
 
@@ -1490,7 +1525,7 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
     await makeFetch()('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname: nick, password: 'pw1234' }),
+      body: JSON.stringify({ nickname: nick, password: 'pw12345678' }),
     });
     const fx = await load('/study.html?set=wrong');
     const fd = fx.window.document;

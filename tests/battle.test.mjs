@@ -11,7 +11,7 @@ const require = createRequire(import.meta.url);
 const battle = require('../server/battle.js');
 const {
   applyEvent, createRoom, isDisposed, buildQuestionSet,
-  COUNTDOWN_MS, ABANDON_GRACE_MS, ROOM_GC_MS,
+  COUNTDOWN_MS, ABANDON_GRACE_MS, ROOM_GC_MS, MAX_PLAYERS,
 } = battle;
 
 // ------------------------------------------------------------------ 픽스처
@@ -919,5 +919,765 @@ describe('방 언어 옵션 — lang', () => {
     ]);
     assert.equal(r.state.state, 'finished');
     assert.equal(r.state.lang, 'java');
+  });
+});
+
+// ------------------------------------------------ 방 정원 · 디바운스 키 · 조용한 파기
+
+describe('방 정원 (ROOM_FULL)', () => {
+  test('MAX_PLAYERS 명까지 들어오고 그 다음 신규 입장은 ROOM_FULL 로 거부된다', () => {
+    const created = newRoom();
+    const events = [];
+    for (let i = 1; i <= MAX_PLAYERS; i += 1) events.push(ev.join(i, '유저' + i, T0 + i));
+    const full = drive(created.state, events);
+    assert.equal(full.state.playerOrder.length, MAX_PLAYERS);
+    assert.equal(errors(full.effects).length, 0);          // 정원까지는 에러 0건
+
+    const over = applyEvent(full.state, ev.join(MAX_PLAYERS + 1, '초과', T0 + 100));
+    assert.equal(over.state.playerOrder.length, MAX_PLAYERS); // 명부가 늘지 않는다
+    assert.equal(over.state.players[MAX_PLAYERS + 1], undefined);
+    const errs = errors(over.effects);
+    assert.equal(errs.length, 1);
+    assert.equal(errs[0].payload.code, 'ROOM_FULL');
+    assert.equal(errs[0].to, MAX_PLAYERS + 1);
+    // 거부된 join 은 방 상태를 바꾸지 않으므로 room:state 도 나가지 않는다
+    assert.equal(broadcasts(over.effects, 'room:state').length, 0);
+  });
+
+  test('정원이 찼어도 이미 명부에 있는 사람의 복귀는 통과한다', () => {
+    const created = newRoom();
+    const events = [];
+    for (let i = 1; i <= MAX_PLAYERS; i += 1) events.push(ev.join(i, '유저' + i, T0 + i));
+    events.push(ev.disconnect(3, T0 + 50));
+    const full = drive(created.state, events);
+    assert.equal(full.state.players[3].connected, false);
+
+    const back = applyEvent(full.state, ev.join(3, '유저3', T0 + 60));
+    assert.equal(errors(back.effects).length, 0);            // ROOM_FULL 아님
+    assert.equal(back.state.players[3].connected, true);
+    assert.equal(back.state.playerOrder.length, MAX_PLAYERS); // 정원은 그대로
+  });
+
+  test('leave 로 자리가 나면 다시 들어올 수 있다', () => {
+    const created = newRoom();
+    const events = [];
+    for (let i = 1; i <= MAX_PLAYERS; i += 1) events.push(ev.join(i, '유저' + i, T0 + i));
+    events.push(ev.leave(2, T0 + 50));
+    const freed = drive(created.state, events);
+    assert.equal(freed.state.playerOrder.length, MAX_PLAYERS - 1);
+
+    const joined = applyEvent(freed.state, ev.join(99, '새사람', T0 + 60));
+    assert.equal(errors(joined.effects).length, 0);
+    assert.equal(joined.state.playerOrder.length, MAX_PLAYERS);
+  });
+});
+
+describe('battle:progress 디바운스 키 (서버 M-1)', () => {
+  test('answer 는 debounceMs 와 debounceKey 를 함께 단다', () => {
+    const base = playingRoom();
+    const r = applyEvent(base.state, ev.answer(1, '2026-2#1', '동치분할', T0 + 4000));
+    const progs = broadcasts(r.effects, 'battle:progress');
+    assert.equal(progs.length, 1);
+    assert.equal(progs[0].debounceMs, battle.PROGRESS_DEBOUNCE_MS);
+    assert.equal(progs[0].debounceKey, 'ROOM1:progress:1');
+  });
+
+  test('submit 의 즉시 방송은 같은 debounceKey 를 달되 debounceMs 는 달지 않는다', () => {
+    const base = playingRoom();
+    const r = drive(base.state, [
+      ev.answer(1, '2026-2#1', '동치분할', T0 + 4000),
+      ev.submit(1, T0 + 4100),
+    ]);
+    const progs = broadcasts(r.effects, 'battle:progress');
+    assert.equal(progs.length, 2);
+    // 두 방송의 키가 같아야 어댑터가 지연 중인 앞의 것을 버릴 수 있다
+    assert.equal(progs[0].debounceKey, progs[1].debounceKey);
+    assert.equal(progs[1].debounceMs, undefined);
+    assert.equal(progs[1].payload.submitted, true);
+  });
+
+  test('playing 중 leave 의 즉시 방송도 같은 규칙을 따른다', () => {
+    const base = playingRoom();
+    const r = drive(base.state, [
+      ev.answer(2, '2026-2#1', '동치분할', T0 + 4000),
+      ev.leave(2, T0 + 4100),
+    ]);
+    const progs = broadcasts(r.effects, 'battle:progress').filter((f) => f.payload.userId === 2);
+    assert.equal(progs.length, 2);
+    assert.equal(progs[0].debounceKey, 'ROOM1:progress:2');
+    assert.equal(progs[1].debounceKey, 'ROOM1:progress:2');
+    assert.equal(progs[1].debounceMs, undefined);
+  });
+});
+
+describe('격자표 정합 — playing + timeout(abandon) 은 아무것도 방송하지 않는다', () => {
+  test('abandoned 전이에는 broadcast 이펙트가 0건이다 (서버 L-11 drift)', () => {
+    const base = playingRoom();
+    const t = T0 + 5000;
+    const dropped = drive(base.state, [ev.disconnect(1, t), ev.disconnect(2, t + 10)]);
+    const gone = applyEvent(dropped.state, ev.timeout('abandon', t + 10 + ABANDON_GRACE_MS));
+
+    assert.equal(gone.state.state, 'abandoned');
+    // 접속자가 0명인 것이 전제인 셀이라 받을 사람이 없다 — cancel 두 건만 남는다
+    assert.equal(gone.effects.filter((f) => f.type === 'broadcast').length, 0);
+    assert.equal(persists(gone.effects).length, 0);
+    assert.deepEqual(
+      gone.effects.map((f) => f.type + ':' + (f.key || '')).sort(),
+      ['cancel:ROOM1:abandon', 'cancel:ROOM1:deadline']
+    );
+  });
+});
+
+// ==================================================================
+// 격자표 전수 (서버 H-6)
+//
+// `docs/battle-state-grid.md` 는 상태 5 × 이벤트 12 = **60셀**을 전부 정의한다.
+// 위쪽 describe 들은 "실제로 일어나는 일"(정상 진행·이탈·승자 판정)을 검증하고,
+// 여기서는 그 격자를 **셀 단위로** 훑는다 — 특히 아무 일도 일어나지 않아야 하는 셀들.
+// 리듀서가 순수 함수라 셀 하나가 3~5줄이면 끝나고, 표와 코드가 어긋나면 여기가 먼저 깨진다.
+// ==================================================================
+
+/** 격자표의 이벤트 12종을 그 순서대로. `uid` 는 명부에 있는 참가자여야 하는 이벤트에 쓴다. */
+function gridEvents(at, uid) {
+  const u = uid == null ? 1 : uid;
+  return [
+    ['join', ev.join(99, '난입자', at)],
+    ['leave', ev.leave(u, at)],
+    ['start', ev.start(u, at)],
+    ['answer', ev.answer(u, QUESTIONS[0].id, 'zzz', at)],
+    ['submit', ev.submit(u, at)],
+    ['disconnect', ev.disconnect(u, at)],
+    ['connect', ev.connect(u, at)],
+    ['tick', ev.tick(at)],
+    ['timeout(countdown)', ev.timeout('countdown', at)],
+    ['timeout(deadline)', ev.timeout('deadline', at)],
+    ['timeout(abandon)', ev.timeout('abandon', at)],
+    ['timeout(roomGc)', ev.timeout('roomGc', at)],
+  ];
+}
+
+const T_LATE = T0 + 9_000_000; // 어떤 픽스처의 lastAt 보다도 확실히 뒤
+
+/** 2인 방을 전원 제출로 끝낸 `finished` state. */
+function finishedState() {
+  const r = playingRoom();
+  const done = drive(r.state, [ev.submit(1, T0 + 100), ev.submit(2, T0 + 110)]);
+  assert.equal(done.state.state, 'finished');
+  return done.state;
+}
+
+/** 아무도 들어오지 않은 빈 방이 GC 된 `abandoned` state. */
+function abandonedState() {
+  const created = newRoom();
+  const gone = drive(created.state, [ev.timeout('roomGc', T0 + ROOM_GC_MS)]);
+  assert.equal(gone.state.state, 'abandoned');
+  return gone.state;
+}
+
+/** 2인이 준비를 마치고 카운트다운 중인 state. */
+function countdownState(extraJoins) {
+  const created = newRoom();
+  const evs = [ev.join(1, '가나', T0 + 10), ev.join(2, '다라', T0 + 20)];
+  for (const pair of extraJoins || []) evs.push(ev.join(pair[0], pair[1], T0 + 25));
+  evs.push(ev.start(1, T0 + 30));
+  const r = drive(created.state, evs);
+  assert.equal(r.state.state, 'countdown');
+  return r.state;
+}
+
+// ------------------------------------------------ finished / abandoned (24셀)
+//
+// 표: "리듀서에 늦게 도착한 이벤트는 전부 무시하고 이펙트를 내지 않는다 —
+//      **에러 이벤트조차 내지 않는다**(종료 브로드캐스트 뒤에 에러가 따라붙으면 결과 화면을 망친다)."
+// 그래서 셀마다 ① 상태 불변 ② 이펙트 0건 ③ 입력 state 불변 ④ lastAt 만 전진 을 본다.
+
+for (const pair of [['finished', finishedState], ['abandoned', abandonedState]]) {
+  const label = pair[0];
+  const make = pair[1];
+  describe('격자표 ' + label + ' — 12 이벤트 전부 무시, 이펙트 0건', () => {
+    for (const cell of gridEvents(T_LATE)) {
+      const name = cell[0];
+      const event = cell[1];
+      test(label + ' + ' + name, () => {
+        const s0 = make();
+        const before = JSON.stringify(s0);
+        const r = applyEvent(s0, event);
+
+        assert.equal(r.state.state, label, '상태가 바뀌었다');
+        assert.deepEqual(r.effects, [], '이펙트를 냈다: ' + JSON.stringify(r.effects));
+        assert.equal(JSON.stringify(s0), before, '입력 state 가 변형됐다');
+        assert.notEqual(r.state, s0, '새 객체를 돌려줘야 한다');
+        assert.equal(r.state.lastAt, T_LATE, 'lastAt 은 전진해야 한다');
+        // 종료 시각·결과는 늦게 온 이벤트가 덮어쓰지 않는다
+        assert.equal(r.state.finishedAt, s0.finishedAt);
+      });
+    }
+  });
+}
+
+// --------------------------------------------------- timeout(roomGc) 5상태
+
+describe('격자표 timeout(roomGc) — 5상태 전부', () => {
+  test('waiting + 접속자 0 → abandoned (persist·broadcast 없음, 타이머 4종 정리)', () => {
+    const created = newRoom();
+    const at = T0 + ROOM_GC_MS;
+    const r = applyEvent(created.state, ev.timeout('roomGc', at));
+
+    assert.equal(r.state.state, 'abandoned');
+    assert.equal(r.state.finishedAt, at);
+    assert.equal(isDisposed(r.state), true);
+    assert.deepEqual(persists(r.effects), [], '전적을 남기면 안 된다');
+    assert.deepEqual(r.effects.filter((f) => f.type === 'broadcast'), [], '수신자가 0명이므로 방송하지 않는다');
+    assert.deepEqual(
+      r.effects.map((f) => f.key).sort(),
+      ['ROOM1:abandon', 'ROOM1:countdown', 'ROOM1:deadline', 'ROOM1:roomGc']
+    );
+  });
+
+  test('waiting + 접속자가 남아 있으면 stale — 아무 일도 없다', () => {
+    const created = newRoom();
+    const joined = drive(created.state, [ev.join(1, '가나', T0 + 10)]);
+    const r = applyEvent(joined.state, ev.timeout('roomGc', T0 + ROOM_GC_MS));
+
+    assert.equal(r.state.state, 'waiting');
+    assert.deepEqual(r.effects, []);
+  });
+
+  test('waiting + 전원 끊김(명부는 남음) → abandoned', () => {
+    // disconnect 는 명부를 줄이지 않는다 — 접속자만 0이 된다. 그래도 GC 대상이다.
+    const created = newRoom();
+    const r0 = drive(created.state, [
+      ev.join(1, '가나', T0 + 10),
+      ev.disconnect(1, T0 + 20),
+    ]);
+    assert.equal(r0.state.playerOrder.length, 1);
+    const r = applyEvent(r0.state, ev.timeout('roomGc', T0 + 20 + ROOM_GC_MS));
+    assert.equal(r.state.state, 'abandoned');
+  });
+
+  test('countdown + roomGc 는 stale (start 에서 cancel 됐다)', () => {
+    const s = countdownState();
+    const r = applyEvent(s, ev.timeout('roomGc', T0 + 100));
+    assert.equal(r.state.state, 'countdown');
+    assert.deepEqual(r.effects, []);
+  });
+
+  test('playing + roomGc 는 stale', () => {
+    const s = playingRoom().state;
+    const r = applyEvent(s, ev.timeout('roomGc', T0 + 100));
+    assert.equal(r.state.state, 'playing');
+    assert.deepEqual(r.effects, []);
+  });
+
+  test('finished / abandoned + roomGc 는 아무것도 하지 않는다', () => {
+    for (const s of [finishedState(), abandonedState()]) {
+      const r = applyEvent(s, ev.timeout('roomGc', T_LATE));
+      assert.equal(r.state.state, s.state);
+      assert.deepEqual(r.effects, []);
+    }
+  });
+});
+
+// --------------------------------------------- playing + tick / timeout(deadline)
+
+describe('격자표 playing + tick', () => {
+  test('마감 전이면 battle:tick 만 내고 상태는 그대로', () => {
+    const s = playingRoom().state;
+    const at = s.startedAt + 5000;
+    const r = applyEvent(s, ev.tick(at));
+
+    assert.equal(r.state.state, 'playing');
+    const ticks = broadcasts(r.effects, 'battle:tick');
+    assert.equal(ticks.length, 1);
+    assert.equal(ticks[0].payload.remainingMs, s.deadline - at);
+    assert.equal(ticks[0].to, undefined, '방 전체 방송이다');
+    assert.deepEqual(persists(r.effects), []);
+  });
+
+  test('at >= deadline 이면 tick 이 곧바로 종료시킨다 (절전 복귀 방어)', () => {
+    // deadline 타이머가 잠든 사이 지나가 버렸어도 tick 한 번으로 서버가 재검증해 끝낸다.
+    const s = playingRoom().state;
+    const r = applyEvent(s, ev.tick(s.deadline));
+
+    assert.equal(r.state.state, 'finished');
+    assert.equal(r.state.finishedAt, s.deadline);
+    assert.equal(persists(r.effects).length, 1, '전적은 저장된다');
+    assert.equal(broadcasts(r.effects, 'battle:finished').length, 2, '참가자 수만큼 간다');
+    assert.equal(broadcasts(r.effects, 'battle:tick').length, 0, '마감 뒤에는 tick 을 내지 않는다');
+    assert.equal(broadcasts(r.effects, 'battle:marks').length, 0, '종료 이벤트는 정오표를 내지 않는다');
+    const fin = broadcasts(r.effects, 'battle:finished')[0];
+    assert.equal(fin.payload.reason, 'deadline');
+  });
+
+  test('deadline 을 한참 넘긴 tick 도 같은 경로로 끝난다', () => {
+    const s = playingRoom().state;
+    const r = applyEvent(s, ev.tick(s.deadline + 60000));
+    assert.equal(r.state.state, 'finished');
+    assert.equal(persists(r.effects).length, 1);
+  });
+});
+
+describe('격자표 playing + timeout(deadline)', () => {
+  test('타이머가 이르게 깨어나면 무시하고 같은 시각으로 재예약한다', () => {
+    const s = playingRoom().state;
+    const early = s.deadline - 1500;
+    const r = applyEvent(s, ev.timeout('deadline', early));
+
+    assert.equal(r.state.state, 'playing', '이르게 끝내면 안 된다');
+    assert.deepEqual(persists(r.effects), []);
+    const again = schedules(r.effects, 'ROOM1:deadline');
+    assert.equal(again.length, 1, '재예약이 없으면 대전이 영영 안 끝난다');
+    assert.equal(again[0].at, s.deadline);
+    assert.deepEqual(r.effects.filter((f) => f.type === 'broadcast'), []);
+  });
+
+  test('재예약된 타이머가 제때 오면 정상 종료한다', () => {
+    const s = playingRoom().state;
+    const early = applyEvent(s, ev.timeout('deadline', s.deadline - 1500));
+    const onTime = applyEvent(early.state, ev.timeout('deadline', s.deadline));
+
+    assert.equal(onTime.state.state, 'finished');
+    assert.equal(persists(onTime.effects).length, 1);
+    assert.equal(broadcasts(onTime.effects, 'battle:finished')[0].payload.reason, 'deadline');
+  });
+});
+
+// ---------------------------------------------------------- countdown 12셀
+
+describe('격자표 countdown — 12셀', () => {
+  test('join → ROOM_NOT_JOINABLE, 명부는 늘지 않는다', () => {
+    const s = countdownState();
+    const r = applyEvent(s, ev.join(9, '난입자', T0 + 40));
+
+    assert.equal(r.state.state, 'countdown');
+    assert.deepEqual(r.state.playerOrder, [1, 2]);
+    assert.equal(r.state.players[9], undefined);
+    assert.equal(r.effects.length, 1);
+    assert.equal(errors(r.effects)[0].payload.code, 'ROOM_NOT_JOINABLE');
+    assert.equal(errors(r.effects)[0].to, 9, '거절당한 본인에게만 간다');
+  });
+
+  test('leave 로도 2인이 남으면 카운트다운을 유지한다', () => {
+    const s = countdownState([[3, '마바']]);
+    const r = applyEvent(s, ev.leave(3, T0 + 40));
+
+    assert.equal(r.state.state, 'countdown');
+    assert.deepEqual(r.state.playerOrder, [1, 2]);
+    assert.equal(r.state.countdownEndsAt, s.countdownEndsAt, '카운트다운 시각은 그대로다');
+    assert.equal(broadcasts(r.effects, 'room:state').length, 1);
+    assert.deepEqual(cancels(r.effects, 'ROOM1:countdown'), [], '취소하면 안 된다');
+  });
+
+  test('방장이 나가면 남은 사람이 방장을 승계한다 (카운트다운 유지)', () => {
+    const s = countdownState([[3, '마바']]);
+    const r = applyEvent(s, ev.leave(1, T0 + 40));
+
+    assert.equal(r.state.state, 'countdown');
+    assert.equal(r.state.hostUserId, 2);
+  });
+
+  test('비참가자의 leave 는 무시된다', () => {
+    const s = countdownState();
+    const r = applyEvent(s, ev.leave(77, T0 + 40));
+
+    assert.equal(r.state.state, 'countdown');
+    assert.deepEqual(r.state.playerOrder, [1, 2]);
+    assert.deepEqual(r.effects, []);
+  });
+
+  test('start 중복은 ALREADY_STARTED', () => {
+    const s = countdownState();
+    const r = applyEvent(s, ev.start(1, T0 + 40));
+
+    assert.equal(r.state.state, 'countdown');
+    assert.equal(r.effects.length, 1);
+    assert.equal(errors(r.effects)[0].payload.code, 'ALREADY_STARTED');
+  });
+
+  test('answer / submit 은 NOT_PLAYING — 문항이 아직 배포되지 않았다', () => {
+    const s = countdownState();
+    const cases = [
+      ['answer', ev.answer(1, QUESTIONS[0].id, 'x', T0 + 40)],
+      ['submit', ev.submit(1, T0 + 40)],
+    ];
+    for (const c of cases) {
+      const r = applyEvent(s, c[1]);
+      assert.equal(r.state.state, 'countdown', c[0]);
+      assert.equal(r.effects.length, 1, c[0]);
+      assert.equal(errors(r.effects)[0].payload.code, 'NOT_PLAYING', c[0]);
+      assert.equal(errors(r.effects)[0].to, 1, c[0]);
+      // 답안이 보관되면 안 된다
+      assert.deepEqual(r.state.players[1].answers, {}, c[0]);
+      assert.equal(r.state.players[1].submittedAt, null, c[0]);
+    }
+  });
+
+  test('disconnect 는 카운트다운을 취소하지 않는다 (명부가 그대로이므로)', () => {
+    const s = countdownState();
+    const r = applyEvent(s, ev.disconnect(2, T0 + 40));
+
+    assert.equal(r.state.state, 'countdown');
+    assert.equal(r.state.players[2].connected, false);
+    assert.deepEqual(r.state.playerOrder, [1, 2], '명부는 줄지 않는다');
+    assert.equal(broadcasts(r.effects, 'room:state').length, 1);
+    assert.deepEqual(cancels(r.effects, 'ROOM1:countdown'), []);
+    assert.deepEqual(schedules(r.effects, 'ROOM1:roomGc'), [], 'countdown 에는 GC 를 걸지 않는다');
+  });
+
+  test('전원이 끊겨도 카운트다운은 계속된다', () => {
+    const s = countdownState();
+    const r = drive(s, [ev.disconnect(1, T0 + 40), ev.disconnect(2, T0 + 41)]);
+
+    assert.equal(r.state.state, 'countdown');
+    assert.deepEqual(schedules(r.effects, 'ROOM1:roomGc'), []);
+    assert.deepEqual(cancels(r.effects, 'ROOM1:countdown'), []);
+  });
+
+  test('connect 는 room:state 와 본인에게만 가는 battle:resync 를 낸다', () => {
+    const s = countdownState();
+    const off = applyEvent(s, ev.disconnect(2, T0 + 40));
+    const r = applyEvent(off.state, ev.connect(2, T0 + 41));
+
+    assert.equal(r.state.state, 'countdown');
+    assert.equal(r.state.players[2].connected, true);
+    assert.equal(broadcasts(r.effects, 'room:state').length, 1);
+    const resync = broadcasts(r.effects, 'battle:resync');
+    assert.equal(resync.length, 1);
+    assert.equal(resync[0].to, 2);
+    // 아직 문항이 배포되기 전이라 정오표가 실릴 수 없다
+    assert.equal('marks' in resync[0].payload, false);
+  });
+
+  test('비참가자의 connect 는 무시된다 (멤버십 없음)', () => {
+    const s = countdownState();
+    const r = applyEvent(s, ev.connect(77, T0 + 40));
+    assert.equal(r.state.state, 'countdown');
+    assert.deepEqual(r.effects, []);
+  });
+
+  test('tick 은 무시된다 (3초 구간은 클라이언트 로컬 애니메이션)', () => {
+    const s = countdownState();
+    const r = applyEvent(s, ev.tick(T0 + 40));
+    assert.equal(r.state.state, 'countdown');
+    assert.deepEqual(r.effects, []);
+  });
+
+  test('timeout(countdown) → playing: roomGc 취소 · deadline 예약 · 문항 배포', () => {
+    const s = countdownState();
+    const at = s.countdownEndsAt;
+    const r = applyEvent(s, ev.timeout('countdown', at));
+
+    assert.equal(r.state.state, 'playing');
+    assert.equal(r.state.startedAt, at);
+    assert.equal(r.state.deadline, at + s.timeLimitS * 1000);
+    assert.equal(r.state.countdownEndsAt, null);
+
+    assert.equal(cancels(r.effects, 'ROOM1:roomGc').length, 1);
+    const dl = schedules(r.effects, 'ROOM1:deadline');
+    assert.equal(dl.length, 1);
+    assert.equal(dl[0].at, r.state.deadline);
+    assert.equal(broadcasts(r.effects, 'room:state').length, 1);
+
+    const qs = broadcasts(r.effects, 'battle:questions');
+    assert.equal(qs.length, 1);
+    assert.equal(qs[0].to, undefined, '방 전체에 같은 문항이 간다');
+    assert.equal(qs[0].payload.questions.length, QUESTIONS.length);
+    // 문항은 공개 사본이어야 한다 — 정답 계열이 한 톨도 없다
+    assert.equal(/accept|sampleAnswer|validator|display|explanationHtml/.test(JSON.stringify(qs[0].payload)), false);
+    // 접속자가 있으므로 abandon 유예는 걸지 않는다
+    assert.deepEqual(schedules(r.effects, 'ROOM1:abandon'), []);
+  });
+
+  test('전원이 끊긴 채 카운트다운이 끝나면 abandon 유예까지 함께 건다', () => {
+    const s = countdownState();
+    const off = drive(s, [ev.disconnect(1, T0 + 40), ev.disconnect(2, T0 + 41)]);
+    const r = applyEvent(off.state, ev.timeout('countdown', off.state.countdownEndsAt));
+
+    assert.equal(r.state.state, 'playing');
+    const ab = schedules(r.effects, 'ROOM1:abandon');
+    assert.equal(ab.length, 1);
+    assert.equal(ab[0].at, r.state.startedAt + ABANDON_GRACE_MS);
+  });
+
+  test('timeout(deadline) / timeout(abandon) 은 stale — 무시', () => {
+    const s = countdownState();
+    for (const kind of ['deadline', 'abandon']) {
+      const r = applyEvent(s, ev.timeout(kind, T0 + 40));
+      assert.equal(r.state.state, 'countdown', kind);
+      assert.deepEqual(r.effects, [], kind);
+    }
+  });
+});
+
+// -------------------------------------------- playing + answer 거절 사유 3종
+
+describe('격자표 playing + answer — 거절 사유', () => {
+  test('모르는 문항 id 는 UNKNOWN_QUESTION, 답안은 보관되지 않는다', () => {
+    const s = playingRoom().state;
+    const r = applyEvent(s, ev.answer(1, '없는회차#99', '아무말', T0 + 100));
+
+    assert.equal(r.state.state, 'playing');
+    assert.equal(r.effects.length, 1);
+    assert.equal(errors(r.effects)[0].payload.code, 'UNKNOWN_QUESTION');
+    assert.equal(errors(r.effects)[0].to, 1);
+    assert.deepEqual(r.state.players[1].answers, {});
+    assert.equal(r.state.players[1].lastAnswerAt, null, '거절된 입력은 마지막 입력 시각도 남기지 않는다');
+    assert.deepEqual(broadcasts(r.effects, 'battle:progress'), []);
+  });
+
+  test('프로토타입 키(constructor 등)도 UNKNOWN_QUESTION 이다', () => {
+    // 문항 색인은 Map 이라 `constructor`·`__proto__` 같은 키가 문항으로 둔갑하지 않는다.
+    const s = playingRoom().state;
+    for (const bad of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
+      const r = applyEvent(s, ev.answer(1, bad, 'x', T0 + 100));
+      assert.equal(r.effects.length, 1, bad);
+      assert.equal(errors(r.effects)[0].payload.code, 'UNKNOWN_QUESTION', bad);
+    }
+  });
+
+  test('범위 밖 fieldIndex 는 BAD_FIELD', () => {
+    const s = playingRoom().state;
+    const at = s.lastAt + 100;
+    const qid = QUESTIONS[0].id; // fields 1칸짜리
+    for (const idx of [1, 2, -1, 1.5, NaN, undefined, 'abc', {}, true]) {
+      const r = applyEvent(s, {
+        type: 'answer', userId: 1, questionId: qid, fieldIndex: idx, value: 'x', at: at,
+      });
+      const label = 'fieldIndex=' + String(idx);
+      assert.equal(r.state.state, 'playing', label);
+      assert.equal(r.effects.length, 1, label);
+      assert.equal(errors(r.effects)[0].payload.code, 'BAD_FIELD', label);
+      assert.deepEqual(r.state.players[1].answers, {}, label);
+    }
+  });
+
+  test('fieldIndex 는 Number() 로 강제 변환된다 — "0" · null · [] 은 0번 칸으로 들어간다', () => {
+    // 관대한 쪽으로 굳어져 있는 실제 동작을 그대로 못박는다. `Number('0')`·`Number(null)`·
+    // `Number([])` 은 모두 0 이라 유효한 칸 번호가 된다. 정답 정보가 새지 않고 자기 답안만
+    // 바뀌므로 위험은 없지만, 나중에 엄격해진다면 이 테스트가 먼저 깨져 알려 줄 것이다.
+    const s = playingRoom().state;
+    const at = s.lastAt + 100;
+    for (const idx of ['0', null, []]) {
+      const r = applyEvent(s, {
+        type: 'answer', userId: 1, questionId: QUESTIONS[0].id, fieldIndex: idx, value: '동치분할', at: at,
+      });
+      const label = 'fieldIndex=' + String(idx);
+      assert.deepEqual(errors(r.effects), [], label);
+      assert.deepEqual(r.state.players[1].answers[QUESTIONS[0].id], ['동치분할'], label);
+    }
+  });
+
+  test('명부에 없는 사용자의 answer / submit 은 NOT_IN_ROOM', () => {
+    // 격자표는 이 방어 분기를 따로 적지 않지만(참가자만 이벤트를 보낸다는 전제),
+    // 어댑터를 우회한 이벤트가 들어와도 명부를 오염시키지 않는다는 것을 못박는다.
+    const s = playingRoom().state;
+    const cases = [
+      ['answer', ev.answer(77, QUESTIONS[0].id, 'x', T0 + 100)],
+      ['submit', ev.submit(77, T0 + 100)],
+    ];
+    for (const c of cases) {
+      const r = applyEvent(s, c[1]);
+      assert.equal(r.state.state, 'playing', c[0]);
+      assert.equal(errors(r.effects)[0].payload.code, 'NOT_IN_ROOM', c[0]);
+      assert.equal(r.state.players[77], undefined, c[0]);
+      assert.deepEqual(r.state.playerOrder, [1, 2], c[0]);
+    }
+  });
+
+  test('정상 answer 는 답안을 보관하고 정오를 흘리지 않는다', () => {
+    const s = playingRoom().state;
+    const at = s.lastAt + 100; // 리듀서는 lastAt 보다 이른 at 을 클램프한다
+    const r = applyEvent(s, ev.answer(1, QUESTIONS[0].id, '동치분할', at));
+
+    assert.deepEqual(r.state.players[1].answers[QUESTIONS[0].id], ['동치분할']);
+    assert.equal(r.state.players[1].lastAnswerAt, at);
+    const prog = broadcasts(r.effects, 'battle:progress');
+    assert.equal(prog.length, 1);
+    assert.deepEqual(Object.keys(prog[0].payload).sort(), ['answeredCount', 'userId']);
+    assert.equal(prog[0].payload.answeredCount, 1);
+    assert.equal(/correct|mark|accept/.test(JSON.stringify(prog[0].payload)), false, '정오를 흘리면 안 된다');
+  });
+});
+
+// ------------------------------------------------------- playing 나머지 셀
+//
+// `join` / `start` / `timeout(countdown)` 세 셀은 60셀 훑기(맨 아래)에서 "던지지 않는다" 까지만
+// 봤고, **어떤 에러 코드를 내는지·명부를 건드리지 않는지**는 아무도 보지 않았다. 여기서 채운다.
+
+describe('격자표 playing — 나머지 셀', () => {
+  test('join → ROOM_NOT_JOINABLE, 명부는 늘지 않는다 (진행 중 난입 금지)', () => {
+    const s = playingRoom().state;
+    const r = applyEvent(s, ev.join(99, '난입자', T0 + 100));
+
+    assert.equal(r.state.state, 'playing');
+    assert.equal(r.effects.length, 1);
+    assert.equal(errors(r.effects)[0].payload.code, 'ROOM_NOT_JOINABLE');
+    assert.equal(errors(r.effects)[0].to, 99);
+    assert.deepEqual(Object.keys(r.state.players).sort(), ['1', '2'], '명부가 늘었다');
+    assert.equal(r.state.playerOrder.includes(99), false);
+  });
+
+  test('start 중복은 ALREADY_STARTED — 문항도 마감도 다시 정해지지 않는다', () => {
+    const s = playingRoom().state;
+    const r = applyEvent(s, ev.start(1, T0 + 100));
+
+    assert.equal(r.state.state, 'playing');
+    assert.equal(r.effects.length, 1);
+    assert.equal(errors(r.effects)[0].payload.code, 'ALREADY_STARTED');
+    assert.equal(errors(r.effects)[0].to, 1);
+    assert.equal(r.state.deadline, s.deadline, '마감이 밀렸다');
+    assert.equal(r.state.startedAt, s.startedAt);
+    assert.deepEqual(broadcasts(r.effects, 'battle:questions'), [], '문항을 다시 배포하면 안 된다');
+  });
+
+  test('timeout(countdown) 은 stale — 조용히 무시한다 (에러조차 내지 않는다)', () => {
+    // 내부 이벤트라 보낼 대상이 없다. 카운트다운은 이미 이 방을 playing 으로 만들고 끝났다.
+    const s = playingRoom().state;
+    const r = applyEvent(s, ev.timeout('countdown', T0 + 100));
+
+    assert.equal(r.state.state, 'playing');
+    assert.deepEqual(r.effects, [], '이펙트를 냈다: ' + JSON.stringify(r.effects));
+    assert.equal(r.state.deadline, s.deadline);
+    assert.notEqual(r.state, s, '새 객체를 돌려줘야 한다');
+  });
+});
+
+// ------------------------------------------------------- waiting 나머지 셀
+
+describe('격자표 waiting — 나머지 셀', () => {
+  test('방장이 나가면 playerOrder[0] 이 방장을 승계한다 (명부가 남은 경우)', () => {
+    // 표 `waiting + leave`: "방장이 나가면 playerOrder[0] 로 방장 승계".
+    // 전원 퇴장(hostUserId=null) 경로는 위에서 봤고, 여기서는 **남은 사람이 있는** 경로다.
+    const created = newRoom();
+    const joined = drive(created.state, [
+      ev.join(1, '가나', T0 + 10), ev.join(2, '다라', T0 + 20), ev.join(3, '마바', T0 + 30),
+    ]);
+    const r = applyEvent(joined.state, ev.leave(1, T0 + 40));
+
+    assert.equal(r.state.state, 'waiting');
+    assert.equal(r.state.hostUserId, 2, 'playerOrder 의 첫 사람이 방장이 된다');
+    assert.deepEqual(r.state.playerOrder, [2, 3]);
+    assert.equal(r.state.players[1], undefined, 'waiting 의 leave 는 명부에서 지운다');
+    assert.equal(broadcasts(r.effects, 'room:state').length, 1);
+    assert.deepEqual(schedules(r.effects, 'ROOM1:roomGc'), [], '아직 사람이 남아 GC 를 걸지 않는다');
+  });
+
+  test('answer / submit 은 NOT_PLAYING (대전 시작 전)', () => {
+    const created = newRoom();
+    const joined = drive(created.state, [ev.join(1, '가나', T0 + 10)]);
+    const cases = [
+      ['answer', ev.answer(1, QUESTIONS[0].id, 'x', T0 + 20)],
+      ['submit', ev.submit(1, T0 + 20)],
+    ];
+    for (const c of cases) {
+      const r = applyEvent(joined.state, c[1]);
+      assert.equal(r.state.state, 'waiting', c[0]);
+      assert.equal(r.effects.length, 1, c[0]);
+      assert.equal(errors(r.effects)[0].payload.code, 'NOT_PLAYING', c[0]);
+    }
+  });
+
+  test('tick 은 무시된다 (대기실에는 남은 시간 개념이 없다)', () => {
+    const created = newRoom();
+    const joined = drive(created.state, [ev.join(1, '가나', T0 + 10)]);
+    const r = applyEvent(joined.state, ev.tick(T0 + 20));
+    assert.equal(r.state.state, 'waiting');
+    assert.deepEqual(r.effects, []);
+  });
+
+  test('countdown / deadline / abandon 타임아웃은 전부 stale', () => {
+    const created = newRoom();
+    const joined = drive(created.state, [ev.join(1, '가나', T0 + 10)]);
+    for (const kind of ['countdown', 'deadline', 'abandon']) {
+      const r = applyEvent(joined.state, ev.timeout(kind, T0 + 20));
+      assert.equal(r.state.state, 'waiting', kind);
+      assert.deepEqual(r.effects, [], kind);
+    }
+  });
+
+  test('leave 로 0명이 되면 GC 를 예약하고, 비참가자의 leave 는 무시된다', () => {
+    const created = newRoom();
+    const joined = drive(created.state, [ev.join(1, '가나', T0 + 10)]);
+
+    const stranger = applyEvent(joined.state, ev.leave(77, T0 + 20));
+    assert.deepEqual(stranger.effects, [], '비참가자');
+    assert.deepEqual(stranger.state.playerOrder, [1]);
+
+    const gone = applyEvent(joined.state, ev.leave(1, T0 + 20));
+    assert.deepEqual(gone.state.playerOrder, []);
+    assert.equal(gone.state.hostUserId, null, '방장이 비워진다');
+    assert.equal(broadcasts(gone.effects, 'room:state').length, 1);
+    const gc = schedules(gone.effects, 'ROOM1:roomGc');
+    assert.equal(gc.length, 1);
+    assert.equal(gc[0].at, T0 + 20 + ROOM_GC_MS);
+  });
+
+  test('disconnect 로 접속자가 0이 되면 GC 를 예약한다 (명부는 그대로)', () => {
+    const created = newRoom();
+    const joined = drive(created.state, [ev.join(1, '가나', T0 + 10)]);
+    const r = applyEvent(joined.state, ev.disconnect(1, T0 + 20));
+
+    assert.equal(r.state.players[1].connected, false);
+    assert.deepEqual(r.state.playerOrder, [1], '명부를 줄이는 것은 leave 뿐이다');
+    assert.equal(schedules(r.effects, 'ROOM1:roomGc').length, 1);
+
+    const stranger = applyEvent(joined.state, ev.disconnect(77, T0 + 20));
+    assert.deepEqual(stranger.effects, [], '비참가자의 disconnect 는 무시');
+  });
+
+  test('connect 는 GC 를 취소하고 resync 를 본인에게만 보낸다', () => {
+    const created = newRoom();
+    const off = drive(created.state, [ev.join(1, '가나', T0 + 10), ev.disconnect(1, T0 + 20)]);
+    const r = applyEvent(off.state, ev.connect(1, T0 + 30));
+
+    assert.equal(r.state.players[1].connected, true);
+    assert.equal(cancels(r.effects, 'ROOM1:roomGc').length, 1);
+    assert.equal(broadcasts(r.effects, 'room:state').length, 1);
+    const resync = broadcasts(r.effects, 'battle:resync');
+    assert.equal(resync.length, 1);
+    assert.equal(resync[0].to, 1);
+    assert.equal('marks' in resync[0].payload, false);
+
+    const stranger = applyEvent(off.state, ev.connect(77, T0 + 30));
+    assert.deepEqual(stranger.effects, [], '비참가자의 connect 는 무시');
+  });
+
+  test('userId 없는 join 은 조용히 무시된다 (명부 오염 방지)', () => {
+    const created = newRoom();
+    const r = applyEvent(created.state, { type: 'join', nickname: '이름만', at: T0 + 10 });
+    assert.deepEqual(r.state.playerOrder, []);
+    assert.deepEqual(r.effects, []);
+  });
+});
+
+// ------------------------------------------- 격자 60셀 — 미정의 전이 0건
+
+describe('격자표 60셀 — 미정의 전이 0건', () => {
+  test('5상태 × 12이벤트 어느 조합에서도 던지지 않고 항상 새 state 를 돌려준다', () => {
+    const fixtures = [
+      ['waiting', drive(newRoom().state, [ev.join(1, '가나', T0 + 10), ev.join(2, '다라', T0 + 20)]).state],
+      ['countdown', countdownState()],
+      ['playing', playingRoom().state],
+      ['finished', finishedState()],
+      ['abandoned', abandonedState()],
+    ];
+    let cells = 0;
+    for (const fx of fixtures) {
+      const label = fx[0];
+      const s0 = fx[1];
+      assert.equal(s0.state, label);
+      const before = JSON.stringify(s0);
+      for (const cell of gridEvents(T_LATE)) {
+        const where = label + ' + ' + cell[0];
+        const r = applyEvent(s0, cell[1]);
+        assert.ok(r && r.state && Array.isArray(r.effects), where);
+        assert.notEqual(r.state, s0, where + ': 입력 state 를 그대로 돌려줬다');
+        assert.equal(r.state.lastAt, T_LATE, where + ': lastAt 클램프');
+        assert.ok(['waiting', 'countdown', 'playing', 'finished', 'abandoned'].includes(r.state.state), where);
+        assert.equal(JSON.stringify(s0), before, where + ': 입력 state 가 변형됐다');
+        cells += 1;
+      }
+    }
+    assert.equal(cells, 60, '격자표는 5 × 12 = 60셀이다');
   });
 });
