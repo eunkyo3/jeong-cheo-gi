@@ -81,8 +81,9 @@ test('normalize default: 전(全) 공백 제거 (내부 공백 포함)', () => {
 test('normalize default: 후행 구두점 제거', () => {
   assert.equal(normalizeValue('default', '해시.'), '해시');
   assert.equal(normalizeValue('default', '해시,;:'), '해시');
-  assert.equal(normalizeValue('default', '"해시"'), '"해시');
-  // 후행만 제거한다 — 선행/중간 구두점은 남는다
+  // 감싼 따옴표는 앞뒤 모두 지운다(2026-09-04, 서버 L-3 — 예전엔 `"해시` 가 남아 오답이었다)
+  assert.equal(normalizeValue('default', '"해시"'), '해시');
+  // 따옴표 외의 선행/중간 구두점은 남는다
   assert.equal(normalizeValue('default', '6.5ms'), '6.5ms');
 });
 
@@ -566,4 +567,35 @@ test('알 수 없는 normalize 모드도 던지지 않고 오답이 된다', () 
     fields: [{ label: '①', accept: ['가'], normalize: '없는모드' }, { label: '②', accept: ['나'], normalize: '없는모드' }],
   };
   assert.equal(gradeQuestion(u, ['가', '나']).correct, false);
+});
+
+// ---------------------------------------------------------------- 정규화 변경 (2026-09-04, 서버 L-2 · L-3)
+
+test('default: 앞뒤 따옴표로 감싼 답도 정답 (서버 L-3)', () => {
+  const q = orderedQ([{ label: '①', accept: ['abc'] }], 'NQ#1');
+  assert.equal(gradeQuestion(q, ['"abc"']).correct, true);
+  assert.equal(gradeQuestion(q, ["'abc'"]).correct, true);
+  assert.equal(gradeQuestion(q, ['`abc`']).correct, true);
+  assert.equal(gradeQuestion(q, ['abc']).correct, true);
+  // accept 쪽이 따옴표를 품은 SQL 리터럴 문항(2023-1#15 형태): 따옴표 유무 모두 정답
+  const lit = orderedQ([{ label: '①', accept: ["'한국'"] }], 'NQ#2');
+  assert.equal(gradeQuestion(lit, ['한국']).correct, true);
+  assert.equal(gradeQuestion(lit, ["'한국'"]).correct, true);
+});
+
+test('default: 선행 구두점 중 따옴표만 지운다 — `.net` 같은 답은 보존 (경계)', () => {
+  assert.equal(normalizeValue('default', '.NET'), '.net');
+  assert.equal(normalizeValue('default', '"x"'), 'x');
+  assert.equal(normalizeValue('default', '""'), '');
+  assert.equal(normalizeValue('default', '-1'), '-1');
+});
+
+test('sql: 쉼표·괄호 주변 공백이 달라도 같은 답 (서버 L-2)', () => {
+  const a = normalizeValue('sql', 'SELECT 학번, 이름 FROM 학생 WHERE 학년 IN (3, 4);');
+  assert.equal(a, normalizeValue('sql', 'select 학번,이름 from 학생 where 학년 in(3,4)'));
+  assert.equal(a, normalizeValue('sql', 'SELECT  학번 ,이름  FROM 학생 WHERE 학년 IN ( 3 ,4 ) ;'));
+  // 단어 사이 공백은 여전히 구분한다
+  assert.notEqual(normalizeValue('sql', 'select a from t'), normalizeValue('sql', 'selecta from t'));
+  const q = orderedQ([{ label: '①', accept: ['SELECT a, b FROM t'], normalize: 'sql' }], 'NQ#3');
+  assert.equal(gradeQuestion(q, ['select a,b from t;']).correct, true);
 });

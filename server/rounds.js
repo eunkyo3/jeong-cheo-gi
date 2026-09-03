@@ -71,6 +71,9 @@ function validateRound(data, file) {
     if (!q || typeof q !== 'object') throw new Error('questions[' + i + '] 가 객체가 아님');
     if (typeof q.id !== 'string' || q.id === '') throw new Error('questions[' + i + '].id 누락');
     if (!Array.isArray(q.fields)) throw new Error(q.id + '.fields 배열 누락');
+    // 답 칸이 0개인 문항은 아무도 답할 수 없는데 gradeQuestion 은 항상 오답으로 판정한다(서버 L-4).
+    // validate-data.mjs 도 같은 규칙(fields-array)을 강제하지만, 서버 기동 경로에서도 막는다.
+    if (q.fields.length === 0) throw new Error(q.id + '.fields 가 비어 있음 — 답 칸이 최소 1개 필요');
   });
   return data;
 }

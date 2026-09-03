@@ -154,6 +154,8 @@ describe('보안 헤더는 모든 응답에 붙는다 (보안 N7)', () => {
     const csp = r.headers.get('content-security-policy');
     const scriptSrc = (csp.split(';').map((s) => s.trim()).find((s) => s.startsWith('script-src')) || '');
     assert.equal(scriptSrc, "script-src 'self'");
+    const styleSrc = (csp.split(';').map((s) => s.trim()).find((s) => s.startsWith('style-src')) || '');
+    assert.equal(styleSrc, "style-src 'self'", "style-src 도 'self' 뿐이다 — 인라인 <style>/style= 은 index.css·qbody.js 로 뺐다");
     assert.ok(!/unsafe-eval/.test(csp), 'CSP 어디에도 unsafe-eval 이 있으면 안 된다');
   });
 
@@ -178,6 +180,19 @@ describe("script-src 'self' 의 전제 — public/ 에 인라인 스크립트가
       }
       for (const href of text.match(/(?:href|src)\s*=\s*["']\s*javascript:/gi) || []) {
         offenders.push(name + ' — javascript: 링크: ' + href);
+      }
+      // style-src 'self' 의 전제 — 인라인 <style> 블록과 style= 속성도 0건
+      for (const tag of text.match(/<style\b[^>]*>/gi) || []) offenders.push(name + ' — 인라인 <style>: ' + tag);
+      for (const attr of text.match(/\sstyle\s*=/gi) || []) offenders.push(name + ' — style= 속성:' + attr.trim());
+    }
+    // JS 가 setAttribute('style', …) 로 인라인 style 을 만들면 CSP 에 막힌다 (el.style.x = … 는 허용)
+    const jsDir = path.join(ROOT, 'public', 'js');
+    const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? walk(path.join(d, e.name)) : e.name.endsWith('.js') ? [path.join(d, e.name)] : []);
+    for (const file of walk(jsDir)) {
+      const text = fs.readFileSync(file, 'utf8');
+      if (/setAttribute\(\s*['"]style['"]/.test(text) || /\sstyle="/.test(text)) {
+        offenders.push(path.relative(ROOT, file) + ' — setAttribute("style") 또는 style=" 문자열');
       }
     }
     assert.deepEqual(offenders, [],

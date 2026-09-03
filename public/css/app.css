@@ -496,6 +496,9 @@ pre.code {
 }
 
 .tbl-scroll { overflow-x: auto; margin: 10px 0; }
+/* 데이터의 `<div style="display:flex; gap:30px; flex-wrap:wrap;">` 6건을 qbody.js 가 이 클래스로 바꾼다
+   (CSP style-src 'self' — 인라인 style 은 적용되지 않는다). 값은 원본과 동일하게 유지한다. */
+.q-flexwrap { display: flex; gap: 30px; flex-wrap: wrap; }
 table.tbl {
   border-collapse: collapse;
   margin: 10px 0;

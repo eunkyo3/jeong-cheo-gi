@@ -18,6 +18,7 @@
   <noscript>
     <div class="banner err">이 페이지는 자바스크립트가 필요합니다. 브라우저에서 자바스크립트를 켜 주세요.</div>
   </noscript>
+  <div class="notice" id="offlineNotice" role="alert" hidden></div>
   <main id="view">
     <div class="empty">불러오는 중…</div>
   </main>
@@ -26,6 +27,7 @@
 <script src="/js/api.js"></script>
 <!-- 화면 공용 모듈(window.JPK). dom → nav 순서로 읽어야 한다. -->
 <script src="/js/shared/dom.js"></script>
+<script src="/js/shared/net.js"></script>
 <script src="/js/shared/nav.js"></script>
 <script src="/js/ranking.js"></script>
 </body>

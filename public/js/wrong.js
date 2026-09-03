@@ -481,4 +481,5 @@
     });
 
   api.me().then(renderNav).catch(function () { renderNav(null); });
+  if (JPK.net) JPK.net.bindNotice(document.getElementById('offlineNotice'));
 })();

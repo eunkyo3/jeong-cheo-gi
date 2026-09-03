@@ -111,8 +111,9 @@ app.disable('x-powered-by');
 // CSP 값은 짐작이 아니라 `public/` 실측에 근거해 좁혔다.
 //   script-src 'self'          인라인 `<script>`·`on*=` 핸들러·`javascript:` 링크가 **0건**이라
 //                              'unsafe-inline' 없이 잠글 수 있다. 이 상태를 tests/static.test.mjs 가 지킨다.
-//   style-src  'unsafe-inline' `public/index.html` 에 그 페이지 전용 `<style>` 블록이 하나 있다.
-//                              그 블록을 `/css/index.css` 로 빼면 이 예외도 지울 수 있다(프런트 레인 몫).
+//   style-src  'self'          인라인 `<style>`·`style=` 속성이 public/ 에 0건이다(index.html 의 블록은
+//                              /css/index.css 로 뺐고, 데이터의 flex style 6건은 qbody.js 가 클래스로 치환).
+//                              `el.style.x = …`(CSSOM) 은 CSP 에 걸리지 않으므로 JS 는 그대로다.
 //   connect-src ws: wss:       socket.io 가 같은 오리진으로 웹소켓을 연다.
 //   img-src data:              아이콘·인라인 SVG 여지. 외부 이미지는 어차피 'self' 로 막힌다.
 //   frame-ancestors 'none'     X-Frame-Options 의 CSP 판(둘 다 보낸다 — 구형 브라우저 대비).
@@ -120,7 +121,7 @@ app.disable('x-powered-by');
 const CSP = [
   "default-src 'self'",
   "script-src 'self'",
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self'",
   "img-src 'self' data:",
   "connect-src 'self' ws: wss:",
   "frame-ancestors 'none'",

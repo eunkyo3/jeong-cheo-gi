@@ -1647,8 +1647,8 @@
   function buildAiPrompt(detail) {
     var q = questionById(detail.questionId);
     // bodyText 는 battle:questions 의 publicQuestion 에 포함되어 있다(server/battle.js).
-    // 없으면 prompt 로 대체한다.
-    var body = q ? (q.bodyText || q.prompt || '') : '';
+    // 없으면 prompt 를 태그를 걷어낸 텍스트로 대체한다 — 학습 화면(study.js)과 같은 모양(프런트 1-6).
+    var body = q ? (q.bodyText || JPK.dom.htmlToText(q.prompt || '')) : '';
     var fieldResults = detail.fieldResults || [];
     var mine = fieldResults.map(function (fr) {
       var v = (fr.given || '').trim();

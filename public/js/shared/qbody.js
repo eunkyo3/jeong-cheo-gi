@@ -12,7 +12,11 @@
  * 예전에는 학습 화면에만 wrapTables 가 있고 대전 화면에는 없었다. 두 화면이 같은 문항을 그리므로
  * 손질도 한 함수(`decorate`)로 묶어 둔다 — 새 화면이 생겨도 한쪽만 빠지지 않는다.
  *
- *   JPK.qbody.decorate(node, lang) → node   (wrapTables + applyCodeFmt)
+ *   sanitizeStyles : 본문의 `style=` 속성을 치운다. CSP 가 style-src 'self' 라 인라인 style 은
+ *                  어차피 적용되지 않는다 — 데이터에 있는 유일한 값(`display:flex; gap:30px;
+ *                  flex-wrap:wrap;` 6건)만 `.q-flexwrap` 클래스로 바꿔 같은 모양을 유지한다.
+ *
+ *   JPK.qbody.decorate(node, lang) → node   (sanitizeStyles + wrapTables + applyCodeFmt)
  *   JPK.qbody.wrapTables(node)
  *   JPK.qbody.applyCodeFmt(node, lang) → node
  */
@@ -21,6 +25,21 @@
 
   var JPK = global.JPK = global.JPK || {};
   var doc = global.document;
+
+  var LEGACY_FLEX_STYLE = /^\s*display\s*:\s*flex\s*;\s*gap\s*:\s*30px\s*;\s*flex-wrap\s*:\s*wrap\s*;?\s*$/i;
+
+  /** 인라인 style 속성 제거(CSP style-src 'self'). 데이터의 flex 래퍼만 클래스로 보존한다. */
+  function sanitizeStyles(container) {
+    if (!container || !container.querySelectorAll) return container;
+    var styled = container.querySelectorAll('[style]');
+    for (var i = 0; i < styled.length; i++) {
+      var el = styled[i];
+      var v = el.getAttribute('style') || '';
+      if (el.tagName === 'DIV' && LEGACY_FLEX_STYLE.test(v)) el.classList.add('q-flexwrap');
+      el.removeAttribute('style');
+    }
+    return container;
+  }
 
   /** 좁은 화면에서 표가 카드를 밀어내지 않도록 가로 스크롤 상자로 감싼다. */
   function wrapTables(container) {
@@ -53,11 +72,13 @@
 
   /** 문항 본문·해설 노드에 두 손질을 한 번에. 표를 먼저 감싸고 코드를 정돈한다. */
   function decorate(node, lang) {
+    sanitizeStyles(node);
     wrapTables(node);
     return applyCodeFmt(node, lang);
   }
 
   JPK.qbody = {
+    sanitizeStyles: sanitizeStyles,
     wrapTables: wrapTables,
     applyCodeFmt: applyCodeFmt,
     decorate: decorate,

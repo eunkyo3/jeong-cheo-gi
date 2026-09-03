@@ -20,6 +20,11 @@
  * `gradeSet` 밖으로 나가면 대전 리듀서 안에서 삼켜져 방이 영구 정지하고 전적이 사라졌다.
  * 채점 규칙은 한 글자도 바뀌지 않는다 — 던지던 자리가 `correct:false` 가 될 뿐이고,
  * 원인은 `logErr` 로 (문항 id, validator 타입) 당 한 번 남는다.
+ *
+ * 정규화 변경 이력(3단계 절차 적용 — 테스트 추가 + `npm run validate` + `npm run golden:check` 통과):
+ *   2026-09-04  default: 선행 따옴표 제거 (서버 L-3) / sql: `,()` 주변 공백 제거 (서버 L-2).
+ *               두 변경 모두 정답 인정 범위를 넓히는 방향이며, 전 회차 accept·sampleAnswer 자가채점과
+ *               골든 회귀에서 판정 변화 0건을 확인했다.
  */
 
 const logger = require('./logger.js');
@@ -27,26 +32,32 @@ const logger = require('./logger.js');
 // ---------------------------------------------------------------- normalize
 
 const NORMALIZERS = {
-  // NFC → 소문자 → 전공백 제거 → 후행 구두점 제거
+  // NFC → 소문자 → 전공백 제거 → 선행 따옴표 제거 → 후행 구두점 제거
+  //   선행 따옴표(2026-09-04, 서버 L-3): `"abc"` 처럼 답을 따옴표로 감싸면 후행만 지워져
+  //   `"abc` 가 남아 오답이 됐다. 앞쪽은 따옴표류만 지운다(`.NET` 같은 선행 구두점은 보존).
   default(s) {
     return String(s == null ? '' : s)
       .normalize('NFC')
       .trim()
       .toLowerCase()
       .replace(/\s+/g, '')
+      .replace(/^["'`]+/g, '')
       .replace(/["'`.,;:]+$/g, '');
   },
   // NFC → trim (내부 공백·대소문자 유지 — 코드 출력 등)
   keepSpace(s) {
     return String(s == null ? '' : s).normalize('NFC').trim();
   },
-  // NFC → 소문자 → 연속 공백 1칸 압축 → 후행 세미콜론/마침표/공백 제거
+  // NFC → 소문자 → 연속 공백 1칸 압축 → `,` `(` `)` 주변 공백 제거 → 후행 세미콜론/마침표/공백 제거
+  //   구두점 주변 공백(2026-09-04, 서버 L-2): `select a, b` 와 `select a,b` 가 달랐다. 데이터는
+  //   변형을 accept 에 일일이 열거해 왔는데(72건), 이제 정규화가 흡수한다.
   sql(s) {
     return String(s == null ? '' : s)
       .normalize('NFC')
       .trim()
       .toLowerCase()
       .replace(/\s+/g, ' ')
+      .replace(/\s*([,()])\s*/g, '$1')
       .replace(/[\s;.]+$/g, '');
   },
 };

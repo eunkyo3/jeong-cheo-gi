@@ -102,6 +102,7 @@
     // 로그인 상태 — 채점은 로그인이 필요하다(보안 C-1). 안내를 미리 띄우는 데 쓴다.
     me: null,              // {id, nickname} | null
     meLoaded: false,       // api.me() 가 한 번이라도 답했는가 (모르는 동안은 안내하지 않는다)
+    offline: false,        // navigator.onLine 이 false — 제출을 막는다 (shared/net.js)
     gradeBlocked: '',      // '' | 'auth' — 채점이 401 로 막힌 뒤인가
 
     // ---- 렌더 대상이 아닌 보조 상태 (예전에는 파일 곳곳의 모듈 전역이었다) ----
@@ -1734,8 +1735,9 @@
     var graded = !!state.result;
     elSubmit.hidden = graded;
     elReset.hidden = !graded;
-    elSubmit.disabled = state.submitting;
-    elSubmit.textContent = state.submitting ? '채점하는 중...' : '제출하고 채점하기';
+    elSubmit.disabled = state.submitting || state.offline;
+    elSubmit.textContent = state.submitting ? '채점하는 중...'
+      : state.offline ? '오프라인 — 연결되면 채점할 수 있습니다' : '제출하고 채점하기';
     if (elTools) elTools.hidden = graded;
 
     renderAnsweredCount();
@@ -2014,4 +2016,18 @@
   // 조회에 실패하면 비로그인으로 단정하지 않는다 — 일시적 오류로 "로그인하세요" 를 띄우면
   // 이미 로그인한 사람에게 거짓말이 된다. meLoaded 를 세우지 않아 안내를 내지 않는다.
   api.me().then(applyMe).catch(function () { renderNav(null); });
+  // 오프라인 감지 — 알림 한 줄 + 제출 버튼 잠금. 답안은 자동 저장되므로 잃지 않는다.
+  if (JPK.net) {
+    JPK.net.bindNotice(document.getElementById('offlineNotice'),
+      '인터넷 연결이 끊겼습니다. 적은 답안은 자동 저장되며, 연결이 돌아오면 채점할 수 있습니다.');
+    JPK.net.onChange(function (online) {
+      var was = state.offline;
+      state.offline = !online;
+      if (was !== state.offline && elSubmit && !elSubmit.hidden) {
+        elSubmit.disabled = state.submitting || state.offline;
+        elSubmit.textContent = state.submitting ? '채점하는 중...'
+          : state.offline ? '오프라인 — 연결되면 채점할 수 있습니다' : '제출하고 채점하기';
+      }
+    });
+  }
 })();

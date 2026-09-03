@@ -81,6 +81,8 @@
     같은 자리에서 로그인 경로를 준다. study.js 가 채운다.
   -->
   <div class="notice" id="loginNotice" aria-live="polite" hidden></div>
+  <!-- 네트워크가 끊기면 제출을 막고 알린다 (shared/net.js). 답안은 자동 저장되므로 잃지 않는다. -->
+  <div class="notice" id="offlineNotice" role="alert" hidden></div>
 
   <div class="btnbar" id="btnbar" hidden>
     <button type="button" id="submitBtn">제출하고 채점하기</button>
@@ -113,6 +115,7 @@
 <script src="/js/shared/motion.js"></script>
 <script src="/js/shared/focus.js"></script>
 <script src="/js/shared/qbody.js"></script>
+<script src="/js/shared/net.js"></script>
 <script src="/js/shared/nav.js"></script>
 <script src="/js/study.js"></script>
 </body>

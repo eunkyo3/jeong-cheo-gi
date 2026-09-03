@@ -206,6 +206,7 @@
   }
 
   function boot() {
+    if (JPK.net) JPK.net.bindNotice(document.getElementById('offlineNotice'));
     if (!window.api) {
       var root = document.getElementById('view');
       if (root) root.replaceChildren(h('div', { class: 'banner err', text: '필수 스크립트를 불러오지 못했습니다. 새로고침해 주세요.' }));

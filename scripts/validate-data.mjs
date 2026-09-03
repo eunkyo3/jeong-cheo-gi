@@ -30,6 +30,63 @@ const { gradeQuestion, normalizeValue, NORMALIZE_MODES, VALIDATOR_TYPES } = requ
 // 못박는다: SCHEMA.md 의 동결 회차 수(21). 이보다 적으면 수집이 덜 된 게 아니라 유실이다.
 const MIN_ROUNDS = 21;
 
+// ---------------------------------------------------------------- 문항 HTML 화이트리스트 (보안 L-14)
+//
+// prompt/bodyHtml 은 클라이언트에서 innerHTML 로 그려진다. 데이터가 서버 소유 자산이라 지금은 XSS 가
+// 아니지만, `npm run scrape` 결과가 검증 없이 들어오면 저장형 XSS 경로가 된다. 그래서 **실제로 쓰이는
+// 태그·속성만** 허용하고 나머지는 전부 거절한다(2026-09-04 전수 조사: 420문항 기준).
+//   태그   : div pre br b u table tr th td
+//   속성   : div@class pre@class table@class 만. `style` 은 CSP(style-src 'self')에 막히므로 금지 —
+//            기존 6건(`display:flex; gap:30px; flex-wrap:wrap;`)만 렌더러가 클래스로 바꿔 그린다.
+//   금지   : script/style/iframe/object/embed/link/meta/svg/math/base/form/input, on*= 핸들러,
+//            javascript:/data: URL, srcdoc, 주석·CDATA·처리지시.
+// 해설(validate-explanations.mjs)은 별도 화이트리스트(p b mark br ul ol li code pre, 속성 없음)를 쓴다.
+const HTML_ALLOWED_TAGS = new Set(['div', 'pre', 'br', 'b', 'u', 'table', 'tr', 'th', 'td']);
+const HTML_ALLOWED_ATTRS = new Set(['div@class', 'pre@class', 'table@class']);
+const HTML_LEGACY_STYLE = new Set(['display:flex; gap:30px; flex-wrap:wrap;']);
+const HTML_FORBIDDEN_TAGS = /<\s*\/?\s*(script|style|iframe|object|embed|link|meta|svg|math|base|form|input|textarea|button|frame|frameset|applet)\b/i;
+
+function lintQuestionHtml(html) {
+  const out = [];
+  if (typeof html !== 'string') return out;
+  if (HTML_FORBIDDEN_TAGS.test(html)) out.push({ rule: 'html-forbidden-tag', detail: '금지 태그: ' + HTML_FORBIDDEN_TAGS.exec(html)[0] });
+  if (/javascript\s*:/i.test(html)) out.push({ rule: 'html-javascript-url', detail: '`javascript:` 는 금지다' });
+  if (/<!--|<!\[CDATA\[|<\?/.test(html)) out.push({ rule: 'html-comment', detail: '주석·CDATA·처리지시는 금지다' });
+  const tagRe = /<\s*(\/?)\s*([a-zA-Z][\w-]*)([^>]*)>/g;
+  let m;
+  while ((m = tagRe.exec(html)) !== null) {
+    const closing = m[1] === '/';
+    const tag = m[2].toLowerCase();
+    const rest = m[3] || '';
+    // `<A>`, `<B>` 처럼 대문자 한 글자에 속성이 없는 꼴은 태그가 아니라 "테이블 A/B" 표기다
+    // (2026-2#13·#14 prompt). 브라우저는 무해한 빈 요소로 그리므로 그대로 둔다.
+    if (!closing && /^<[A-Z]>$/.test(m[0])) continue;
+    if (!HTML_ALLOWED_TAGS.has(tag)) {
+      out.push({ rule: 'html-tag-not-allowed', detail: `<${tag}> — 허용: ${[...HTML_ALLOWED_TAGS].join(' ')}` });
+      continue;
+    }
+    if (closing) continue;
+    const attrRe = /([a-zA-Z_:][\w:.-]*)\s*(?:=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
+    let a;
+    while ((a = attrRe.exec(rest)) !== null) {
+      const name = a[1].toLowerCase();
+      const value = a[2] != null ? a[2] : a[3] != null ? a[3] : a[4] != null ? a[4] : '';
+      if (/^on/.test(name)) { out.push({ rule: 'html-event-handler', detail: `<${tag} ${name}=…> 이벤트 핸들러 금지` }); continue; }
+      if (name === 'srcdoc') { out.push({ rule: 'html-srcdoc', detail: 'srcdoc 금지' }); continue; }
+      if (name === 'style') {
+        if (tag !== 'div' || !HTML_LEGACY_STYLE.has(value.trim())) out.push({ rule: 'html-style-attr', detail: `<${tag} style="${value}"> — style 속성은 CSP 에 막힌다. 클래스를 쓰라` });
+        continue;
+      }
+      if (!HTML_ALLOWED_ATTRS.has(tag + '@' + name)) {
+        out.push({ rule: 'html-attr-not-allowed', detail: `<${tag} ${name}=…> — 허용 속성: ${[...HTML_ALLOWED_ATTRS].join(' ')}` });
+        continue;
+      }
+      if (/javascript\s*:|data\s*:/i.test(value)) out.push({ rule: 'html-url-scheme', detail: `<${tag} ${name}="${value}"> — javascript:/data: 금지` });
+    }
+  }
+  return out;
+}
+
 const ROUND_KEYS = ['round', 'title', 'sourceUrl', 'questions'];
 const QUESTION_KEYS = [
   'id', 'num', 'prompt', 'bodyHtml', 'bodyText',
@@ -181,6 +238,14 @@ function validateQuestion(round, q, idx, seenIds, prevNum) {
       if (pat.re.test(text)) {
         fail(round, qid, 'expiring-external-url', `${key} 에 금지 패턴 "${pat.name}" 포함`);
       }
+    }
+  }
+
+  // HTML 화이트리스트 (보안 L-14) — innerHTML 로 그려지는 두 필드만
+  for (const key of ['prompt', 'bodyHtml']) {
+    if (typeof q[key] !== 'string') continue;
+    for (const v of lintQuestionHtml(q[key])) {
+      fail(round, qid, v.rule, `${key}: ${v.detail}`);
     }
   }
 
@@ -388,4 +453,4 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   main();
 }
 
-export { main, MIN_ROUNDS };
+export { main, MIN_ROUNDS, lintQuestionHtml, HTML_ALLOWED_TAGS, HTML_ALLOWED_ATTRS };
