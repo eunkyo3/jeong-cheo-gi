@@ -59,7 +59,7 @@
 | `disconnect` | `countdown` | `connected=false` + `broadcast(room:state)`. **카운트다운은 취소하지 않는다** — 명부는 그대로이므로 "1인이 되면 취소" 조건에 걸리지 않는다 |
 | `connect` | `countdown` | `connected=true` + `broadcast(room:state)` + `broadcast(battle:resync, to)` |
 | `tick` | `countdown` | **무시(3초 구간이라 재동기 불필요, 클라이언트가 로컬 애니메이션)** |
-| `timeout(countdown)` | `playing` | `startedAt=at`, `deadline=at+timeLimitS*1000`. `schedule(deadline)` + `broadcast(room:state)` + `broadcast(battle:questions)`. 접속자 0이면 `schedule(abandon, at+60s)` 동시 예약 |
+| `timeout(countdown)` | `playing` | `startedAt=at`, `deadline=at+timeLimitS*1000`. `schedule(deadline)` + `broadcast(room:state)` + `broadcast(battle:questions)`. 접속자 0이면 `schedule(abandon, at+60s)` 동시 예약. **제한 없음 방(`timeLimitS===0`)은 `deadline=null` 이고 `schedule(deadline)` 을 내지 않는다** |
 | `timeout(deadline)` | `countdown` | **무시(stale)** |
 | `timeout(abandon)` | `countdown` | **무시(stale)** |
 | `timeout(roomGc)` | `countdown` | **무시(stale — start 에서 cancel 됨)** |
@@ -75,9 +75,9 @@
 | `submit` | 전원 제출 → `finished`<br>그 외 → `playing` | 이미 제출했으면 **무시(ALREADY_SUBMITTED 에러)**. 정상이면 `submittedAt=at` + **보관 답안 1회 채점 → `marks` 확정** + `broadcast(battle:progress)` + `broadcast(room:state)`. **명부 전원**(이탈자 포함 — 이탈은 즉시 제출로 간주된다)이 제출을 마쳤으면 즉시 종료 처리(이때 `battle:marks` 는 내지 않는다 — 결과 화면이 대체). 종료가 아니면 **제출 완료자 전원에게 `broadcast(battle:marks, to=userId)`** 를 1건씩 — 페이로드는 제출자 전원의 `{userId,nickname,marks}` 목록(`playerOrder` 순). **미제출자에게는 절대 발송하지 않는다(room 브로드캐스트 금지)** |
 | `disconnect` | `playing` | `connected=false` + `broadcast(room:state)`. 접속자 0이면 `schedule(abandon, at+60s)`. **미제출로 남아 deadline 까지 대기** |
 | `connect` | `playing` | `connected=true` + `cancel(abandon)` + `broadcast(room:state)` + `broadcast(battle:resync, to)` — 스냅샷 1회, 이벤트 재생 없음. 수신자가 **제출자면** resync 페이로드에 `marks` 배열을 함께 싣는다(미제출자에게는 필드 없음) |
-| `tick` | `at >= deadline` → `finished`<br>그 외 → `playing` | 마감 전이면 `broadcast(battle:tick,{remainingMs})`. **`at >= deadline` 이면 즉시 종료 처리**(절전 복귀 방어 — 서버 재검증) |
+| `tick` | `at >= deadline` → `finished`<br>`deadline==null` 또는 마감 전 → `playing` | 마감 전이면 `broadcast(battle:tick,{remainingMs})`. **`at >= deadline` 이면 즉시 종료 처리**(절전 복귀 방어 — 서버 재검증). **`deadline==null`(제한 없음)이면 비교 자체를 하지 않는다** — `at >= null` 은 `null→0` 강제변환으로 항상 참이 되어 즉시 종료돼 버린다. `remainingMs` 는 `null` 로 나간다 |
 | `timeout(countdown)` | `playing` | **무시(stale)** |
-| `timeout(deadline)` | `at >= deadline` → `finished`<br>그 외 → `playing` | 정상이면 종료 처리. 타이머가 이르게 깨어났으면 **무시하고 `schedule(deadline)` 재예약** |
+| `timeout(deadline)` | `at >= deadline` → `finished`<br>그 외 → `playing` | 정상이면 종료 처리. 타이머가 이르게 깨어났으면 **무시하고 `schedule(deadline)` 재예약**. `deadline==null`(제한 없음)이면 **무시(stale — 건 적이 없는 타이머)** |
 | `timeout(abandon)` | 접속자 0 → `abandoned`<br>그 외 → `playing` | 접속자 0이면 `abandoned` + `cancel(deadline)` + `cancel(abandon)`, **`persist` 이펙트 없음(전적 미기록)**, **`broadcast` 도 없음** — 접속자 0 이 전제라 수신자가 정의상 0명이고 방은 곧바로 파기된다(빈 `waiting` 방의 `timeout(roomGc)` 와 같은 취급). 누군가 돌아왔으면 **무시(stale)** |
 | `timeout(roomGc)` | `playing` | **무시(stale — start 에서 cancel 됨)** |
 
