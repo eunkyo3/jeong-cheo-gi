@@ -291,9 +291,16 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
     answeredEl ? JSON.stringify(answeredEl.textContent) + ' hidden=' + answeredEl.hidden : '#answeredCount 없음');
   check(!!answeredEl && !!answeredEl.closest('#btnbar'),
     'blankguard: 진행 표시가 제출 버튼과 같은 btnbar 안에 있다');
-  // ---- 해설: 채점 전에는 버튼도 데이터도 없어야 한다 (PROTOCOL "채점 전 비노출") ----
-  check(![...d.querySelectorAll('button')].some(b => /해설/.test(b.textContent)),
-    'study: 채점 전 DOM 에 "해설" 버튼 없음');
+  // ---- 해설(요구 2, 2026-09-08): 학습 화면은 **채점 전에도** 정답·해설을 토글로 연다.
+  //      단 데이터 경로는 그대로다 — 문항 로드 응답에는 정답·해설이 실리지 않고,
+  //      전용 엔드포인트(/api/study/explain, 로그인+대전잠금+레이트리밋)로만 나간다.
+  const preBtns = [...d.querySelectorAll('button')].map(b => b.textContent);
+  check(preBtns.some(t => /정답·해설 보기/.test(t)),
+    'study: 채점 전 카드에 "정답·해설 보기" 토글이 있다 (요구 2)', preBtns.slice(0, 6).join(' | '));
+  check(preBtns.some(t => /AI에게 질문하기/.test(t)),
+    'study: 채점 전 카드에 "AI에게 질문하기" 가 있다 (요구 2)');
+  check(!!d.getElementById('peekAll'),
+    'study: 채점 전 "해설 모두 펼치기" 줄이 학습 화면에도 있다 (요구 2)');
   const roundRaw = await (await makeFetch()('/api/rounds/2026-2')).text();
   check(!/explanationHtml|"explanations"/.test(roundRaw),
     'study: GET /api/rounds/2026-2 응답에 해설 필드 없음');
@@ -1516,6 +1523,66 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
     }
     check(pk.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
       'peek: 오답노트 화면 JS 오류 없음', pk.errors.slice(0, 2).join(' | '));
+  }
+
+  // ---- ⓔ-2 학습 모드 채점 전 정답·해설 (요구 2, 2026-09-08) ----
+  // 오답노트와 다른 점: **채점 이력이 없어도** 열린다. 그래서 이 계정이 한 번도 채점하지 않은
+  // 회차(2024-1)로 확인한다 — /api/me/wrong/explain 이었다면 전부 "권한 없음" 으로 막혔을 화면이다.
+  {
+    const relog = await makeFetch()('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nickname: nick, password: 'pw12345678' }),
+    });
+    check(relog.status === 200, 'studypeek: 로그인', relog.status);
+
+    // 전제 — 이 계정은 2024-1 을 채점한 적이 없다(오답노트 권한 검사라면 열리지 않을 회차다).
+    const hist = await (await makeFetch()('/api/me/history')).json().catch(() => null);
+    check(!!hist && !(hist.rounds && hist.rounds['2024-1']),
+      'studypeek: 전제 — 이 계정에 2024-1 채점 이력이 없다',
+      hist && hist.rounds ? Object.keys(hist.rounds).join(',') : '이력 없음');
+
+    const sp = await load('/study.html?round=2024-1');
+    const spDoc = sp.window.document;
+    await waitFor(() => { const c = spDoc.querySelectorAll('.q'); return c.length > 0 ? c : null; },
+      '학습 문항 카드', 8000).catch(() => null);
+
+    const spBtn = spDoc.querySelector('.q button[data-peek]');
+    check(!!spBtn && /정답·해설 보기/.test(spBtn.textContent),
+      'studypeek: 회차 학습 카드에 "정답·해설 보기" 토글', spBtn ? spBtn.textContent.trim() : '버튼 없음');
+    check(!!spDoc.querySelector('.q button[data-ask]'),
+      'studypeek: 채점 전 카드에 "AI에게 질문하기" 버튼(data-ask)');
+
+    if (spBtn) {
+      const qid = spBtn.getAttribute('data-peek');
+      const cardOf = () => spDoc.querySelector('.q[data-q="' + qid + '"]');
+      spBtn.click();
+      const line = await waitFor(() => cardOf().querySelector('.feedback.peek'), '정답 줄', 6000).catch(() => null);
+      check(!!line && /정답:/.test(line.textContent),
+        'studypeek: 채점 이력이 없어도 정답 한 줄이 열린다 (요구 2의 핵심)',
+        line ? line.textContent.replace(/\s+/g, ' ').slice(0, 60) : '없음');
+      check(!!cardOf().querySelector('.explain-box'),
+        'studypeek: 해설 상자도 함께 열린다',
+        cardOf().querySelector('.peek-none') ? '해설 없음 안내' : '상자 없음');
+      // 여전히 채점 전이다 — 점수판·오답 표시가 켜지면 안 된다.
+      check(spDoc.querySelectorAll('.q.correct, .q.wrong').length === 0,
+        'studypeek: 정답을 봐도 채점된 것은 아니다 (카드가 정답/오답으로 물들지 않는다)');
+      spDoc.querySelector('.q[data-q="' + qid + '"] button[data-peek]').click();
+      const closed = await waitFor(() => (cardOf().querySelector('.feedback.peek') ? null : true), '접힘', 6000)
+        .catch(() => null);
+      check(closed === true, 'studypeek: 다시 누르면 접힌다 (토글)');
+    }
+
+    // 모의고사 화면에도 같은 줄이 붙는다.
+    const spp = await load('/study.html?set=practice&rounds=all&count=5');
+    const sppDoc = spp.window.document;
+    await waitFor(() => { const c = sppDoc.querySelectorAll('.q'); return c.length > 0 ? c : null; },
+      '모의고사 문항 카드', 8000).catch(() => null);
+    check(!!sppDoc.querySelector('.q button[data-peek]') && !!sppDoc.getElementById('peekAll'),
+      'studypeek: 랜덤 모의고사에도 "정답·해설 보기" + "해설 모두 펼치기" 가 있다');
+
+    check(sp.errors.filter(e => !/not implemented|execCommand|clipboard/i.test(e)).length === 0,
+      'studypeek: 학습 화면 JS 오류 없음', sp.errors.slice(0, 2).join(' | '));
   }
 
   // ---- ⓕ 세션이 끊긴 뒤(401) 의 종결성 — fail() 화면을 무엇도 되살리지 못한다 ----

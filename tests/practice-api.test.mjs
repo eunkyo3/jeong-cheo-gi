@@ -671,3 +671,117 @@ describe('GET /api/me/wrong/explain — 대전 중 문항은 해설도 막힌다
     }
   });
 });
+
+// ------------------------------- 학습 모드 정답·해설 즉시 조회 (요구 2)
+
+describe('GET /api/study/explain — 채점 전 정답·해설 (학습 전용 예외)', () => {
+  const IDS = ROUND.questions.slice(0, 3).map((q) => q.id);
+
+  test('비로그인은 401 — 익명 정답 오라클은 그대로 막혀 있다 (보안 C-1)', async () => {
+    // 쿠키 항아리를 태우지 않는 맨 fetch.
+    const r = await fetch(base + '/api/study/explain?ids=' + encodeURIComponent(IDS.join(',')));
+    assert.equal(r.status, 401);
+    const text = await r.text();
+    for (const q of ROUND.questions.slice(0, 3)) {
+      assert.ok(!text.includes(q.display), q.id + ' 의 display 가 401 본문에 새고 있다');
+    }
+  });
+
+  test('로그인하면 **채점 기록이 없어도** display·해설·지문이 나온다 (요구 2의 핵심)', async () => {
+    // 이 세션(이력테스터)이 한 번도 채점한 적 없는 회차의 문항으로 확인한다.
+    const other = require('../data/rounds/2024-1.json').questions.slice(0, 2);
+    const r = await api('GET', '/api/study/explain?ids=' + encodeURIComponent(other.map((q) => q.id).join(',')));
+    assert.equal(r.status, 200, r.text);
+    for (const q of other) {
+      const row = r.json.explanations[q.id];
+      assert.ok(row, q.id + ' 가 응답에 없다');
+      assert.equal(row.display, q.display);
+      assert.equal(typeof row.html, 'string');
+      assert.equal(row.bodyText, q.bodyText == null ? '' : q.bodyText, 'AI 프롬프트용 지문 원문');
+    }
+  });
+
+  test('없는 문항 id 는 403 이 아니라 조용히 생략된다', async () => {
+    const r = await api('GET', '/api/study/explain?ids=' + encodeURIComponent(IDS[0] + ',없는회차#99'));
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(Object.keys(r.json.explanations), [IDS[0]]);
+  });
+
+  test('ids 가 비었거나 상한(50)을 넘으면 400', async () => {
+    assert.equal((await api('GET', '/api/study/explain?ids=')).status, 400);
+    assert.equal((await api('GET', '/api/study/explain')).status, 400);
+    const many = Array.from({ length: 51 }, (_, i) => 'x#' + i).join(',');
+    const over = await api('GET', '/api/study/explain?ids=' + encodeURIComponent(many));
+    assert.equal(over.status, 400);
+    assert.match(over.json.error, /50개/);
+  });
+});
+
+describe('GET /api/study/explain — 대전 잠금', () => {
+  let srv4 = null;
+  let base4 = '';
+  let activeSet = null;
+
+  const ALL = ROUND.questions.slice(0, 4);
+  const LOCKED = ALL.slice(0, 2);
+  const OPEN = ALL.slice(2);
+
+  before(async () => {
+    const express = require('express');
+    const roundsMod = require('../server/rounds.js');
+    const app = express();
+    app.use(express.json());
+    app.use((req, _res, next) => { req.user = { id: 7, nickname: '대전중' }; next(); });
+    require('../server/routes/study.js')(app, {
+      db: {},
+      rounds: roundsMod,
+      auth: { requireAuth(_req, _res, next) { next(); } },
+      battleIo: {
+        activeBattleQuestionIds() {
+          if (activeSet === 'throw') throw new Error('battle-io 고장');
+          return activeSet;
+        },
+      },
+      log() {}, logErr() {},
+    });
+    srv4 = app.listen(0);
+    await new Promise((res) => srv4.once('listening', res));
+    base4 = 'http://localhost:' + srv4.address().port;
+  });
+
+  after(() => { try { srv4.close(); } catch { /* 이미 닫힘 */ } });
+
+  async function explain(ids) {
+    const r = await fetch(base4 + '/api/study/explain?ids=' + encodeURIComponent(ids.join(',')));
+    const text = await r.text();
+    let json = null;
+    try { json = text ? JSON.parse(text) : null; } catch { /* JSON 이 아닐 수 있다 */ }
+    return { status: r.status, json, text };
+  }
+
+  test('대전이 없으면 요청한 문항이 전부 나온다 (전제 확인)', async () => {
+    activeSet = null;
+    const r = await explain(ALL.map((q) => q.id));
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(Object.keys(r.json.explanations).sort(), ALL.map((q) => q.id).sort());
+  });
+
+  test('지금 내 대전에 걸린 문항은 조용히 빠지고 display 가 본문 어디에도 없다', async () => {
+    // 학습 화면을 다른 탭에 띄워 대전 중 정답을 꺼내 보는 길 — 여기서 막혀야 한다.
+    activeSet = new Set(LOCKED.map((q) => q.id));
+    const r = await explain(ALL.map((q) => q.id));
+    assert.equal(r.status, 200, r.text);
+    assert.deepEqual(Object.keys(r.json.explanations).sort(), OPEN.map((q) => q.id).sort());
+    for (const q of LOCKED) {
+      assert.equal(r.json.explanations[q.id], undefined, q.id);
+      assert.ok(!r.text.includes(q.display), q.id + ' 의 display 가 새고 있다: ' + q.display);
+    }
+  });
+
+  test('battle-io 가 던져도 조회는 살아 있다 (잠금은 부가 방어벽이다)', async () => {
+    activeSet = 'throw';
+    const r = await explain(OPEN.map((q) => q.id));
+    assert.equal(r.status, 200, r.text);
+    assert.equal(Object.keys(r.json.explanations).length, OPEN.length);
+  });
+});

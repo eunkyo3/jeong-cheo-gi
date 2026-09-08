@@ -297,6 +297,22 @@ function roomStatePayload(s) {
   return { state: s.state, players: playersPayload(s), settings: settingsPayload(s) };
 }
 
+/**
+ * 제한 시간을 초 단위 정수로 정규화한다. **0 = 제한 없음**(요구 1).
+ * 값이 없거나 수가 아니거나 음수면 0(제한 없음)이 아니라 —— 방을 만든 쪽이 값을 검증하므로
+ * 여기 오는 이상한 값은 사고다 —— 그래도 상태 머신이 깨지지 않도록 0 으로 떨어뜨린다.
+ */
+function normalizeTimeLimit(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.floor(n);
+}
+
+/** 제한 시간이 걸린 방인가. false 면 deadline 을 아예 만들지 않는다. */
+function hasTimeLimit(s) {
+  return s.timeLimitS > 0;
+}
+
 function remainingMs(s, at) {
   if (s.deadline == null) return null;
   return Math.max(0, s.deadline - at);
@@ -321,7 +337,9 @@ function resyncPayload(s, p, at) {
     players: playersPayload(s),
     settings: settingsPayload(s),
     submitted: p.submittedAt != null,
-    deadlineInfo: s.deadline == null ? null : deadlineInfo(s, at),
+    // 시작 전(waiting/countdown)에는 null. 시작한 뒤에는 **제한 없음 방도** 정보를 준다 —
+    // 그때는 deadline·remainingMs 가 null 이고 timeLimitS 가 0 이다(요구 1).
+    deadlineInfo: s.startedAt == null ? null : deadlineInfo(s, at),
   };
   // 제출자에게만 정오표를 되돌려 준다 — 미제출자에게는 필드 자체가 없다(누출 방지).
   if (s.state === 'playing' && p.submittedAt != null) payload.marks = marksList(s);
@@ -349,7 +367,8 @@ function createRoom(opts) {
     // 유형·언어는 방 생성 시 1회만 적용된다 — 진행 중 변경 없음(양쪽이 같은 문항을 본다).
     type: normalizeType(o.type),
     lang: normalizeLang(o.lang),
-    timeLimitS: Number(o.timeLimitS),
+    // 0(또는 음수·비수치) = **제한 없음**. deadline 을 걸지 않는다(요구 1).
+    timeLimitS: normalizeTimeLimit(o.timeLimitS),
     questions: questions,
     questionIds: questions.map(function (q) { return q.id; }),
     state: 'waiting',
@@ -446,9 +465,10 @@ function beginPlaying(s, ctx) {
   s.state = 'playing';
   s.countdownEndsAt = null;
   s.startedAt = at;
-  s.deadline = at + s.timeLimitS * 1000;
+  // 제한 없음 방(timeLimitS=0)은 deadline 도 타이머도 만들지 않는다 — 전원 제출로만 끝난다.
+  s.deadline = hasTimeLimit(s) ? at + s.timeLimitS * 1000 : null;
   ctx.effects.push(fxCancel(s, 'roomGc'));
-  ctx.effects.push(fxSchedule(s, 'deadline', s.deadline));
+  if (s.deadline != null) ctx.effects.push(fxSchedule(s, 'deadline', s.deadline));
   pushRoomState(ctx, s);
   ctx.effects.push(fxBroadcast(s, 'battle:questions', {
     questions: s.questions.map(publicQuestion),
@@ -830,12 +850,15 @@ function handlePlaying(s, ev, ctx) {
       return;
     }
     case 'tick': {
-      if (at >= s.deadline) { finish(s, ctx, 'deadline'); return; }
+      // 제한 없음 방은 deadline 이 null 이다 — `at >= null` 이 true 가 되어 즉시 종료되지
+      // 않도록 반드시 먼저 걸러낸다. tick 방송은 그대로 나간다(remainingMs 는 null).
+      if (s.deadline != null && at >= s.deadline) { finish(s, ctx, 'deadline'); return; }
       ctx.effects.push(fxBroadcast(s, 'battle:tick', { remainingMs: remainingMs(s, at) }));
       return;
     }
     case 'timeout': {
       if (ev.kind === 'deadline') {
+        if (s.deadline == null) return; // 제한 없음 방 — 걸어 둔 적 없는 타이머다(stale)
         if (at < s.deadline) {
           // 타이머가 이르게 깨어났다 — 재예약하고 무시
           ctx.effects.push(fxSchedule(s, 'deadline', s.deadline));

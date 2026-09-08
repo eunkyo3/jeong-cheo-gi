@@ -32,6 +32,10 @@ const PRACTICE_GRADE_MAX = 200;   // 한 번에 채점할 수 있는 문항 수 
 const GRADE_WINDOW_MS = 60000;    // 채점 레이트리밋 — 사용자당 1분에 20회
 const GRADE_MAX = 20;
 
+const EXPLAIN_IDS_MAX = 50;       // 한 번에 조회할 수 있는 문항 수 (me.js 의 오답노트 조회와 같은 상한)
+const EXPLAIN_WINDOW_MS = 60000;  // 학습 모드 정답·해설 조회 — 사용자당 1분에 60회
+const EXPLAIN_MAX = 60;
+
 const NEED_TOKEN = '문제 세트 정보가 없거나 만료되었습니다. 문제를 다시 불러온 뒤 채점하세요.';
 const BATTLE_LOCKED = '진행 중인 대전의 문항은 채점할 수 없습니다.';
 
@@ -132,6 +136,75 @@ module.exports = function mount(app, ctx) {
       bodyTexts: bodyTexts,
       explanations: explanations,
     });
+  });
+
+  // ------------------------------------------- 학습 모드 정답·해설 즉시 조회
+
+  /**
+   * `GET /api/study/explain?ids=2024-1#1,2024-1#2` (1~50개, **로그인 필수**)
+   *   → `{ explanations: { [qid]: { display, html, bodyText } } }`
+   *
+   * **PROTOCOL "채점 전 비노출" 의 두 번째 예외다**(첫 번째는 오답노트의
+   * `GET /api/me/wrong/explain`). 요구 2(2026-09-08): 학습은 혼자 공부하는 공간이고,
+   * 모르는 문항 앞에서 막히면 배우지 못한 채 넘어간다. 그래서 학습·모의고사 화면에서는
+   * **채점 전에도** 정답·해설·AI 질문용 지문을 토글로 열 수 있다.
+   *
+   * 그럼에도 정답 오라클이 되지 않는 이유 — 원래 무엇을 막던 규칙이었는지로 되짚는다:
+   *   ① **비로그인 차단**(보안 C-1): 익명 요청으로 전 문항 정답을 긁어가는 길은 그대로 막힌다.
+   *   ② **대전 잠금**(battlelock): 지금 내 대전에 걸린 문항은 조용히 생략한다 — 대전 중에
+   *      다른 탭에서 정답을 꺼내 보는 길이 여기 열려서는 안 된다. 채점 라우트·오답노트
+   *      조회와 **같은 한 곳**(battlelock.js)에서 판정한다.
+   *   ③ **레이트리밋**: 사용자당 1분 60회. 정상적인 학습(문항 20개 일괄 펼치기 = 1회)에는
+   *      전혀 걸리지 않고, 전 회차(420문항) 자동 수집은 눈에 띄게 느려진다.
+   * 채점 이력 검사는 하지 **않는다** — 그게 오답노트 조회와 다른 점이고, 요구의 핵심이다.
+   *
+   * 없는 문항·대전에 걸린 문항은 403 이 아니라 **응답에서 조용히 생략**한다
+   * (오답노트 조회와 같은 규약 — 클라이언트는 "권한 없음" 으로만 알면 된다).
+   */
+  const explainLimit = rateLimit({
+    windowMs: EXPLAIN_WINDOW_MS,
+    max: EXPLAIN_MAX,
+    label: 'study explain',
+    logErr: logErr,
+    keyOf: function (req) { return 'study-explain:' + (req.user ? req.user.id : '?'); },
+  });
+
+  app.get('/api/study/explain', auth.requireAuth, explainLimit, function (req, res) {
+    const raw = typeof req.query.ids === 'string' ? req.query.ids : '';
+    const parts = raw.split(',');
+    // 상한 검사를 중복 제거보다 먼저 — 거절 비용을 split 한 번으로 끝낸다(me.js 와 같은 규칙).
+    if (parts.length > EXPLAIN_IDS_MAX) {
+      return res.status(400).json({ error: '한 번에 ' + EXPLAIN_IDS_MAX + '개까지만 조회할 수 있습니다.' });
+    }
+    const seen = new Set();
+    const ids = [];
+    for (const part of parts) {
+      const id = part.trim();
+      if (id === '' || seen.has(id)) continue;
+      seen.add(id);
+      ids.push(id);
+    }
+    if (ids.length === 0) return res.status(400).json({ error: '문항 id 가 필요합니다.' });
+
+    const locked = lock.activeIds(req.user.id); // 지금 내 대전에 걸린 문항 (없으면 null)
+    const explanations = {};
+    let served = 0;
+    let blocked = 0;
+    for (const qid of ids) {
+      if (locked && locked.has(qid)) { blocked += 1; continue; } // 대전 중 — 조용히 생략
+      const q = rounds.getQuestion(qid);
+      if (!q) continue;                                          // 없는 문항 — 조용히 생략
+      explanations[qid] = {
+        display: q.display == null ? '' : q.display,
+        html: rounds.explanationOf(qid),
+        bodyText: q.bodyText == null ? '' : q.bodyText, // "AI에게 질문하기" 프롬프트 조립용
+      };
+      served += 1;
+    }
+
+    log('study explain', served + '/' + ids.length + '문항',
+      blocked > 0 ? '(대전 잠금 ' + blocked + '건)' : '', req.user.nickname);
+    res.json({ explanations: explanations });
   });
 
   // --------------------------------------------------------- 랜덤 모의고사
@@ -259,3 +332,5 @@ module.exports = function mount(app, ctx) {
 module.exports.PRACTICE_COUNT_MIN = PRACTICE_COUNT_MIN;
 module.exports.PRACTICE_COUNT_MAX = PRACTICE_COUNT_MAX;
 module.exports.PRACTICE_GRADE_MAX = PRACTICE_GRADE_MAX;
+module.exports.EXPLAIN_IDS_MAX = EXPLAIN_IDS_MAX;
+module.exports.EXPLAIN_MAX = EXPLAIN_MAX;

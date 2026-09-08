@@ -301,7 +301,7 @@ describe('GET /api/me/wrong/explain (C5 — 채점 전 해설 예외)', () => {
     assert.deepEqual(Object.keys(r.json), ['explanations']);
     const e = r.json.explanations[graded[0]];
     assert.ok(e, graded[0] + ' 가 빠졌다');
-    assert.deepEqual(Object.keys(e).sort(), ['display', 'html']);
+    assert.deepEqual(Object.keys(e).sort(), ['bodyText', 'display', 'html']);
     assert.equal(typeof e.display, 'string');
     assert.equal(typeof e.html, 'string');
     // repo 데이터의 실제 값과 같아야 한다
@@ -709,7 +709,7 @@ describe('/api/me/wrong/explain — 권한 경계', () => {
     assert.equal(after.status, 200);
     const e = after.json.explanations[qid];
     assert.ok(e, '대전에서 푼 문항인데 권한이 없다: ' + qid);
-    assert.deepEqual(Object.keys(e).sort(), ['display', 'html']);
+    assert.deepEqual(Object.keys(e).sort(), ['bodyText', 'display', 'html']);
     const src = rounds.getQuestion(qid);
     assert.equal(e.display, src.display == null ? '' : src.display);
     assert.equal(e.html, rounds.explanationOf(qid));

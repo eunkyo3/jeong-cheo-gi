@@ -259,6 +259,9 @@ module.exports = function mount(app, ctx) {
       explanations[qid] = {
         display: q.display == null ? '' : q.display,
         html: rounds.explanationOf(qid),
+        // 지문 원문 — "AI에게 질문하기" 프롬프트 조립용. 화면에 이미 보이는 내용의 평문판이라
+        // 정답 계열 자산이 아니지만, 같은 관문을 지나온 응답에 함께 실어 왕복을 줄인다.
+        bodyText: q.bodyText == null ? '' : q.bodyText,
       };
       served += 1;
     }

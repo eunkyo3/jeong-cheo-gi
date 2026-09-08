@@ -25,39 +25,80 @@
  *   2026-09-04  default: 선행 따옴표 제거 (서버 L-3) / sql: `,()` 주변 공백 제거 (서버 L-2).
  *               두 변경 모두 정답 인정 범위를 넓히는 방향이며, 전 회차 accept·sampleAnswer 자가채점과
  *               골든 회귀에서 판정 변화 0건을 확인했다.
+ *   2026-09-08  전 모드 `preClean` 선행(폭 0 문자 제거·전각/비분리 공백 → 보통 공백·CRLF 통일) /
+ *               keepSpace: 줄 trim + 연속 공백 압축 + `,;:()[]{}=` 주변 공백 제거 /
+ *               sql: `=<>` 주변 공백까지 제거 (요구 3 — "공백 때문에 틀리는 오답" 제거).
+ *               역시 인정 범위를 넓히기만 한다.
+ *
+ * 표시용 부가 신호 `near`(2026-09-08): 오답 중 "표기(구두점·대소문자)만 다른 답"을 표시한다.
+ * **점수·정답 판정에는 일절 관여하지 않는다** — 자세한 근거는 아래 `fieldNear` 주석에 있다.
  */
 
 const logger = require('./logger.js');
 
 // ---------------------------------------------------------------- normalize
 
+/**
+ * 눈에 보이지 않는 공백류. 복사·붙여넣기(문제 지문, 에디터, 카카오톡 등)로 딸려 들어와
+ * "화면상 정답인데 오답" 을 만드는 주범이다. 세 정규화 모드가 **모두** 이걸 먼저 지난다.
+ *   INVISIBLE : 폭 0 문자·소프트하이픈·BOM — 흔적 없이 지운다.
+ *   SPACEY    : 전각 공백(U+3000)·비분리 공백(U+00A0) 등 — 보통 공백 한 칸으로 바꾼다.
+ * 줄바꿈은 `\n` 으로 통일한다(윈도우에서 붙여 넣은 여러 줄 출력값).
+ */
+const INVISIBLE_RE = /[\u200B-\u200D\u2060\uFEFF\u00AD]/g;
+const SPACEY_RE = /[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g;
+
+function preClean(s) {
+  return String(s == null ? '' : s)
+    .normalize('NFC')
+    .replace(INVISIBLE_RE, '')
+    .replace(SPACEY_RE, ' ')
+    .replace(/\r\n?/g, '\n');
+}
+
 const NORMALIZERS = {
-  // NFC → 소문자 → 전공백 제거 → 선행 따옴표 제거 → 후행 구두점 제거
+  // preClean → 소문자 → 전공백 제거 → 선행 따옴표 제거 → 후행 구두점 제거
   //   선행 따옴표(2026-09-04, 서버 L-3): `"abc"` 처럼 답을 따옴표로 감싸면 후행만 지워져
   //   `"abc` 가 남아 오답이 됐다. 앞쪽은 따옴표류만 지운다(`.NET` 같은 선행 구두점은 보존).
   default(s) {
-    return String(s == null ? '' : s)
-      .normalize('NFC')
+    return preClean(s)
       .trim()
       .toLowerCase()
       .replace(/\s+/g, '')
       .replace(/^["'`]+/g, '')
       .replace(/["'`.,;:]+$/g, '');
   },
-  // NFC → trim (내부 공백·대소문자 유지 — 코드 출력 등)
+  /**
+   * 코드 **출력값**용. "공백이 있느냐 없느냐" 는 여전히 판정에 쓰지만(`0 1 2 3` ≠ `0123`),
+   * "공백이 몇 칸이냐·구두점 옆에 붙었느냐" 는 더 이상 오답 사유가 아니다.
+   *
+   *   preClean → 줄마다 trim + 연속 공백 1칸 압축 → 빈 줄 정리
+   *            → `,;:()[]{}=` 양옆 공백 제거
+   *
+   * 2026-09-08 (요구 3): 예전에는 `trim()` 뿐이라 `Vehicle name : Spark` 와
+   * `Vehicle name: Spark`, `a = 10` 과 `a=10`, `[1, 2, 3]` 과 `[1,2,3]` 이 서로 달랐다.
+   * 데이터가 표기 변형을 accept 에 일일이 열거해 막고 있었는데(2020-3#15 한 문항에만 18개),
+   * 열거에서 빠진 변형은 그대로 "맞는데 틀린" 오답이 됐다. 이제 정규화가 흡수한다.
+   */
   keepSpace(s) {
-    return String(s == null ? '' : s).normalize('NFC').trim();
+    return preClean(s)
+      .split('\n')
+      .map(function (line) { return line.trim().replace(/[ \t]+/g, ' '); })
+      .join('\n')
+      .replace(/\n{2,}/g, '\n')
+      .replace(/^\n+|\n+$/g, '')
+      .replace(/ ?([,;:()[\]{}=]) ?/g, '$1');
   },
-  // NFC → 소문자 → 연속 공백 1칸 압축 → `,` `(` `)` 주변 공백 제거 → 후행 세미콜론/마침표/공백 제거
+  // preClean → 소문자 → 연속 공백 1칸 압축 → 연산자·구두점 주변 공백 제거 → 후행 세미콜론/마침표/공백 제거
   //   구두점 주변 공백(2026-09-04, 서버 L-2): `select a, b` 와 `select a,b` 가 달랐다. 데이터는
   //   변형을 accept 에 일일이 열거해 왔는데(72건), 이제 정규화가 흡수한다.
+  //   비교 연산자(2026-09-08, 요구 3): 같은 이유로 `where a = 1` 과 `where a=1` 도 흡수한다.
   sql(s) {
-    return String(s == null ? '' : s)
-      .normalize('NFC')
+    return preClean(s)
       .trim()
       .toLowerCase()
       .replace(/\s+/g, ' ')
-      .replace(/\s*([,()])\s*/g, '$1')
+      .replace(/\s*([,()=<>])\s*/g, '$1')
       .replace(/[\s;.]+$/g, '');
   },
 };
@@ -149,6 +190,64 @@ function runValidator(spec, rawValue) {
   return fn(spec, String(rawValue == null ? '' : rawValue).trim());
 }
 
+// ---------------------------------------------------------- 근접 오답(near)
+
+/**
+ * "표기만 다른 오답" 판정. **점수에는 전혀 관여하지 않는다** — 오답 카드에
+ * "정답과 표기만 다릅니다" 한 줄을 띄우기 위한 표시용 신호다(요구 3, UX).
+ *
+ * 왜 정답으로 인정하지 않는가:
+ *   실기 시험의 실제 채점은 표기까지 본다. 여기서 조용히 정답 처리하면 학습자는 자기 답이
+ *   시험장에서도 통한다고 믿게 된다. 대신 **왜 틀렸는지**를 즉시 알려 준다 —
+ *   "몰라서 틀린 것"과 "표기 때문에 틀린 것"이 화면에서 구분된다.
+ *   (진짜 공백 문제는 위 정규화가 이미 정답으로 만든다. 여기 남는 건 구두점·대소문자다.)
+ *
+ * `looseKey` 는 문자·숫자만 남긴다 — 판정 경로에서는 절대 부르지 않는다.
+ */
+function looseKey(s) {
+  return preClean(s).toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+}
+
+/**
+ * fieldNear(field, rawValue) → boolean
+ * accept 필드: 관대 비교로는 일치한다(= 구두점·대소문자·공백만 다르다).
+ * keywords 필드: 요구 키워드를 **일부만** 맞혔다(하나도 못 맞혔으면 near 가 아니다).
+ * 그 밖의 validator: near 를 매기지 않는다(계산형은 "거의 맞음" 이 없다).
+ */
+function fieldNear(field, rawValue) {
+  const raw = String(rawValue == null ? '' : rawValue);
+  if (raw.trim() === '') return false;
+  try {
+    if (field.validator) {
+      if (field.validator.type !== 'keywords') return false;
+      return keywordsPartial(field.validator, raw);
+    }
+    const key = looseKey(raw);
+    if (key === '') return false;
+    const accept = field.accept || [];
+    for (let i = 0; i < accept.length; i++) {
+      if (looseKey(accept[i]) === key) return true;
+    }
+    return false;
+  } catch (e) {
+    return false; // near 는 부가 정보다 — 여기서 던져 채점을 흔들지 않는다
+  }
+}
+
+/** keywords spec 의 요구 키워드 중 하나라도 맞혔는가(전부는 아니고). */
+function keywordsPartial(spec, rawValue) {
+  const all = Array.isArray(spec.all) ? spec.all : [];
+  const any = Array.isArray(spec.any) ? spec.any : [];
+  const got = NORMALIZERS.default(rawValue);
+  if (got === '') return false;
+  let hits = 0;
+  const words = all.concat(any);
+  for (let i = 0; i < words.length; i++) {
+    if (got.indexOf(NORMALIZERS.default(words[i])) !== -1) hits++;
+  }
+  return hits > 0;
+}
+
 // -------------------------------------------------------------- 필드 매칭
 
 /**
@@ -196,11 +295,13 @@ function acceptsOrThrow(field, rawValue) {
 
 function gradeOrdered(fields, answers, questionId) {
   return fields.map(function (f, i) {
+    const correct = fieldAccepts(f, answers[i], questionId);
     return {
       fieldIndex: i,
       label: f.label == null ? null : f.label,
       given: String(answers[i] == null ? '' : answers[i]),
-      correct: fieldAccepts(f, answers[i], questionId),
+      correct: correct,
+      near: correct ? false : fieldNear(f, answers[i]),
     };
   });
 }
@@ -264,37 +365,66 @@ function gradeUnordered(fields, answers, questionId) {
   }
 
   // 필드 결과는 "입력 슬롯" 기준으로 되돌려 준다(사용자는 자기가 입력한 칸을 본다)
+  // near 는 "이 입력이 어느 칸이든 표기만 다르게 맞혔는가" 로 본다 — unordered 라 칸이 고정돼
+  // 있지 않기 때문이다. 표시용 신호일 뿐이므로 매칭(complete)에는 영향을 주지 않는다.
   const fieldResults = fields.map(function (f, i) {
+    const correct = okOrig.has(i);
     return {
       fieldIndex: i,
       label: f.label == null ? null : f.label,
       given: String(answers[i] == null ? '' : answers[i]),
-      correct: okOrig.has(i),
+      correct: correct,
+      near: correct ? false : fields.some(function (g) { return fieldNear(g, answers[i]); }),
     };
   });
   return { fieldResults: fieldResults, complete: complete };
 }
 
 /**
- * gradeQuestion(question, answers) → { questionId, correct, fieldResults[], display }
+ * 문항 레벨 near: **오답인데** 모든 칸이 정답이거나 near 이고, near 인 칸이 하나 이상.
+ * = "내용은 맞혔는데 표기 때문에 틀렸다". 점수와 무관한 표시용 신호다.
+ */
+function questionNear(correct, fieldResults) {
+  if (correct) return false;
+  let hasNear = false;
+  for (let i = 0; i < fieldResults.length; i++) {
+    const r = fieldResults[i];
+    if (r.correct) continue;
+    if (!r.near) return false;
+    hasNear = true;
+  }
+  return hasNear;
+}
+
+/**
+ * gradeQuestion(question, answers) → { questionId, correct, near, fieldResults[], display }
  * answers: 필드 순서대로의 문자열 배열 (없으면 '')
  * 문항 정답 = 모든 필드 정답 (부분점수 없음)
+ * `near` 는 점수에 관여하지 않는다 — 오답 카드의 안내 한 줄에만 쓰인다.
  */
 function gradeQuestion(question, answers) {
   const fields = question.fields || [];
   const given = Array.isArray(answers) ? answers : [];
   const display = question.display == null ? '' : question.display;
   if (fields.length === 0) {
-    return { questionId: question.id, correct: false, fieldResults: [], display: display };
+    return { questionId: question.id, correct: false, near: false, fieldResults: [], display: display };
   }
   if (question.answerMode === 'unordered') {
     const r = gradeUnordered(fields, given, question.id);
-    return { questionId: question.id, correct: r.complete, fieldResults: r.fieldResults, display: display };
+    return {
+      questionId: question.id,
+      correct: r.complete,
+      near: questionNear(r.complete, r.fieldResults),
+      fieldResults: r.fieldResults,
+      display: display,
+    };
   }
   const fieldResults = gradeOrdered(fields, given, question.id);
+  const correct = fieldResults.every(function (r) { return r.correct; });
   return {
     questionId: question.id,
-    correct: fieldResults.every(function (r) { return r.correct; }),
+    correct: correct,
+    near: questionNear(correct, fieldResults),
     fieldResults: fieldResults,
     display: display,
   };
@@ -319,6 +449,7 @@ module.exports = {
   gradeSet: gradeSet,
   normalizeValue: normalizeValue,
   fieldAccepts: fieldAccepts,
+  fieldNear: fieldNear,
   runValidator: runValidator,
   ipToInt: ipToInt,
   NORMALIZE_MODES: NORMALIZE_MODES,

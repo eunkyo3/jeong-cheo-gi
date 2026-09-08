@@ -1681,3 +1681,81 @@ describe('격자표 60셀 — 미정의 전이 0건', () => {
     assert.equal(cells, 60, '격자표는 5 × 12 = 60셀이다');
   });
 });
+
+// ------------------------------------------------- 제한 없음 방 (요구 1)
+
+describe('timeLimitS = 0 (제한 없음)', () => {
+  test('playing 진입 시 deadline 도 deadline 타이머도 만들지 않는다', () => {
+    const r = playingRoom({ timeLimitS: 0 });
+    assert.equal(r.state.timeLimitS, 0);
+    assert.equal(r.state.deadline, null, '마감 시각이 없다');
+    assert.equal(schedules(r.effects, 'ROOM1:deadline').length, 0, 'deadline 타이머를 걸지 않는다');
+
+    // 문항 배포에는 여전히 deadlineInfo 가 실린다 — 화면이 "제한 없음" 을 알아야 한다.
+    const qs = broadcasts(r.effects, 'battle:questions');
+    assert.equal(qs.length, 1);
+    assert.equal(qs[0].payload.deadlineInfo.deadline, null);
+    assert.equal(qs[0].payload.deadlineInfo.timeLimitS, 0);
+    assert.equal(qs[0].payload.deadlineInfo.remainingMs, null);
+  });
+
+  test('tick 은 아무리 시간이 흘러도 대전을 끝내지 않는다 (deadline == null 오판 방어)', () => {
+    const base = playingRoom({ timeLimitS: 0 }).state;
+    // 하루 뒤의 tick. `at >= s.deadline` 을 그냥 쓰면 null 이 0 으로 바뀌어 즉시 종료된다.
+    const r = applyEvent(base, ev.tick(T0 + 24 * 60 * 60 * 1000));
+    assert.equal(r.state.state, 'playing');
+    const ticks = broadcasts(r.effects, 'battle:tick');
+    assert.equal(ticks.length, 1);
+    assert.equal(ticks[0].payload.remainingMs, null);
+    assert.equal(persists(r.effects).length, 0, '전적이 저장되지 않는다');
+  });
+
+  test('걸어 둔 적 없는 timeout(deadline) 이 들어와도 무시한다', () => {
+    const base = playingRoom({ timeLimitS: 0 }).state;
+    const r = applyEvent(base, ev.timeout('deadline', T0 + 60_000));
+    assert.equal(r.state.state, 'playing');
+    assert.deepEqual(r.effects, []);
+  });
+
+  test('전원 제출로는 정상 종료된다 — 미제출자 판정 기준 시각은 종료 시각이 된다', () => {
+    const base = playingRoom({ timeLimitS: 0 }).state;
+    const r = drive(base, [
+      ev.answer(1, '2026-2#1', '동치분할', T0 + 1000),
+      ev.submit(1, T0 + 2000),
+      ev.submit(2, T0 + 3000),
+    ]);
+    assert.equal(r.state.state, 'finished');
+    assert.equal(r.state.result.reason, 'allSubmitted');
+    assert.equal(r.state.result.winnerUserId, 1);
+    assert.equal(persists(r.effects).length, 1, '전적은 남는다');
+  });
+
+  test('전원 끊김 유예(abandon)는 제한 시간과 무관하게 그대로 돈다', () => {
+    const base = playingRoom({ timeLimitS: 0 }).state;
+    const off = drive(base, [ev.disconnect(1, T0 + 1000), ev.disconnect(2, T0 + 1100)]);
+    assert.equal(schedules(off.effects, 'ROOM1:abandon').length, 1);
+    const gone = applyEvent(off.state, ev.timeout('abandon', T0 + 1100 + ABANDON_GRACE_MS));
+    assert.equal(gone.state.state, 'abandoned');
+  });
+
+  test('resync 는 시작 뒤라면 제한 없음 방에도 deadlineInfo 를 준다 (시작 전에는 null)', () => {
+    const created = newRoom({ timeLimitS: 0 });
+    const waiting = drive(created.state, [ev.join(1, '가나', T0 + 10), ev.connect(1, T0 + 20)]);
+    const before = broadcasts(waiting.effects, 'battle:resync');
+    assert.equal(before[before.length - 1].payload.deadlineInfo, null, '시작 전에는 null');
+
+    const playing = playingRoom({ timeLimitS: 0 }).state;
+    const after = applyEvent(playing, ev.connect(1, T0 + 5000));
+    const rs = broadcasts(after.effects, 'battle:resync');
+    assert.equal(rs.length, 1);
+    assert.equal(rs[0].payload.deadlineInfo.timeLimitS, 0);
+    assert.equal(rs[0].payload.deadlineInfo.deadline, null);
+    assert.equal(rs[0].payload.remainingMs, null);
+  });
+
+  test('제한 시간이 음수·비수치여도 상태 머신은 "제한 없음" 으로 떨어진다', () => {
+    assert.equal(newRoom({ timeLimitS: -5 }).state.timeLimitS, 0);
+    assert.equal(newRoom({ timeLimitS: 'abc' }).state.timeLimitS, 0);
+    assert.equal(newRoom({ timeLimitS: 3600 }).state.timeLimitS, 3600);
+  });
+});

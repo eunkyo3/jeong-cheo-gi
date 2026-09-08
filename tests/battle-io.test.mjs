@@ -563,3 +563,41 @@ describe('소켓 핸드셰이크 — 세션 세대 검증 (보안 M-5)', () => {
 
   after(() => { fs.rmSync(secretDir, { recursive: true, force: true }); });
 });
+
+// ------------------------------------------ 제한 시간 카탈로그 (요구 1)
+
+describe('POST /api/rooms — 제한 시간', () => {
+  function mkRoom(timeLimitS) {
+    const h = harness();
+    return h.call('POST /api/rooms', {
+      user: { id: 1, nickname: 'U1' },
+      body: { mode: 'round', roundIds: ['2026-2'], timeLimitS: timeLimitS },
+    });
+  }
+
+  test('카탈로그에 있는 값은 모두 통과한다 (0 = 제한 없음, 1시간, 2시간 포함)', () => {
+    assert.deepEqual(battleIo.TIME_LIMITS, [0, 600, 1200, 1800, 3600, 7200]);
+    for (const v of battleIo.TIME_LIMITS) {
+      const res = mkRoom(v);
+      assert.equal(res.code, 200, v + '초 방 생성 실패: ' + JSON.stringify(res.body));
+    }
+  });
+
+  test('0 은 falsy 지만 "제한 없음" 으로 받아들인다 (값 검사가 truthy 검사면 안 된다)', () => {
+    const h = harness();
+    const res = h.call('POST /api/rooms', {
+      user: { id: 1, nickname: 'U1' },
+      body: { mode: 'round', roundIds: ['2026-2'], timeLimitS: 0 },
+    });
+    assert.equal(res.code, 200);
+    assert.equal(h.api.rooms.get(res.body.roomId).timeLimitS, 0);
+  });
+
+  test('카탈로그 밖의 값은 400 이고, 사람이 읽는 목록을 알려 준다', () => {
+    for (const bad of [999, 60, 7201, -1, 'abc', null, undefined]) {
+      const res = mkRoom(bad);
+      assert.equal(res.code, 400, JSON.stringify(bad) + ' 가 통과했다');
+      assert.match(res.body.error, /제한 없음.*2시간/);
+    }
+  });
+});

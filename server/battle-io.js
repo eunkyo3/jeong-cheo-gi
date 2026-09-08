@@ -28,7 +28,13 @@ const ranking = require('./ranking.js');
 
 const TICK_MS = 10000;                  // battle:tick 재동기 주기 (PROTOCOL)
 const QUESTION_COUNTS = [5, 10, 20];    // random 모드 허용 문항 수
-const TIME_LIMITS = [600, 1200, 1800];  // 허용 제한 시간(초)
+/**
+ * 허용 제한 시간(초). **0 은 "제한 없음"** 이다(2026-09-08, 요구 1).
+ * 0 인 방은 리듀서가 deadline 을 걸지 않으므로 전원 제출로만 끝난다 —
+ * 전원 끊김(abandon)·빈 방(roomGc) 유예는 제한 시간과 무관하게 그대로 돈다.
+ */
+const TIME_LIMITS = [0, 600, 1200, 1800, 3600, 7200];
+const TIME_LIMIT_LABELS = ['제한 없음', '10분', '20분', '30분', '1시간', '2시간'];
 const ROOM_NAME_MAX = 30;
 const ANSWER_VALUE_MAX = 500;           // index.js sanitizeAnswers 와 동일한 상한
 const MAX_ROUND_IDS = 32;
@@ -538,11 +544,17 @@ function attach(ctx) {
     }
 
     const override = timeOverrideS();
-    let timeLimitS = Number(body.timeLimitS);
+    // `Number(null)` 은 0 인데 0 은 이제 "제한 없음" 이라는 **유효한 값**이다(요구 1).
+    // 그래서 수·문자열이 아닌 입력은 숫자로 바꾸기 전에 NaN 으로 떨어뜨린다 —
+    // 그러지 않으면 `timeLimitS: null` 로 온 요청이 조용히 무제한 방이 된다.
+    const rawLimit = body.timeLimitS;
+    const limitIsValueLike = typeof rawLimit === 'number'
+      || (typeof rawLimit === 'string' && rawLimit.trim() !== '');
+    let timeLimitS = limitIsValueLike ? Number(rawLimit) : NaN;
     if (override != null) {
       timeLimitS = override; // 스모크 테스트용 강제 (요청값 무시)
     } else if (TIME_LIMITS.indexOf(timeLimitS) === -1) {
-      return res.status(400).json({ error: '제한 시간은 ' + TIME_LIMITS.join('/') + '초 중에서 고르세요.' });
+      return res.status(400).json({ error: '제한 시간은 ' + TIME_LIMIT_LABELS.join('/') + ' 중에서 고르세요.' });
     }
 
     const pools = roundIds.map(function (id) {
@@ -592,7 +604,8 @@ function attach(ctx) {
     rooms.set(roomId, created.state);
     runEffects(created.effects);
     log('battle', roomId, '방 생성', name, mode, (type || '전체') + (lang ? '/' + lang : ''),
-      built.questions.length + '문항', timeLimitS + '초', 'by ' + req.user.nickname);
+      built.questions.length + '문항', timeLimitS > 0 ? timeLimitS + '초' : '제한 없음',
+      'by ' + req.user.nickname);
 
     if (inviteUserIds.length > 0) {
       // 지금 소켓이 붙어 있는 대상에게만 도달한다 — 오프라인 초대는 보관하지 않는다(배달만).
@@ -711,6 +724,7 @@ module.exports.attach = attach;
 module.exports.TICK_MS = TICK_MS;
 module.exports.QUESTION_COUNTS = QUESTION_COUNTS;
 module.exports.TIME_LIMITS = TIME_LIMITS;
+module.exports.TIME_LIMIT_LABELS = TIME_LIMIT_LABELS;
 module.exports.MAX_ROOMS_TOTAL = MAX_ROOMS_TOTAL;
 module.exports.MAX_ROOMS_PER_USER = MAX_ROOMS_PER_USER;
 module.exports.QUESTION_ID_MAX = QUESTION_ID_MAX;

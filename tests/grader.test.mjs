@@ -109,12 +109,72 @@ test('normalize default: 빈 입력은 무조건 오답', () => {
 
 // ---------------------------------------------------- normalize: keepSpace
 
-test('normalize keepSpace: 내부 공백은 보존되고 유의미하다', () => {
-  assert.equal(normalizeValue('keepSpace', 'a  b'), 'a  b');
+test('normalize keepSpace: 공백의 유무는 유의미하지만 칸 수는 아니다', () => {
+  // 2026-09-08(요구 3): 연속 공백은 1칸으로 압축된다 — "몇 칸을 눌렀나" 로 틀리지 않는다.
+  assert.equal(normalizeValue('keepSpace', 'a  b'), 'a b');
   const f = field(['10a20b'], 'keepSpace');
   assert.equal(fieldAccepts(f, '10a20b'), true);
+  // 공백을 넣은 답은 여전히 오답이다 — 출력값 문항에서 `10 a 20 b` 는 다른 출력이다.
   assert.equal(fieldAccepts(f, '10 a 20 b'), false);
   assert.equal(fieldAccepts(f, '10a 20b'), false);
+});
+
+test('normalize keepSpace: 연속 공백·구두점 옆 공백은 오답 사유가 아니다 (요구 3)', () => {
+  const f = field(['Vehicle name : Spark'], 'keepSpace');
+  assert.equal(fieldAccepts(f, 'Vehicle name : Spark'), true);
+  assert.equal(fieldAccepts(f, 'Vehicle name :  Spark'), true);  // 두 칸
+  assert.equal(fieldAccepts(f, 'Vehicle name: Spark'), true);    // 콜론 앞 공백 없음
+  assert.equal(fieldAccepts(f, 'Vehicle name:Spark'), true);     // 콜론 양옆 공백 없음
+  assert.equal(fieldAccepts(f, 'Vehicle  name : Spark'), true);  // 단어 사이 두 칸
+  // 대소문자는 여전히 keepSpace 의 판정 축이다 (공백만 흡수한다).
+  assert.equal(fieldAccepts(f, 'vehicle name : spark'), false);
+
+  const arr = field(['[1, 2, 3]'], 'keepSpace');
+  assert.equal(fieldAccepts(arr, '[1,2,3]'), true);
+  assert.equal(fieldAccepts(arr, '[1, 2, 3]'), true);
+  assert.equal(fieldAccepts(arr, '[ 1 , 2 , 3 ]'), true);
+});
+
+test('normalize: 보이지 않는 공백(전각·비분리·폭 0)은 전 모드에서 흡수된다 (요구 3)', () => {
+  // 붙여넣기로 딸려 들어오는 문자들 — 화면상 정답인데 오답이 되던 주범.
+  assert.equal(fieldAccepts(field(['결합도']), '결합도' + '\u200B'), true);            // 폭 0
+  assert.equal(fieldAccepts(field(['결합도']), '\uFEFF' + '결합도'), true);            // BOM
+  assert.equal(fieldAccepts(field(['a b'], 'keepSpace'), 'a' + '\u00A0' + 'b'), true);      // 비분리 공백
+  assert.equal(fieldAccepts(field(['a b'], 'keepSpace'), 'a' + '\u3000' + 'b'), true);      // 전각 공백
+  assert.equal(fieldAccepts(field(['a b'], 'keepSpace'), 'a b\r\n'), true);       // CRLF
+});
+
+test('normalize sql: 비교 연산자 주변 공백도 흡수된다 (요구 3)', () => {
+  const f = field(['SELECT a FROM t WHERE a = 1'], 'sql');
+  assert.equal(fieldAccepts(f, 'select a from t where a=1'), true);
+  assert.equal(fieldAccepts(f, 'SELECT a FROM t WHERE a  =  1;'), true);
+});
+
+test('near: 표기만 다른 오답은 near 로 표시되지만 정답은 아니다 (요구 3)', () => {
+  const q = { id: 'n1', fields: [field(['Vehicle name : Spark'], 'keepSpace')] };
+  const g = gradeQuestion(q, ['vehicle name : spark']);   // 대소문자만 다르다
+  assert.equal(g.correct, false, '점수 판정은 그대로 엄격하다');
+  assert.equal(g.near, true, '"거의 정답" 신호는 켜진다');
+  assert.equal(g.fieldResults[0].near, true);
+
+  const wrong = gradeQuestion(q, ['전혀 다른 답']);
+  assert.equal(wrong.near, false, '내용이 다른 오답은 near 가 아니다');
+
+  const right = gradeQuestion(q, ['Vehicle name : Spark']);
+  assert.equal(right.correct, true);
+  assert.equal(right.near, false, '정답에는 near 를 붙이지 않는다');
+});
+
+test('near: 서술형(keywords)은 키워드를 일부만 맞히면 near 다 (요구 3)', () => {
+  const q = {
+    id: 'n2',
+    fields: [{ label: null, accept: [], validator: { type: 'keywords', all: ['무결성', '제약'] } }],
+  };
+  assert.equal(gradeQuestion(q, ['무결성 제약 조건']).correct, true);
+  const partial = gradeQuestion(q, ['무결성을 지키는 규칙']);
+  assert.equal(partial.correct, false, '키워드가 다 안 들어가면 여전히 오답이다');
+  assert.equal(partial.near, true, '일부라도 맞혔으면 near');
+  assert.equal(gradeQuestion(q, ['아무 상관 없는 말']).near, false);
 });
 
 test('normalize keepSpace: 앞뒤 공백은 trim 된다', () => {

@@ -195,6 +195,20 @@ function readStudyResults() {
   const noauth = await req('POST', '/api/rooms', { name: 'x', mode: 'round', roundIds: ['2026-2'], timeLimitS: 600 });
   log('no-auth create ->', noauth.status);
 
+  // 제한 시간 카탈로그(요구 1) — 1시간·2시간·제한 없음(0).
+  // 방장 1인당 동시 방 수 상한(MAX_ROOMS_PER_USER=3)에 걸리지 않도록 b 계정으로, 값마다 한 방씩만.
+  // (전 카탈로그 값 통과는 tests/battle-io.test.mjs 가 본다 — 여기서는 실서버 경로만 확인한다.)
+  const freeRoom = await req('POST', '/api/rooms',
+    { name: 'e2e-free', mode: 'round', roundIds: ['2026-2'], timeLimitS: 0 }, b.cookie);
+  check(freeRoom.status === 200, '제한 없음(timeLimitS=0) 방 생성 200 — 0 은 falsy 지만 유효한 값 (' + freeRoom.status + ')');
+  const hourRoom = await req('POST', '/api/rooms',
+    { name: 'e2e-2h', mode: 'round', roundIds: ['2026-2'], timeLimitS: 7200 }, b.cookie);
+  check(hourRoom.status === 200, '2시간(timeLimitS=7200) 방 생성 200 (' + hourRoom.status + ')');
+  // null 은 `Number(null)===0` 이라 조용히 "제한 없음" 이 되면 안 된다 — 명시적 거절.
+  const nullTl = await req('POST', '/api/rooms',
+    { name: 'x', mode: 'round', roundIds: ['2026-2'], timeLimitS: null }, b.cookie);
+  check(nullTl.status === 400, 'timeLimitS=null 은 400 — 조용한 무제한 방 방지 (' + nullTl.status + ')');
+
   const sA = await sock(a.cookie, 'A'), sB = await sock(b.cookie, 'B');
   const rid = room.json.roomId;
   sA.emit('room:join', { roomId: rid });
