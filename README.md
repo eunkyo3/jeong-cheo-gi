@@ -208,6 +208,8 @@ DB 스키마는 `PRAGMA user_version` 으로 버전을 매기고, 기동 시 **�
 HTTPS, 이메일 인증, 비밀번호 찾기는 구현하지 않았습니다. 공개 인터넷에 그대로 노출하지 마세요.
 
 정답 데이터(`accept`, `sampleAnswer`, `validator`)는 클라이언트로 전송하지 않으며 채점은 서버에서만 합니다.
+정답 표기(`display`)와 해설은 채점 응답, 그리고 **로그인 사용자의 학습·오답노트 화면**("정답·해설 보기" 토글)에서만 나갑니다 —
+두 경로 모두 지금 진행 중인 대전에 걸린 문항은 잠급니다.
 
 모든 응답에 보안 헤더(`nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`)와 CSP 가 붙습니다.
 CSP 는 `script-src 'self'` · `style-src 'self'` 로 잠겨 있어 **인라인 스크립트·인라인 스타일이 전부 금지**입니다
@@ -222,7 +224,11 @@ CSP 는 `script-src 'self'` · `style-src 'self'` 로 잠겨 있어 **인라인 
 |---|---|---|
 | 비로그인으로 "제출하고 채점하기" | `401` 로그인이 필요합니다 | 채점 응답에 정답·해설이 실립니다. 무인증이면 그게 곧 **정답 오라클**이라 대전 중에 그대로 베낄 수 있었습니다 |
 | 진행 중인 대전의 문항을 학습 화면에서 채점 | `409` 진행 중인 대전의 문항은 채점할 수 없습니다 | 위와 같은 이유의 2차 방어선 |
-| 채점을 분당 20회 넘게 | `429` | 정답 전수 조사 방지 |
+| 채점을 분당 20회 넘게 | `429` | 부하 방지 |
+| 비로그인으로 학습 화면의 "정답·해설 보기" | `401` 토스트(풀던 답안은 그대로) | 정답·해설 조회는 로그인 사용자에게만 엽니다. 오답노트에서는 화면 자체가 로그인 안내로 바뀝니다 |
+| 대전 중인 문항을 학습 화면에서 "정답·해설 보기" | 그 문항만 "지금은 볼 수 없습니다" | 다른 탭으로 대전 정답을 꺼내는 길 차단. 대전이 끝나면 다시 누르면 열립니다 |
+| 정답·해설 조회를 분당 60회 넘게 | `429` | 부하 방지 (로그인 사용자의 정답 조회 자체는 의도된 기능입니다) |
+| "제한 없음" 방을 12시간 넘게 열어 둠 | 그때까지의 답안으로 자동 종료 | 잊힌 방이 서버 자원과 방 수 상한(200)을 영원히 붙들지 않게 하는 안전 상한 |
 | 가입 비밀번호 7자 | `400` 비밀번호는 8자 이상이어야 합니다 | |
 | 로그인 11회 연속 실패 | `429` (5분 잠금) | 브루트포스 방지 |
 | 정답 이의 제기 비로그인 | `401` | 무인증 디스크 쓰기 차단. 답안 칸 10개(각 500자)·의견 2000자·분당 5건 상한도 함께 걸립니다 |
@@ -391,11 +397,12 @@ node scripts/fingerprint-questions.mjs --write
 | `LOG_LEVEL` | (없음) | `debug` 면 대전 `answer`·`tick` 같은 상세 로그까지 찍습니다 |
 | `COOKIE_SECURE` | (없음) | `1` 이면 세션·관리자 쿠키에 `Secure` 를 붙입니다 (HTTPS 앞단이 있을 때) |
 | `ADMIN_PASSWORD` | 코드 기본값 | 관리자 비밀번호. 설정하지 않으면 기동 시 경고가 뜹니다 |
-| `NODE_ENV` | (없음) | `production` 이면 `BATTLE_TIME_OVERRIDE_S`·`BATTLE_COUNTDOWN_MS`·`BATTLE_ABANDON_GRACE_MS`·`BATTLE_ROOM_GC_MS` 백도어를 전부 무시하고 기본값으로 고정합니다 |
+| `NODE_ENV` | (없음) | `production` 이면 `BATTLE_TIME_OVERRIDE_S`·`BATTLE_COUNTDOWN_MS`·`BATTLE_ABANDON_GRACE_MS`·`BATTLE_ROOM_GC_MS`·`BATTLE_UNLIMITED_CAP_MS` 백도어를 전부 무시하고 기본값으로 고정합니다 |
 | `BATTLE_TIME_OVERRIDE_S` | (없음) | 대전 제한시간 덮어쓰기 (시간 종료 시나리오 테스트용, production 제외) |
 | `BATTLE_COUNTDOWN_MS` | `3000` | waiting → playing 카운트다운 길이 덮어쓰기 (e2e 테스트용, production 제외) |
 | `BATTLE_ABANDON_GRACE_MS` | `60000` | playing 중 전원 이탈 유예 시간 덮어쓰기 (테스트용, production 제외) |
 | `BATTLE_ROOM_GC_MS` | `60000` | 빈 waiting 방 삭제 유예 시간 덮어쓰기 (테스트용, production 제외) |
+| `BATTLE_UNLIMITED_CAP_MS` | `43200000` (12시간) | "제한 없음" 대전방의 안전 상한 덮어쓰기 — 이 시간이 지나면 그때까지의 답안으로 종료합니다 (테스트용, production 제외) |
 
 ### 문서
 

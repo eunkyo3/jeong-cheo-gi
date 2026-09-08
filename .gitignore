@@ -22,6 +22,9 @@ coverage/
 .idea/
 .DS_Store
 
+# 회전된 서버 로그 (재기동 시 server.log → server.log.<stamp>)
+data/server*.log.*
+
 # 런타임 산출물 (레인 A: JSONL 신고 적재 + DB 마이그레이션 백업)
 data/reports.jsonl
 data/reports.json.migrated
