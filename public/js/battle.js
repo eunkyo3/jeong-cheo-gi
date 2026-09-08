@@ -1137,7 +1137,7 @@
   function buildLive() {
     var rm = remainingMs();
     var total = totalQuestions();
-    var urgent = rm != null && rm < 60000;
+    var urgent = !noTimeLimit() && rm != null && rm < 60000;
 
     var rows = players().map(function (p) {
       var n = answeredCountOf(p);
@@ -1352,7 +1352,7 @@
 
     var rm = remainingMs();
     var total = totalQuestions();
-    var urgent = rm != null && rm < 60000;
+    var urgent = !noTimeLimit() && rm != null && rm < 60000;
 
     var rows = players().map(function (p) {
       var n = answeredCountOf(p);
@@ -1613,7 +1613,9 @@
         // 근접 오답(요구 3) — 공백 차이는 이미 정답으로 인정된다. 여기 남는 건 표기 차이다.
         detail.near
           ? h('div', { class: 'answer-line near-line', text: '거의 정답 — 표기(대소문자·구두점·띄어쓰기)만 달랐습니다.' })
-          : null,
+          : (detail.partial
+            ? h('div', { class: 'answer-line near-line', text: '핵심어를 일부만 맞혔습니다.' })
+            : null),
       ]),
     ];
 

@@ -30,8 +30,9 @@
  *               sql: `=<>` 주변 공백까지 제거 (요구 3 — "공백 때문에 틀리는 오답" 제거).
  *               역시 인정 범위를 넓히기만 한다.
  *
- * 표시용 부가 신호 `near`(2026-09-08): 오답 중 "표기(구두점·대소문자)만 다른 답"을 표시한다.
- * **점수·정답 판정에는 일절 관여하지 않는다** — 자세한 근거는 아래 `fieldNear` 주석에 있다.
+ * 표시용 부가 신호(2026-09-08) — **점수·정답 판정에는 일절 관여하지 않는다**:
+ *   `near`    오답 중 "표기(구두점·대소문자)만 다른 답" (accept 필드만). 근거는 아래 `fieldNear` 주석.
+ *   `partial` 서술형(keywords)에서 핵심어를 일부만 맞힌 답. near 와 섞지 않는다 — 내용 문제다.
  */
 
 const logger = require('./logger.js');
@@ -209,19 +210,17 @@ function looseKey(s) {
 }
 
 /**
- * fieldNear(field, rawValue) → boolean
- * accept 필드: 관대 비교로는 일치한다(= 구두점·대소문자·공백만 다르다).
- * keywords 필드: 요구 키워드를 **일부만** 맞혔다(하나도 못 맞혔으면 near 가 아니다).
- * 그 밖의 validator: near 를 매기지 않는다(계산형은 "거의 맞음" 이 없다).
+ * fieldNear(field, rawValue) → boolean — **표기만 다른** 오답인가.
+ * accept 필드에서만 판정한다: 관대 비교로는 일치한다(= 구두점·대소문자·공백만 다르다).
+ * validator 필드는 전부 false 다 — 계산형에는 "거의 맞음" 이 없고, 서술형(keywords)의
+ * "핵심어 일부만 맞음" 은 표기 문제가 아니라 **내용 문제**라 아래 `fieldPartial` 로 따로 센다
+ * (리뷰 2026-09-08: 둘을 한 신호로 묶으면 "내용은 맞았고 표기만 다릅니다" 가 거짓말이 된다).
  */
 function fieldNear(field, rawValue) {
   const raw = String(rawValue == null ? '' : rawValue);
   if (raw.trim() === '') return false;
   try {
-    if (field.validator) {
-      if (field.validator.type !== 'keywords') return false;
-      return keywordsPartial(field.validator, raw);
-    }
+    if (field.validator) return false;
     const key = looseKey(raw);
     if (key === '') return false;
     const accept = field.accept || [];
@@ -234,18 +233,27 @@ function fieldNear(field, rawValue) {
   }
 }
 
-/** keywords spec 의 요구 키워드 중 하나라도 맞혔는가(전부는 아니고). */
-function keywordsPartial(spec, rawValue) {
-  const all = Array.isArray(spec.all) ? spec.all : [];
-  const any = Array.isArray(spec.any) ? spec.any : [];
-  const got = NORMALIZERS.default(rawValue);
-  if (got === '') return false;
-  let hits = 0;
-  const words = all.concat(any);
-  for (let i = 0; i < words.length; i++) {
-    if (got.indexOf(NORMALIZERS.default(words[i])) !== -1) hits++;
+/**
+ * fieldPartial(field, rawValue) → boolean — 서술형(keywords)에서 요구 핵심어를 **일부만** 맞혔는가.
+ * 오답 카드에 "핵심어 일부만 맞았습니다" 를 띄우기 위한 표시용 신호. near 와 마찬가지로
+ * 점수에는 관여하지 않으며, keywords 가 아닌 필드는 언제나 false 다.
+ */
+function fieldPartial(field, rawValue) {
+  if (!field.validator || field.validator.type !== 'keywords') return false;
+  try {
+    const spec = field.validator;
+    const all = Array.isArray(spec.all) ? spec.all : [];
+    const any = Array.isArray(spec.any) ? spec.any : [];
+    const got = NORMALIZERS.default(rawValue);
+    if (got === '') return false;
+    const words = all.concat(any);
+    for (let i = 0; i < words.length; i++) {
+      if (got.indexOf(NORMALIZERS.default(words[i])) !== -1) return true;
+    }
+    return false;
+  } catch (e) {
+    return false;
   }
-  return hits > 0;
 }
 
 // -------------------------------------------------------------- 필드 매칭
@@ -302,6 +310,7 @@ function gradeOrdered(fields, answers, questionId) {
       given: String(answers[i] == null ? '' : answers[i]),
       correct: correct,
       near: correct ? false : fieldNear(f, answers[i]),
+      partial: correct ? false : fieldPartial(f, answers[i]),
     };
   });
 }
@@ -365,8 +374,12 @@ function gradeUnordered(fields, answers, questionId) {
   }
 
   // 필드 결과는 "입력 슬롯" 기준으로 되돌려 준다(사용자는 자기가 입력한 칸을 본다)
-  // near 는 "이 입력이 어느 칸이든 표기만 다르게 맞혔는가" 로 본다 — unordered 라 칸이 고정돼
-  // 있지 않기 때문이다. 표시용 신호일 뿐이므로 매칭(complete)에는 영향을 주지 않는다.
+  // near 는 "이 입력이 **아직 아무도 채우지 못한** 칸을 표기만 다르게 맞혔는가" 로 본다 —
+  // unordered 라 칸이 고정돼 있지 않기 때문이다. 이미 다른 슬롯이 채운 칸은 빼야 한다:
+  // `['가나','가나.']` 처럼 같은 답을 두 번 쓴 경우를 "표기만 다름" 이라고 하면 거짓말이다
+  // (리뷰 2026-09-08). 표시용 신호일 뿐이므로 매칭(complete)에는 영향을 주지 않는다.
+  const openFields = [];
+  for (let f = 0; f < matchField.length; f++) if (matchField[f] === -1) openFields.push(fields[f]);
   const fieldResults = fields.map(function (f, i) {
     const correct = okOrig.has(i);
     return {
@@ -374,7 +387,8 @@ function gradeUnordered(fields, answers, questionId) {
       label: f.label == null ? null : f.label,
       given: String(answers[i] == null ? '' : answers[i]),
       correct: correct,
-      near: correct ? false : fields.some(function (g) { return fieldNear(g, answers[i]); }),
+      near: correct ? false : openFields.some(function (g) { return fieldNear(g, answers[i]); }),
+      partial: correct ? false : openFields.some(function (g) { return fieldPartial(g, answers[i]); }),
     };
   });
   return { fieldResults: fieldResults, complete: complete };
@@ -396,18 +410,27 @@ function questionNear(correct, fieldResults) {
   return hasNear;
 }
 
+/** 문항 레벨 partial: 오답이고, 핵심어를 일부만 맞힌 서술형 칸이 하나라도 있다. near 와는 배타적이다. */
+function questionPartial(correct, fieldResults) {
+  if (correct) return false;
+  for (let i = 0; i < fieldResults.length; i++) {
+    if (!fieldResults[i].correct && fieldResults[i].partial) return true;
+  }
+  return false;
+}
+
 /**
- * gradeQuestion(question, answers) → { questionId, correct, near, fieldResults[], display }
+ * gradeQuestion(question, answers) → { questionId, correct, near, partial, fieldResults[], display }
  * answers: 필드 순서대로의 문자열 배열 (없으면 '')
  * 문항 정답 = 모든 필드 정답 (부분점수 없음)
- * `near` 는 점수에 관여하지 않는다 — 오답 카드의 안내 한 줄에만 쓰인다.
+ * `near`(표기만 다름)·`partial`(서술형 핵심어 일부만)은 점수에 관여하지 않는다 — 오답 카드의 안내 한 줄에만 쓰인다.
  */
 function gradeQuestion(question, answers) {
   const fields = question.fields || [];
   const given = Array.isArray(answers) ? answers : [];
   const display = question.display == null ? '' : question.display;
   if (fields.length === 0) {
-    return { questionId: question.id, correct: false, near: false, fieldResults: [], display: display };
+    return { questionId: question.id, correct: false, near: false, partial: false, fieldResults: [], display: display };
   }
   if (question.answerMode === 'unordered') {
     const r = gradeUnordered(fields, given, question.id);
@@ -415,6 +438,7 @@ function gradeQuestion(question, answers) {
       questionId: question.id,
       correct: r.complete,
       near: questionNear(r.complete, r.fieldResults),
+      partial: questionPartial(r.complete, r.fieldResults),
       fieldResults: r.fieldResults,
       display: display,
     };
@@ -425,6 +449,7 @@ function gradeQuestion(question, answers) {
     questionId: question.id,
     correct: correct,
     near: questionNear(correct, fieldResults),
+    partial: questionPartial(correct, fieldResults),
     fieldResults: fieldResults,
     display: display,
   };
@@ -450,6 +475,7 @@ module.exports = {
   normalizeValue: normalizeValue,
   fieldAccepts: fieldAccepts,
   fieldNear: fieldNear,
+  fieldPartial: fieldPartial,
   runValidator: runValidator,
   ipToInt: ipToInt,
   NORMALIZE_MODES: NORMALIZE_MODES,

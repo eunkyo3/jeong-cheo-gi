@@ -47,6 +47,12 @@ function envMs(name, fallback) {
 const COUNTDOWN_MS = envMs('BATTLE_COUNTDOWN_MS', 3000);          // waiting → playing 사이 카운트다운
 const ABANDON_GRACE_MS = envMs('BATTLE_ABANDON_GRACE_MS', 60000); // playing 중 전원 끊김 유예
 const ROOM_GC_MS = envMs('BATTLE_ROOM_GC_MS', 60000);             // 빈 waiting 방 삭제 유예
+/**
+ * 제한 없음 방(timeLimitS=0)의 **안전 상한**. 화면상 제한은 없지만 방의 수명은 유한해야 한다 —
+ * 잊힌 탭 두 개가 방 하나와 10초 tick 을 영원히 붙들고, 방 수 상한(200)을 갉아먹는다(리뷰 2026-09-08).
+ * `deadline` 은 그대로 null 이라(remainingMs null, 화면 "제한 없음") 상한 시각만 `capAt` 에 따로 둔다.
+ */
+const UNLIMITED_CAP_MS = envMs('BATTLE_UNLIMITED_CAP_MS', 12 * 60 * 60 * 1000);
 const PROGRESS_DEBOUNCE_MS = 400;
 /**
  * 방 1개의 참가자 상한. 종료 페이로드가 참가자 수의 제곱에 비례해 커지고(answersByUser × marksByUser)
@@ -138,6 +144,7 @@ function cloneState(s) {
     countdownEndsAt: s.countdownEndsAt,
     startedAt: s.startedAt,
     deadline: s.deadline,
+    capAt: s.capAt == null ? null : s.capAt,
     finishedAt: s.finishedAt,
     result: s.result,
   };
@@ -313,6 +320,11 @@ function hasTimeLimit(s) {
   return s.timeLimitS > 0;
 }
 
+/** 이 방이 강제 종료되는 시각 — 제한 있는 방은 deadline, 제한 없음 방은 안전 상한 capAt. */
+function hardStopAt(s) {
+  return s.deadline == null ? s.capAt : s.deadline;
+}
+
 function remainingMs(s, at) {
   if (s.deadline == null) return null;
   return Math.max(0, s.deadline - at);
@@ -379,6 +391,7 @@ function createRoom(opts) {
     countdownEndsAt: null,
     startedAt: null,
     deadline: null,
+    capAt: null,      // 제한 없음 방의 안전 상한 시각(playing 진입 시 채움). 제한 있는 방은 null
     finishedAt: null,
     result: null,
   };
@@ -465,10 +478,13 @@ function beginPlaying(s, ctx) {
   s.state = 'playing';
   s.countdownEndsAt = null;
   s.startedAt = at;
-  // 제한 없음 방(timeLimitS=0)은 deadline 도 타이머도 만들지 않는다 — 전원 제출로만 끝난다.
+  // 제한 없음 방(timeLimitS=0)은 deadline 을 만들지 않는다(화면·remainingMs 모두 "없음").
+  // 대신 안전 상한 capAt 을 두고 같은 'deadline' 타이머 키로 예약한다 — 끝나는 길은 전원 제출이
+  // 보통이고, 상한은 잊힌 방을 거두는 마지막 보루다.
   s.deadline = hasTimeLimit(s) ? at + s.timeLimitS * 1000 : null;
+  s.capAt = hasTimeLimit(s) ? null : at + UNLIMITED_CAP_MS;
   ctx.effects.push(fxCancel(s, 'roomGc'));
-  if (s.deadline != null) ctx.effects.push(fxSchedule(s, 'deadline', s.deadline));
+  ctx.effects.push(fxSchedule(s, 'deadline', hardStopAt(s)));
   pushRoomState(ctx, s);
   ctx.effects.push(fxBroadcast(s, 'battle:questions', {
     questions: s.questions.map(publicQuestion),
@@ -851,17 +867,19 @@ function handlePlaying(s, ev, ctx) {
     }
     case 'tick': {
       // 제한 없음 방은 deadline 이 null 이다 — `at >= null` 이 true 가 되어 즉시 종료되지
-      // 않도록 반드시 먼저 걸러낸다. tick 방송은 그대로 나간다(remainingMs 는 null).
-      if (s.deadline != null && at >= s.deadline) { finish(s, ctx, 'deadline'); return; }
+      // 않도록 hardStopAt(안전 상한 capAt)으로 비교한다. tick 방송은 그대로 나간다(remainingMs 는 null).
+      const stopAt = hardStopAt(s);
+      if (stopAt != null && at >= stopAt) { finish(s, ctx, 'deadline'); return; }
       ctx.effects.push(fxBroadcast(s, 'battle:tick', { remainingMs: remainingMs(s, at) }));
       return;
     }
     case 'timeout': {
       if (ev.kind === 'deadline') {
-        if (s.deadline == null) return; // 제한 없음 방 — 걸어 둔 적 없는 타이머다(stale)
-        if (at < s.deadline) {
+        const stopAt = hardStopAt(s); // 제한 없음 방은 안전 상한 capAt 이 이 타이머의 시각이다
+        if (stopAt == null) return;    // 둘 다 없다 — 걸어 둔 적 없는 타이머(stale)
+        if (at < stopAt) {
           // 타이머가 이르게 깨어났다 — 재예약하고 무시
-          ctx.effects.push(fxSchedule(s, 'deadline', s.deadline));
+          ctx.effects.push(fxSchedule(s, 'deadline', stopAt));
           return;
         }
         finish(s, ctx, 'deadline');
@@ -1033,6 +1051,7 @@ module.exports = {
   LANGS: LANGS,
   answeredCount: answeredCount,
   pickWinner: pickWinner,
+  UNLIMITED_CAP_MS: UNLIMITED_CAP_MS,
   roomStatePayload: roomStatePayload,
   resyncPayload: resyncPayload,
   STATES: STATES,

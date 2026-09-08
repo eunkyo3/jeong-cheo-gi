@@ -11,7 +11,7 @@ const require = createRequire(import.meta.url);
 const battle = require('../server/battle.js');
 const {
   applyEvent, createRoom, isDisposed, buildQuestionSet,
-  COUNTDOWN_MS, ABANDON_GRACE_MS, ROOM_GC_MS, MAX_PLAYERS,
+  COUNTDOWN_MS, ABANDON_GRACE_MS, ROOM_GC_MS, MAX_PLAYERS, UNLIMITED_CAP_MS,
 } = battle;
 
 // ------------------------------------------------------------------ 픽스처
@@ -1685,11 +1685,14 @@ describe('격자표 60셀 — 미정의 전이 0건', () => {
 // ------------------------------------------------- 제한 없음 방 (요구 1)
 
 describe('timeLimitS = 0 (제한 없음)', () => {
-  test('playing 진입 시 deadline 도 deadline 타이머도 만들지 않는다', () => {
+  test('playing 진입 시 deadline 은 없지만 안전 상한(capAt)은 같은 타이머 키로 건다', () => {
     const r = playingRoom({ timeLimitS: 0 });
     assert.equal(r.state.timeLimitS, 0);
-    assert.equal(r.state.deadline, null, '마감 시각이 없다');
-    assert.equal(schedules(r.effects, 'ROOM1:deadline').length, 0, 'deadline 타이머를 걸지 않는다');
+    assert.equal(r.state.deadline, null, '마감 시각이 없다 — 화면은 "제한 없음"');
+    assert.equal(r.state.capAt, r.state.startedAt + UNLIMITED_CAP_MS, '안전 상한은 시작 + 12시간');
+    const dl = schedules(r.effects, 'ROOM1:deadline');
+    assert.equal(dl.length, 1, '잊힌 방을 거둘 타이머는 건다');
+    assert.equal(dl[0].at, r.state.capAt);
 
     // 문항 배포에는 여전히 deadlineInfo 가 실린다 — 화면이 "제한 없음" 을 알아야 한다.
     const qs = broadcasts(r.effects, 'battle:questions');
@@ -1699,10 +1702,10 @@ describe('timeLimitS = 0 (제한 없음)', () => {
     assert.equal(qs[0].payload.deadlineInfo.remainingMs, null);
   });
 
-  test('tick 은 아무리 시간이 흘러도 대전을 끝내지 않는다 (deadline == null 오판 방어)', () => {
+  test('tick 은 안전 상한 전에는 대전을 끝내지 않는다 (deadline == null 오판 방어)', () => {
     const base = playingRoom({ timeLimitS: 0 }).state;
-    // 하루 뒤의 tick. `at >= s.deadline` 을 그냥 쓰면 null 이 0 으로 바뀌어 즉시 종료된다.
-    const r = applyEvent(base, ev.tick(T0 + 24 * 60 * 60 * 1000));
+    // 3시간 뒤의 tick. `at >= s.deadline` 을 그냥 쓰면 null 이 0 으로 바뀌어 즉시 종료된다.
+    const r = applyEvent(base, ev.tick(T0 + 3 * 60 * 60 * 1000));
     assert.equal(r.state.state, 'playing');
     const ticks = broadcasts(r.effects, 'battle:tick');
     assert.equal(ticks.length, 1);
@@ -1710,11 +1713,26 @@ describe('timeLimitS = 0 (제한 없음)', () => {
     assert.equal(persists(r.effects).length, 0, '전적이 저장되지 않는다');
   });
 
-  test('걸어 둔 적 없는 timeout(deadline) 이 들어와도 무시한다', () => {
+  test('상한 전에 이르게 깨어난 timeout(deadline) 은 상한 시각으로 재예약하고 무시한다', () => {
     const base = playingRoom({ timeLimitS: 0 }).state;
     const r = applyEvent(base, ev.timeout('deadline', T0 + 60_000));
     assert.equal(r.state.state, 'playing');
-    assert.deepEqual(r.effects, []);
+    const dl = schedules(r.effects, 'ROOM1:deadline');
+    assert.equal(dl.length, 1);
+    assert.equal(dl[0].at, base.capAt);
+    assert.equal(persists(r.effects).length, 0);
+  });
+
+  test('안전 상한(12시간)이 지나면 tick·timeout 어느 쪽으로든 deadline 사유로 종료된다', () => {
+    const base = playingRoom({ timeLimitS: 0 }).state;
+    const byTick = applyEvent(base, ev.tick(base.capAt + 1));
+    assert.equal(byTick.state.state, 'finished');
+    assert.equal(byTick.state.result.reason, 'deadline');
+    const byTimeout = applyEvent(base, ev.timeout('deadline', base.capAt));
+    assert.equal(byTimeout.state.state, 'finished');
+    assert.equal(persists(byTimeout.effects).length, 1, '상한 종료도 전적은 남는다');
+    // 제한 있는 방에는 capAt 이 없다
+    assert.equal(playingRoom({ timeLimitS: 600 }).state.capAt, null);
   });
 
   test('전원 제출로는 정상 종료된다 — 미제출자 판정 기준 시각은 종료 시각이 된다', () => {

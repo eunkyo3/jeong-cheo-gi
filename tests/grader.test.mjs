@@ -165,16 +165,35 @@ test('near: 표기만 다른 오답은 near 로 표시되지만 정답은 아니
   assert.equal(right.near, false, '정답에는 near 를 붙이지 않는다');
 });
 
-test('near: 서술형(keywords)은 키워드를 일부만 맞히면 near 다 (요구 3)', () => {
+test('partial: 서술형(keywords)은 핵심어를 일부만 맞히면 partial 이지 near 가 아니다 (리뷰 2026-09-08)', () => {
   const q = {
     id: 'n2',
     fields: [{ label: null, accept: [], validator: { type: 'keywords', all: ['무결성', '제약'] } }],
   };
-  assert.equal(gradeQuestion(q, ['무결성 제약 조건']).correct, true);
+  const right = gradeQuestion(q, ['무결성 제약 조건']);
+  assert.equal(right.correct, true);
+  assert.equal(right.partial, false);
   const partial = gradeQuestion(q, ['무결성을 지키는 규칙']);
   assert.equal(partial.correct, false, '키워드가 다 안 들어가면 여전히 오답이다');
-  assert.equal(partial.near, true, '일부라도 맞혔으면 near');
-  assert.equal(gradeQuestion(q, ['아무 상관 없는 말']).near, false);
+  assert.equal(partial.partial, true, '일부라도 맞혔으면 partial');
+  assert.equal(partial.near, false, '내용이 모자란 것이지 표기 문제가 아니다 — near 로 포장하면 거짓말');
+  const none = gradeQuestion(q, ['아무 상관 없는 말']);
+  assert.equal(none.partial, false);
+  assert.equal(none.near, false);
+});
+
+test('near(unordered): 같은 답을 두 칸에 쓴 경우는 "표기만 다름" 이 아니다 (리뷰 2026-09-08)', () => {
+  const q = unorderedQ([field(['무결성']), field(['일관성'])]);
+  const dup = gradeQuestion(q, ['무결성', '무결성.']);
+  assert.equal(dup.correct, false);
+  assert.equal(dup.fieldResults[0].correct, true);
+  assert.equal(dup.fieldResults[1].near, false, '이미 다른 슬롯이 채운 칸과 표기만 다른 것은 near 가 아니다');
+  assert.equal(dup.near, false);
+  // 아직 비어 있는 칸을 표기만 다르게 맞힌 경우는 near 다
+  const punct = gradeQuestion(q, ['무결성', '일관성!']);
+  assert.equal(punct.correct, false);
+  assert.equal(punct.fieldResults[1].near, true);
+  assert.equal(punct.near, true);
 });
 
 test('normalize keepSpace: 앞뒤 공백은 trim 된다', () => {

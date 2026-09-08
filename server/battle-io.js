@@ -30,11 +30,15 @@ const TICK_MS = 10000;                  // battle:tick 재동기 주기 (PROTOCO
 const QUESTION_COUNTS = [5, 10, 20];    // random 모드 허용 문항 수
 /**
  * 허용 제한 시간(초). **0 은 "제한 없음"** 이다(2026-09-08, 요구 1).
- * 0 인 방은 리듀서가 deadline 을 걸지 않으므로 전원 제출로만 끝난다 —
+ * 0 인 방은 리듀서가 deadline 을 걸지 않으므로 보통 전원 제출로 끝난다 — 다만 안전 상한
+ * (`battle.UNLIMITED_CAP_MS`, 기본 12시간)이 지나면 강제 종료된다.
  * 전원 끊김(abandon)·빈 방(roomGc) 유예는 제한 시간과 무관하게 그대로 돈다.
  */
 const TIME_LIMITS = [0, 600, 1200, 1800, 3600, 7200];
 const TIME_LIMIT_LABELS = ['제한 없음', '10분', '20분', '30분', '1시간', '2시간'];
+if (TIME_LIMITS.length !== TIME_LIMIT_LABELS.length) {
+  throw new Error('TIME_LIMITS 와 TIME_LIMIT_LABELS 의 길이가 다르다 — 둘은 짝이다');
+}
 const ROOM_NAME_MAX = 30;
 const ANSWER_VALUE_MAX = 500;           // index.js sanitizeAnswers 와 동일한 상한
 const MAX_ROUND_IDS = 32;
@@ -238,7 +242,8 @@ function attach(ctx) {
       const now = Date.now();
       // PROTOCOL "종료 판정은 서버가 Date.now() >= deadline 을 재검증" —
       // 절전 복귀 등으로 마감이 지나 있으면 tick 대신 deadline 타임아웃을 넣어 리듀서가 재검증하게 한다.
-      if (s.deadline != null && now >= s.deadline) {
+      const stopAt = s.deadline == null ? s.capAt : s.deadline; // 제한 없음 방은 안전 상한
+      if (stopAt != null && now >= stopAt) {
         dispatch(roomId, { type: 'timeout', kind: 'deadline', at: now });
       } else {
         dispatch(roomId, { type: 'tick', at: now });

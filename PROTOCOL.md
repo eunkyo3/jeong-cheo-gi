@@ -10,7 +10,7 @@
 | GET | `/api/auth/me` | – | `{user}` 또는 `{user:null}` |
 | GET | `/api/rounds` | – | `[{round,title,questionCount,counts:{code,sql,theory},langs:{c,java,python}}]` (연도 그룹핑은 클라이언트. `langs` 는 그 회차 **코드 문항**의 언어별 개수) |
 | GET | `/api/rounds/:id` | `?type=code\|sql\|theory` · `?lang=c\|java\|python` (둘 다 선택) | `{round,title,sourceUrl,type,lang,questions:[{id,num,prompt,bodyHtml,type,lang,fields:[{label}]}]}` |
-| POST | `/api/rounds/:id/grade` | `{answers:{qid:[string]}, type?:"code"\|"sql"\|"theory", lang?:"c"\|"java"\|"python"}` (**로그인 필수**) | `{round,type,lang,correctCount,totalCount,score,details[],bodyTexts{},explanations{}}` (`details[].near`/`fieldResults[].near` = 표기만 다른 근접 오답 표시용 — 점수와 무관) + `study_results` 적재 / 401 / 409 / 429 |
+| POST | `/api/rounds/:id/grade` | `{answers:{qid:[string]}, type?:"code"\|"sql"\|"theory", lang?:"c"\|"java"\|"python"}` (**로그인 필수**) | `{round,type,lang,correctCount,totalCount,score,details[],bodyTexts{},explanations{}}` (`details[].near`/`fieldResults[].near` = 표기만 다른 근접 오답, `.partial` = 서술형 핵심어 일부만 — 둘 다 표시용, 점수와 무관) + `study_results` 적재 / 401 / 409 / 429 |
 | GET | `/api/practice` | `?rounds=all\|<id,id,…>&count=<5..60>&type=&lang=` (선택) | `{setKey:"practice", title, roundIds[], type, lang, setToken, questions:[…공개 문항]}` / 400 — `setToken` 은 로그인했을 때만 채워진다(비로그인은 `""`) |
 | POST | `/api/practice/grade` | `{setKey:"practice"\|"wrong", setToken, answers:{qid:[string]}}` (**로그인 필수**) | 회차 채점과 동일 형태(`round`=setKey) / 400 / 401 / 409 / 429 |
 | GET | `/api/me/history` | – (로그인 필수) | `{rounds:{setKey:{count,best,last,lastAt}}, recent:[{round,score,takenAt,total,correct}](≤20, 최신 먼저), wrongCount, truncated}` — `round==="battle"` 인 recent 항목에는 `matchId, roomName` 이 더 붙는다(`match_id` 가 없는 예전 기록은 안 붙는다). `truncated:true` 면 집계가 최근 1000건만 훑은 것이다(`best` 는 DB 집계라 그래도 정확하다) |
@@ -226,8 +226,9 @@ payload 모양으로 거르는 방어는 다른 모듈의 규율에 기대는 �
   채점 전에 열 수 있다. 학습은 혼자 공부하는 자리이고, 모르는 문항 앞에서 막히면 배우지 못한 채
   넘어가기 때문이다(토글이라 원할 때만 열린다). 원래 이 규칙이 막던 것은 그대로 막힌다:
   **① 비로그인 차단**(익명 대량 수집 = 보안 C-1 의 원래 표적), **② 대전 잠금**(아래 "예외의 예외" —
-  지금 내 대전에 걸린 문항은 조용히 생략), **③ 레이트리밋**(사용자당 분당 60회 — 20문항 일괄
-  펼치기는 1회지만 420문항 자동 수집은 눈에 띄게 느려진다). 없는 문항 id 도 조용히 생략한다.
+  지금 내 대전에 걸린 문항은 조용히 생략), **③ 레이트리밋**(사용자당 분당 60회 — **부하 방지용이지
+  수집 방지가 아니다**: 50개씩 9번이면 420문항이 다 나오고, 로그인 사용자는 애초에 채점 라우트로
+  전 문항 정답을 받을 수 있었다. 로그인 사용자에게 정답을 여는 것이 이 요구의 의도다). 없는 문항 id 도 조용히 생략한다.
   **이 두 경로 말고는** 어떤 경로로도 채점 전 해설·`display` 가 나가지 않는다.
 - **예외의 예외 — 대전 잠금**: "이미 채점받았으니 새로 새는 정보가 없다" 는 전제는 **대전 중에는
   성립하지 않는다**. 지금 그 답을 맞히면 점수가 되기 때문이다. 그래서 이 경로도 채점 라우트와
@@ -275,8 +276,8 @@ payload 모양으로 거르는 방어는 다른 모듈의 규율에 기대는 �
 | `battle:submit` | C→S | `{}` — **명시적·비가역**. 서버가 submitted_at 기록, 이후 `battle:answer` 거부 |
 | `battle:marks` | S→C | `{players:[{userId, nickname, marks:{"<qid>": true\|false}}]}` — **제출자에게만 개별 발송(`to=userId`)**. 새 제출이 생길 때마다 제출 완료자 전원에게 최신 전체 목록 재발송. **정오 불리언만** |
 | `battle:tick` | S→C | `{remainingMs}` — 10초 주기 재동기 |
-| `battle:resync` | S→C | `{state, questions, myAnswers, remainingMs, players[], marks?}` — 재접속 시 **스냅샷 1회** (이벤트 재생 금지). `marks` 는 수신자가 제출자이고 `state==="playing"` 일 때만 실린다 |
-| `battle:finished` | S→C | `{results:[{userId,correctCount,score,submittedAt}], winnerUserId(무승부 null), details[](문항별 정오·display·near), explanations:{qid:html}, answersByUser:{userId:{qid:[입력값]}}, marksByUser:{userId:{qid:bool}}}` — 뒤의 두 맵은 **전원 답안·정오**로, 수신자와 무관하게 모두 같다(결과 화면 상대 답안 표시용) |
+| `battle:resync` | S→C | `{state, questions, myAnswers, remainingMs, players[], settings, submitted, deadlineInfo, marks?}` — 재접속 시 **스냅샷 1회** (이벤트 재생 금지). `deadlineInfo` 는 시작 전(waiting/countdown)에는 `null`, 시작 뒤에는 `{startedAt,deadline,timeLimitS,remainingMs}` — 제한 없음 방은 `deadline`·`remainingMs` 가 `null`, `timeLimitS` 가 0. `marks` 는 수신자가 제출자이고 `state==="playing"` 일 때만 실린다 |
+| `battle:finished` | S→C | `{results:[{userId,correctCount,score,submittedAt}], winnerUserId(무승부 null), details[](문항별 정오·display·near·partial), explanations:{qid:html}, answersByUser:{userId:{qid:[입력값]}}, marksByUser:{userId:{qid:bool}}}` — 뒤의 두 맵은 **전원 답안·정오**로, 수신자와 무관하게 모두 같다(결과 화면 상대 답안 표시용) |
 
 **제출자 간 정오 공유 (`battle:marks`)**: 먼저 제출한 사람이 결과를 기다리는 동안 서로의 정오만 확인할 수 있게 한다.
 
@@ -302,9 +303,10 @@ waiting → countdown(3s) → playing → finished(방 파기)
 - `start` 는 **방장 + 2인 이상**.
 - countdown 중 1인이 되면 **취소 → waiting**.
 - **playing → finished 트리거 2종**: ① 전원 제출, ② deadline 경과(서버 재검증).
-  **제한 없음 방(`timeLimitS === 0`)에는 ②가 없다** — `deadline` 이 `null` 이라 `deadline` 타이머를
-  아예 걸지 않고, `tick` 도 종료를 판정하지 않는다. 끝내는 길은 전원 제출뿐이다
-  (전원 끊김 60초 유예 → `abandoned` 는 제한 시간과 무관하게 그대로 돈다).
+  **제한 없음 방(`timeLimitS === 0`)은 `deadline` 이 `null`** 이라 화면·`remainingMs` 모두 "없음" 이지만,
+  방의 수명은 유한하다 — **안전 상한 `capAt` = 시작 + 12시간**(`BATTLE_UNLIMITED_CAP_MS`, production 은 고정)을
+  같은 `deadline` 타이머 키로 걸고, `tick`/`timeout(deadline)` 은 `deadline ?? capAt` 으로 종료를 판정한다
+  (사유는 그대로 `deadline`). 보통은 전원 제출로 끝나고, 전원 끊김 60초 유예 → `abandoned` 도 그대로 돈다.
   **"전원"은 이탈자를 포함한다** — 이탈(`room:leave`)은 **즉시 제출로 간주**하므로(아래) 이탈만으로
   전원 제출이 완성되면 그 순간 `finished` 가 된다.
 - playing 중 **`room:leave` 는 즉시 제출**이다(비가역): 그때까지 보관된 답안이 그대로 확정되고
@@ -350,8 +352,8 @@ applyEvent(state, event) → { state, effects: [] }
 - 재접속: **인증 성공 직후 서버가 멤버십을 조회해 `battle:resync` 를 자동 emit** (`room:join` 불필요).
 - 타이머: `battle:tick` 10초 주기. 클라이언트는 `performance.now()` 감산 표시.
   종료 판정은 서버가 `Date.now() >= deadline` 을 **재검증**(절전 복귀 시 즉시 종료 처리).
-  제한 없음 방은 `deadline === null` 이라 이 재검증을 건너뛴다 — `remainingMs` 는 `null` 로 나가고
-  화면은 시계 자리에 "제한 없음" 을 쓴다.
+  제한 없음 방은 `deadline === null` 이라 `remainingMs` 가 `null` 로 나가고 화면은 시계 자리에
+  "제한 없음" 을 쓴다. 재검증은 안전 상한 `capAt` 에 대해 같은 방식으로 한다.
 
 ## 승자 판정 체인
 
