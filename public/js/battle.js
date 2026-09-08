@@ -63,10 +63,14 @@
     battle: '대전 진행 중',
     result: '대전 결과',
   };
+  // 서버의 TIME_LIMITS 와 같은 목록이어야 한다 (server/battle-io.js). 0 = 제한 없음.
   var TIME_CHOICES = [
     { v: 600, label: '10분' },
     { v: 1200, label: '20분' },
     { v: 1800, label: '30분' },
+    { v: 3600, label: '1시간' },
+    { v: 7200, label: '2시간' },
+    { v: 0, label: '제한 없음' },
   ];
   var COUNT_CHOICES = [5, 10, 20];
 
@@ -151,6 +155,17 @@
   function fmtClock(ms) {
     var s = Math.max(0, Math.ceil((ms == null ? 0 : ms) / 1000));
     return pad2(Math.floor(s / 60)) + ':' + pad2(s % 60);
+  }
+
+  /**
+   * 제한 시간 표기. 0(또는 미지정)은 "제한 없음" 이다 — 0 을 `Math.round(0/60)+'분'` 으로
+   * 찍으면 "0분" 이 나와 마치 곧 끝날 방처럼 보인다.
+   */
+  function timeLimitText(sec) {
+    var n = Number(sec);
+    if (!isFinite(n) || n <= 0) return '제한 없음';
+    if (n % 3600 === 0) return (n / 3600) + '시간';
+    return Math.round(n / 60) + '분';
   }
 
   function fmtTime(epochMs) {
@@ -286,6 +301,15 @@
   function players() { return (state.room && state.room.players) || []; }
 
   function settings() { return (state.room && state.room.settings) || null; }
+
+  /**
+   * 이 방이 "제한 없음"(timeLimitS === 0) 인가.
+   * `remainingMs() == null` 만으로는 구분할 수 없다 — 첫 tick 이 오기 전에도 null 이다.
+   */
+  function noTimeLimit() {
+    var s = settings();
+    return !!s && Number(s.timeLimitS) === 0;
+  }
 
   function myPlayer() {
     var list = players();
@@ -679,7 +703,8 @@
         var rLang = normalizeLang(r.lang || (r.settings && r.settings.lang));
         var typeText = typeLangText(rType, rLang);
         if (typeText) meta.push(typeText);
-        if (r.timeLimitS) meta.push(Math.round(r.timeLimitS / 60) + '분');
+        // 0 = 제한 없음이므로 `if (r.timeLimitS)` 로 거르면 그 방만 시간이 안 보인다.
+        if (r.timeLimitS != null) meta.push(timeLimitText(r.timeLimitS));
         return h('div', { class: 'room' }, [
           h('span', { class: 'rname', text: r.name || '(이름 없음)' }),
           h('span', { class: 'rmeta', text: meta.join(' · ') }),
@@ -1021,7 +1046,7 @@
         h('div', {}, [h('b', { text: '문항 수 ' }), (s.questionCount || 0) + '문항']),
         // 언어가 걸린 코드 방은 "코드 · Python" 으로 함께 보여 준다(전체면 '전체').
         h('div', {}, [h('b', { text: '문항 유형 ' }), typeLangText(s.type, s.lang) || '전체']),
-        h('div', {}, [h('b', { text: '제한 시간 ' }), Math.round((s.timeLimitS || 0) / 60) + '분']),
+        h('div', {}, [h('b', { text: '제한 시간 ' }), timeLimitText(s.timeLimitS)]),
       ]),
     ]));
 
@@ -1128,9 +1153,17 @@
       ]);
     });
 
+    var free = noTimeLimit();
     return frag(h('div', { class: 'timerbar' }, [
-      h('div', { class: 'timer' + (urgent ? ' urgent' : ''), text: rm == null ? '--:--' : fmtClock(rm) }),
-      h('div', { class: 'tlabel', text: '남은 시간 · 진행 현황(정답 여부는 공개되지 않습니다)' }),
+      h('div', {
+        class: 'timer' + (urgent ? ' urgent' : '') + (free ? ' free' : ''),
+        text: free ? '제한 없음' : (rm == null ? '--:--' : fmtClock(rm)),
+      }),
+      h('div', {
+        class: 'tlabel',
+        text: (free ? '시간 제한 없음 — 모두 제출하면 끝납니다' : '남은 시간')
+          + ' · 진행 현황(정답 여부는 공개되지 않습니다)',
+      }),
       h('div', { class: 'progresslist' }, rows.length ? rows : h('div', { class: 'muted', text: '참가자 정보를 기다리는 중입니다.' })),
     ]));
   }
@@ -1177,7 +1210,9 @@
     if (ro) {
       kids.push(h('div', {
         class: 'banner info',
-        text: '제출이 완료되었습니다. 모든 참가자가 제출하거나 제한 시간이 끝나면 결과가 나옵니다.',
+        text: noTimeLimit()
+          ? '제출이 완료되었습니다. 이 방은 제한 시간이 없어 모든 참가자가 제출하면 결과가 나옵니다.'
+          : '제출이 완료되었습니다. 모든 참가자가 제출하거나 제한 시간이 끝나면 결과가 나옵니다.',
       }));
     }
 
@@ -1332,7 +1367,10 @@
     });
 
     var kids = [
-      h('div', { class: 'ftime' + (urgent ? ' urgent' : ''), text: rm == null ? '--:--' : fmtClock(rm) }),
+      h('div', {
+        class: 'ftime' + (urgent ? ' urgent' : '') + (noTimeLimit() ? ' free' : ''),
+        text: noTimeLimit() ? '제한 없음' : (rm == null ? '--:--' : fmtClock(rm)),
+      }),
       h('div', { class: 'fprows' }, rows),
     ];
 
@@ -1572,6 +1610,10 @@
       h('div', { class: 'feedback' }, [
         h('div', { text: detail.correct ? '정답입니다.' : '오답입니다.' }),
         h('div', { class: 'answer-line', text: '정답: ' + (detail.display || '(표기 없음)') }),
+        // 근접 오답(요구 3) — 공백 차이는 이미 정답으로 인정된다. 여기 남는 건 표기 차이다.
+        detail.near
+          ? h('div', { class: 'answer-line near-line', text: '거의 정답 — 표기(대소문자·구두점·띄어쓰기)만 달랐습니다.' })
+          : null,
       ]),
     ];
 

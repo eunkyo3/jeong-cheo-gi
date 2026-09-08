@@ -572,40 +572,69 @@
   // ------------------------------------------------------- AI 질문 프롬프트
 
   /**
+   * 프롬프트 재료를 한 모양으로 모은다 — 채점 후(detail 있음)와 채점 전(요구 2)이 같은
+   * 조립기를 쓰게 하기 위한 어댑터다.
+   *   채점 후: 지문·내 답·정답 모두 채점 응답에서 온다.
+   *   채점 전: 내 답은 입력칸에서, 지문·정답은 "정답·해설 보기" 로 받아 둔 게 있으면 거기서.
+   *            아직 안 열었으면 정답 없이(= 스스로 풀어 달라고) 조립한다.
+   */
+  function promptSource(question, detail) {
+    if (detail) {
+      return {
+        bodyText: ((state.result && state.result.bodyTexts) || {})[question.id] || '',
+        given: (detail.fieldResults || []).map(function (fr) {
+          return { label: fr.label, value: fr.given == null ? '' : String(fr.given) };
+        }),
+        display: detail.display || '',
+      };
+    }
+    var peeked = state.peek[question.id] || null;
+    var vals = state.answers[question.id] || [];
+    return {
+      bodyText: peeked ? peeked.bodyText : '',
+      given: (question.fields || []).map(function (f, i) {
+        return { label: f.label, value: vals[i] == null ? '' : String(vals[i]) };
+      }),
+      display: peeked ? peeked.display : '',
+    };
+  }
+
+  /**
    * 복사 프롬프트를 조립한다. 레이아웃은 PROTOCOL.md "클립보드 방침" 에 고정돼 있다.
    *   [문제] / [내 답] / [정답] / "풀이 과정을 설명해줘"
    *
-   * 지문 원문은 채점 응답의 최상위 `bodyTexts[qid]` 에서 온다
-   * (details[] 안이 아니다 — 서버 응답 형태에 맞춘다).
+   * 정답을 아직 열지 않은 채점 전 카드에서는 `[정답]` 블록을 통째로 뺀다 —
+   * "(정답 표기가 등록되어 있지 않습니다)" 를 붙이면 AI 가 정답이 없는 문제로 오해한다.
    */
-  function buildPrompt(question, detail) {
-    var bodyTexts = (state.result && state.result.bodyTexts) || {};
-    var bodyText = bodyTexts[question.id];
+  function buildPrompt(question, src) {
+    var bodyText = src.bodyText;
     if (!bodyText) {
       // bodyText 가 없는 문항 — 화면에 보이는 내용으로 대신한다
       bodyText = (htmlToText(question.prompt) + '\n\n' + htmlToText(question.bodyHtml)).trim();
     }
 
     var lines = ['[문제]', bodyText, '', '[내 답]'];
-    var results = (detail && detail.fieldResults) || [];
-    if (results.length === 0) {
+    var given = src.given || [];
+    if (given.length === 0) {
       lines.push('(무응답)');
     } else {
-      results.forEach(function (fr, i) {
-        var given = fr.given == null ? '' : String(fr.given).trim();
-        lines.push(fieldLabel(fr.label, i) + ': ' + (given === '' ? '(무응답)' : given));
+      given.forEach(function (g, i) {
+        var v = String(g.value).trim();
+        lines.push(fieldLabel(g.label, i) + ': ' + (v === '' ? '(무응답)' : v));
       });
     }
-    lines.push('');
-    lines.push('[정답]');
-    lines.push(detail && detail.display ? detail.display : '(정답 표기가 등록되어 있지 않습니다)');
+    if (src.display) {
+      lines.push('');
+      lines.push('[정답]');
+      lines.push(src.display);
+    }
     lines.push('');
     lines.push('풀이 과정을 설명해줘');
     return lines.join('\n');
   }
 
   function onAskAi(question, detail) {
-    var text = buildPrompt(question, detail);
+    var text = buildPrompt(question, promptSource(question, detail));
     copyText(text, { title: 'AI에게 붙여넣을 질문' }).then(function (how) {
       // 3단계(모달) 는 모달 자체가 안내다 — 토스트를 겹쳐 띄우지 않는다
       if (how === 'manual') return;
@@ -687,11 +716,32 @@
 
   /**
    * 지금 화면에서 "채점 전 정답·해설 보기" 를 쓸 수 있는가.
-   * 오답노트(전체·회차·대전 하위 보기 모두)에서 **채점 전**에만 쓴다 —
+   *
+   * 2026-09-08(요구 2)부터 **모든 학습 화면**(회차·모의고사·오답노트)에서 채점 전에 쓴다.
+   * 학습은 혼자 공부하는 공간이라 모르는 문항 앞에서 막히면 배우지 못한 채 넘어가기 때문이다.
    * 채점 후에는 채점 응답의 explanations 를 쓰는 기존 흐름(renderExplain)이 이긴다.
+   *
+   * 로그인은 필수다(서버가 401 로 막는다). 로그인 여부를 아직 모르는 동안(meLoaded=false)에도
+   * 버튼은 그린다 — 눌렀을 때 로그인 안내로 떨어뜨리는 편이 버튼이 뒤늦게 나타나는 것보다 낫다.
    */
   function peekEligible() {
-    return !state.pageFailed && state.mode === 'wrong' && !state.result;
+    return !state.pageFailed && !state.result;
+  }
+
+  /**
+   * 정답·해설 조회 경로. 오답노트는 **채점 이력으로 권한을 검사하는** 기존 경로를 그대로 쓰고
+   * (이미 채점받은 문항만 열린다), 회차·모의고사는 학습 전용 경로를 쓴다.
+   * 둘 다 대전 잠금은 같은 곳(battlelock.js)에서 걸린다.
+   */
+  function peekPath() {
+    return state.mode === 'wrong' ? '/api/me/wrong/explain' : '/api/study/explain';
+  }
+
+  /** 그 화면에서 "권한 없음"(서버가 조용히 생략)이 뜻하는 바. 경로마다 이유가 다르다. */
+  function peekDeniedMessage() {
+    return state.mode === 'wrong'
+      ? PEEK_DENIED
+      : '진행 중인 대전에 걸린 문항이라 지금은 정답을 볼 수 없습니다.';
   }
 
   /**
@@ -703,6 +753,20 @@
     state.peekLoading = {};
     state.peekAllLoading = false;
     fail(WRONG_AUTH_MESSAGE);
+  }
+
+  /**
+   * 정답·해설 조회가 401 로 막혔을 때.
+   * 오답노트는 **화면 자체가** 로그인 없이는 성립하지 않으므로 예전처럼 로그인 안내로 떨어뜨린다.
+   * 회차·모의고사는 비로그인으로도 풀 수 있는 화면이다 — 풀던 답안을 날리지 않고 안내만 한다.
+   */
+  function handlePeekAuthError() {
+    if (state.mode === 'wrong') return failWrongAuth();
+    state.peekOpen = {};
+    state.peekLoading = {};
+    state.peekAllLoading = false;
+    render();
+    toast('정답·해설을 보려면 로그인이 필요합니다.', 'bad');
   }
 
   /** 지금 화면에 있는 문항 id 들 — "해설 모두 펼치기" 의 대상. */
@@ -717,7 +781,7 @@
    */
   function fetchPeekChunk(ids, denied) {
     var q = ids.map(function (id) { return encodeURIComponent(id); }).join(',');
-    return api.get('/api/me/wrong/explain?ids=' + q).then(function (data) {
+    return api.get(peekPath() + '?ids=' + q).then(function (data) {
       var map = (data && data.explanations) || {};
       ids.forEach(function (qid) {
         var row = map[qid];
@@ -732,6 +796,8 @@
         state.peek[qid] = {
           display: typeof row.display === 'string' ? row.display : '',
           html: typeof row.html === 'string' ? row.html : '',
+          // 지문 원문 — "AI에게 질문하기" 프롬프트에 쓴다. 구버전 서버는 안 보내므로 ''.
+          bodyText: typeof row.bodyText === 'string' ? row.bodyText : '',
         };
       });
     });
@@ -756,7 +822,7 @@
       return;
     }
     if (state.peekDenied[qid]) {    // 이미 "없다" 고 답을 들은 문항 — 다시 묻지 않는다
-      toast(PEEK_DENIED, 'bad');
+      toast(peekDeniedMessage(), 'bad');
       return;
     }
     if (state.peek[qid]) {          // 이미 받아 둔 문항 — 왕복 없이 편다
@@ -771,7 +837,7 @@
       if (state.pageFailed) return;       // 그 사이 401 로 화면이 끝났다 — 늦게 온 응답은 버린다
       if (denied.length) {
         render();
-        toast(PEEK_DENIED, 'bad');
+        toast(peekDeniedMessage(), 'bad');
         return;
       }
       state.peekOpen[qid] = true;
@@ -780,7 +846,7 @@
       state.peekLoading[qid] = false;
       if (state.pageFailed) return;       // 이미 로그인 안내 화면이다 — 그 위에 토스트를 겹치지 않는다
       // 세션이 끊겼으면 최초 로드와 같은 로그인 안내 화면으로 보낸다.
-      if (e && e.status === 401) return failWrongAuth();
+      if (e && e.status === 401) return handlePeekAuthError();
       render();
       toast(e && e.message ? e.message : '해설을 불러오지 못했습니다.', 'bad');
     });
@@ -847,7 +913,7 @@
       // 보이는 문항이 전부 "권한 없음" 이면 화면이 아무 반응도 없는 것처럼 보인다 — 이유를 알린다.
       var knownDenied = ids.filter(function (qid) { return state.peekDenied[qid]; });
       if (knownDenied.length) {
-        toast(knownDenied.length + '개 문항은 해설을 볼 권한이 없습니다.', 'bad');
+        toast(knownDenied.length + '개 문항은 지금 정답·해설을 볼 수 없습니다.', 'bad');
       }
       return;
     }
@@ -859,12 +925,12 @@
       openFetched(ids);
       render();
       if (denied.length) {
-        toast(denied.length + '개 문항은 해설을 볼 권한이 없습니다.', 'bad');
+        toast(denied.length + '개 문항은 지금 정답·해설을 볼 수 없습니다.', 'bad');
       }
     }).catch(function (e) {
       state.peekAllLoading = false;
       if (state.pageFailed) return;
-      if (e && e.status === 401) return failWrongAuth();
+      if (e && e.status === 401) return handlePeekAuthError();
       render();
       toast(e && e.message ? e.message : '해설을 불러오지 못했습니다.', 'bad');
     });
@@ -1123,7 +1189,9 @@
     btn.disabled = state.peekAllLoading;
     btn.addEventListener('click', function () { onPeekAll(allOpen, ids); });
     node.appendChild(btn);
-    node.appendChild(el('span', 'peek-hint', '이미 채점받은 문항이라 채점 전에도 정답·해설을 볼 수 있습니다.'));
+    node.appendChild(el('span', 'peek-hint', state.mode === 'wrong'
+      ? '이미 채점받은 문항이라 채점 전에도 정답·해설을 볼 수 있습니다.'
+      : '학습 중에는 언제든 정답·해설을 펼쳐 볼 수 있습니다. (대전 중인 문항은 제외)'));
   }
 
   /**
@@ -1302,12 +1370,19 @@
       card.appendChild(row);
     });
 
-    // 오답노트 채점 전 — "정답·해설 보기". 이미 채점 기록이 있는 문항이라 서버가 미리 내려 준다.
-    // (몰라서 틀린 문항은 풀이법을 봐야 다시 풀 수 있다.)
+    // 채점 전 도움 줄(요구 2) — "정답·해설 보기" 토글 + "AI에게 질문하기".
+    // 학습은 공부하는 자리다. 모르는 문항 앞에서 막히면 그대로 넘어가 버리므로,
+    // 채점을 기다리지 않고 바로 펼쳐 보고 이해하고 갈 수 있어야 한다.
     if (!graded && peekEligible()) {
       var peekActions = el('div', 'q-actions');
       card.appendChild(peekActions);
       renderPeek(question, peekActions, card);
+
+      var preAskBtn = el('button', 'ghost', 'AI에게 질문하기');
+      preAskBtn.type = 'button';
+      preAskBtn.setAttribute('data-ask', question.id);
+      preAskBtn.addEventListener('click', function () { onAskAi(question, null); });
+      peekActions.appendChild(preAskBtn);
     }
 
     // 채점 피드백
@@ -1320,6 +1395,15 @@
         fb.appendChild(el('b', null, detail.display || '(정답 표기가 등록되어 있지 않습니다)'));
       }
       card.appendChild(fb);
+
+      // 근접 오답 안내(요구 3). 공백 차이는 채점기가 이미 정답으로 인정한다 —
+      // 여기 걸리는 건 구두점·대소문자처럼 **실제 시험에서도 감점될 수 있는** 표기 차이다.
+      // 그래서 점수를 주지 않고, 대신 "몰라서 틀린 것"과 구분해 보여 준다.
+      if (detail.near) {
+        card.appendChild(el('p', 'feedback near',
+          '거의 정답입니다 — 내용은 맞았고 표기만 다릅니다(대소문자·구두점·띄어쓰기). '
+          + '실제 시험에서는 표기까지 채점하니 위의 정답 표기를 눈에 익혀 두세요.'));
+      }
 
       // 해설 상자는 피드백 줄 바로 아래, 버튼 줄 위에 온다.
       // (아래 insertBefore 가 actions 를 .explain-box 뒤 · .report-box 앞에 끼워 넣는다)

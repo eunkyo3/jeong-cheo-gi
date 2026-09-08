@@ -660,3 +660,16 @@ h2.section { color: var(--brand-ink); }
   .codejoin .codeinput:focus,
   .reportbox textarea:focus { border-color: var(--focus-line); }
 }
+
+/* 제한 없음 방(timeLimitS=0)의 시계 자리. "제한 없음" 은 mm:ss 보다 길어 같은 크기로는
+   좁은 화면에서 줄바꿈된다 — 숫자용 자간·tabular-nums 도 필요 없다. */
+.timerbar .timer.free,
+.floatpanel .ftime.free {
+  font-size: 1.1rem;
+  letter-spacing: 0;
+  font-variant-numeric: normal;
+  color: var(--muted-2);
+}
+
+/* 근접 오답 한 줄(요구 3) — 오답 상자 안에서 한 톤 약하게. */
+.q .feedback .near-line { color: var(--warn-fg); font-weight: bold; }

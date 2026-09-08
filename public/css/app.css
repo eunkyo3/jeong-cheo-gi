@@ -1421,6 +1421,18 @@ header.page .study-sub {
 }
 .feedback.peek b { color: var(--explain-strong); }
 
+/* 근접 오답 안내(요구 3) — "내용은 맞았고 표기만 다르다".
+   오답 상자(빨강) 바로 아래 붙지만 톤은 경고(노랑)다: 점수는 오답이되 "모르는 문항" 과는
+   다르다는 것을 한눈에 구분시키려는 것이다. --warn 계열은 대비 검증을 마친 토큰이다. */
+.feedback.near {
+  display: block;
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  border: 1px solid var(--warn-line);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
 /* 해설이 아직 없는 문항 — 상자 대신 한 줄만. */
 .peek-none { margin-top: 8px; font-size: 0.9rem; }
 
