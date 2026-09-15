@@ -652,14 +652,13 @@ h2.section { color: var(--brand-ink); }
    색은 전부 app.css :root 토큰을 거치므로 여기서 다시 정의할 것은 없다.
    딱 하나, 입력칸 :focus 테두리만 예외다 — 라이트 값 `var(--deep)` 가 다크의 어두운
    입력칸과 1.95:1 이라 안 보인다. app.css 가 같은 이유로 자기 입력칸을 올리는데,
-   이 세 선택자는 battle.css 소유라 (특이도가 같고 이 파일이 뒤에 로드되므로)
-   여기서 올려야 한다. */
-@media (prefers-color-scheme: dark) {
-  .field input[type="text"]:focus,
-  .field select:focus,
-  .codejoin .codeinput:focus,
-  .reportbox textarea:focus { border-color: var(--focus-line); }
-}
+   이 네 선택자는 battle.css 소유라 (특이도가 같고 이 파일이 뒤에 로드되므로)
+   여기서 올려야 한다. 다크는 app.css 와 같이 `<html data-theme="dark">` 로 켜진다(js/shared/theme.js).
+   `:where()` 로 특이도를 더하지 않는다 — 나중에 생길 .ok/.bad 류 규칙과의 순서가 뒤집히지 않게. */
+:where(:root[data-theme="dark"]) .field input[type="text"]:focus,
+:where(:root[data-theme="dark"]) .field select:focus,
+:where(:root[data-theme="dark"]) .codejoin .codeinput:focus,
+:where(:root[data-theme="dark"]) .reportbox textarea:focus { border-color: var(--focus-line); }
 
 /* 제한 없음 방(timeLimitS=0)의 시계 자리. "제한 없음" 은 mm:ss 보다 길어 같은 크기로는
    좁은 화면에서 줄바꿈된다 — 숫자용 자간·tabular-nums 도 필요 없다. */

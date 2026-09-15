@@ -14,7 +14,9 @@
    `--ok` / `--bad` 는 **면·테두리 전용**이다(흰 배경 위 3.41:1 / 4.38:1 로 글자에 못 쓴다).
    글자와 "흰 글자를 얹는 면"에는 `--ok-text` / `--bad-text` 를 쓴다. */
 :root {
-  /* 브라우저에 이 페이지가 두 모드를 다 다룬다고 알린다 — 폼 컨트롤·스크롤바가 따라온다. */
+  /* 브라우저에 이 페이지가 두 모드를 다 다룬다고 알린다 — 폼 컨트롤·스크롤바가 따라온다.
+     js/shared/theme.js 가 첫 페인트 전에 `<html data-theme="light|dark">` 를 정하면
+     아래 `:root[data-theme=…]` 가 한쪽으로 고정한다(고른 테마와 폼 컨트롤이 어긋나지 않게). */
   color-scheme: light dark;
 
   /* 브랜드(진녹) — 면 */
@@ -287,6 +289,11 @@ body {
 .topnav button:disabled { color: var(--on-deep-dim); cursor: default; text-decoration: none; }
 /* 비로그인 안내 링크 — 로그인 폼(#account)으로 내려보낸다. 알약 아님. */
 .topnav .nav-login { color: var(--on-deep); font-weight: bold; }
+/* 테마 전환 — 이모지 하나짜리 버튼. 탭 영역은 다른 항목과 같은 40px, 밑줄 hover 는 이모지에 어울리지 않아 뺀다. */
+.topnav .nav-theme,
+.admin-top .nav-theme { font-size: 1.05rem; line-height: 1; padding: 0 7px; }
+.topnav .nav-theme:hover,
+.admin-top .nav-theme:hover { text-decoration: none; }
 
 @media (max-width: 600px) {
   /* 좁아질수록 gap 을 0 으로 접고 항목 패딩만 남긴다 — 탭 영역은 40px 을 지키면서
@@ -298,12 +305,14 @@ body {
   .topnav a[aria-current="page"] { text-underline-offset: 4px; }
   .topnav .who, .topnav .whoami { font-size: 0.82rem; }
   .topnav button { font-size: 0.8rem; }
+  .topnav .nav-theme { padding: 0 5px; font-size: 1rem; }
 }
 @media (max-width: 360px) {
   .topnav .wrap { gap: 0; }
   .topnav .brand { font-size: 0.9rem; margin-right: 4px; }
   .topnav a { font-size: 0.82rem; padding: 0 4px; }
   .topnav button { padding: 0 4px; }
+  .topnav .nav-theme { padding: 0 4px; }
 }
 
 /* ---------------------------------------------------------------- 헤더 */
@@ -1129,6 +1138,8 @@ body.with-studybar { padding-bottom: 64px; }
   letter-spacing: 0.04em;
 }
 .timer-out.urgent { color: var(--urgent-on-deep); }
+/* "제한 없음" 모드의 경과 시간 — 마감이 없으므로 급함(urgent) 색이 붙지 않고, 한 톤 가라앉힌다. */
+.timer-out.free { color: var(--on-deep-2); min-width: 6em; }   /* h:mm:ss 자리 */
 
 /* 자동 저장 복원 안내 배너 */
 .notice {
@@ -1499,141 +1510,145 @@ header.page .study-sub {
 
 /* ------------------------------------------------------------------ 다크
 
-   `color-scheme: light dark` 를 :root 에 선언해 두었으므로 폼 컨트롤·스크롤바는
-   브라우저가 알아서 뒤집는다. 여기서는 **토큰만** 다시 정의한다 —
+   다크는 `prefers-color-scheme` 미디어 쿼리가 아니라 `<html data-theme="dark">` 로 켜진다.
+   그 속성은 js/shared/theme.js 가 정한다: 저장된 설정(localStorage "jpk:theme")이 있으면
+   그것, 없으면 기기 설정(matchMedia). 그래서 내비의 테마 버튼 한 번에 새로고침 없이 뒤집히고,
+   "자동" 인 사람은 기기 설정이 바뀌는 순간 따라간다. 여기서는 **토큰만** 다시 정의한다 —
    세 CSS 파일의 모든 색이 토큰을 거치므로 이 블록 하나로 전 페이지가 따라온다.
    (예외는 유형·언어·"이후 맞힘" 뱃지 알약이다. 옅은 면 + 짙은 글자 한 쌍으로
     스스로 4.8:1 이상을 만들고, 어두운 카드 위에서 밝은 강조 칩으로 읽히므로 그대로 둔다.)
 
    대비는 라이트와 같은 규율로 다시 계산했다: 본문 글자 4.5:1, 조작 요소 3:1.
    가장 빡빡한 곳이 `--muted-2` / `--surface-6` 4.89:1, `--on-deep-dim` / `--deep` 4.54:1. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* 브랜드 — 면은 어두운 녹을 유지하고, 글자·윤곽만 밝은 녹으로 뒤집는다. */
-    --deep: #2b5f4a;
-    --deep-2: #37765d;
-    --deep-3: #2b5f4a;
-    --brand-ink: #7fc9a5;
-    --brand-ink-2: #6fbc98;
-    --brand-line: #6fbc98;
-    --on-deep: #fff;
-    --on-deep-2: #cfe3d8;
-    --on-deep-3: #c8dbd1;
-    --on-deep-dim: #bccfc6;
-    --deep-line: #8fae9f;
-    --urgent-on-deep: #ffc9c9;
-    --focus-line: #7fc9a5;
-    --focus-ring: #8fd3b1;
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  /* 브랜드 — 면은 어두운 녹을 유지하고, 글자·윤곽만 밝은 녹으로 뒤집는다. */
+  --deep: #2b5f4a;
+  --deep-2: #37765d;
+  --deep-3: #2b5f4a;
+  --brand-ink: #7fc9a5;
+  --brand-ink-2: #6fbc98;
+  --brand-line: #6fbc98;
+  --on-deep: #fff;
+  --on-deep-2: #cfe3d8;
+  --on-deep-3: #c8dbd1;
+  --on-deep-dim: #bccfc6;
+  --deep-line: #8fae9f;
+  --urgent-on-deep: #ffc9c9;
+  --focus-line: #7fc9a5;
+  --focus-ring: #8fd3b1;
 
-    /* 바탕·면 */
-    --paper: #0e1316;
-    --card: #212b30;
-    --surface: #212b30;
-    --surface-2: #29343a;
-    --surface-3: #2c3840;
-    --surface-4: #29343a;
-    --surface-5: #2c3840;
-    --surface-6: #313d44;
-    --stripe: #29343a;
-    --tint: #27392f;
-    --tint-2: #24352c;
-    --tint-3: #27392f;
-    --tint-4: #24352c;
-    --tint-5: #2c4437;
-    --tint-6: #315041;
-    --tint-7: #27392f;
+  /* 바탕·면 */
+  --paper: #0e1316;
+  --card: #212b30;
+  --surface: #212b30;
+  --surface-2: #29343a;
+  --surface-3: #2c3840;
+  --surface-4: #29343a;
+  --surface-5: #2c3840;
+  --surface-6: #313d44;
+  --stripe: #29343a;
+  --tint: #27392f;
+  --tint-2: #24352c;
+  --tint-3: #27392f;
+  --tint-4: #24352c;
+  --tint-5: #2c4437;
+  --tint-6: #315041;
+  --tint-7: #27392f;
 
-    /* 선 */
-    --line: #3b464d;
-    --line-2: #36424a;
-    --line-3: #36424a;
-    --line-dash: #414c54;
-    --grid: #5f6a71;
-    --grid-2: #515d64;
-    --grid-3: #515d64;
-    --border-input: #8a949d;
-    --border-ghost: #8a968f;
+  /* 선 */
+  --line: #3b464d;
+  --line-2: #36424a;
+  --line-3: #36424a;
+  --line-dash: #414c54;
+  --grid: #5f6a71;
+  --grid-2: #515d64;
+  --grid-3: #515d64;
+  --border-input: #8a949d;
+  --border-ghost: #8a968f;
 
-    /* 글자 */
-    --ink: #e6eae8;
-    --ink-2: #c9d1d5;
-    --ink-3: #bcc5ca;
-    --muted: #a3aeb3;
-    --muted-2: #9db0a7;
-    --muted-3: #a8b8b0;
-    --muted-4: #b6c4bc;
-    --muted-blank: #93a29c;
-    --disabled-ink: #9aa49e;
-    --disabled-ink-2: #a6b0aa;
+  /* 글자 */
+  --ink: #e6eae8;
+  --ink-2: #c9d1d5;
+  --ink-3: #bcc5ca;
+  --muted: #a3aeb3;
+  --muted-2: #9db0a7;
+  --muted-3: #a8b8b0;
+  --muted-4: #b6c4bc;
+  --muted-blank: #93a29c;
+  --disabled-ink: #9aa49e;
+  --disabled-ink-2: #a6b0aa;
 
-    /* 상태 */
-    --ok: #35b169;
-    --bad: #e05a5a;
-    --ok-text: #5fd08c;
-    --bad-text: #ff8f8f;
-    --ok-fill: #5fd08c;
-    --on-ok-fill: #12261b;
-    --ok-bg: #123726;
-    --ok-fg: #9fe3b8;
-    --ok-tint: #1a2b22;
-    --ok-tint-2: #1a2b22;
-    --ok-line: #2f6a4c;
-    --bad-bg: #3a1717;
-    --bad-fg: #ffb4b4;
-    --bad-tint: #2e1c1c;
-    --bad-tint-2: #2e1c1c;
-    --bad-line: #6d3131;
-    --warn: #e0bb5a;
-    --warn-bg: #322b12;
-    --warn-fg: #f2dfa0;
-    --warn-line: #6b5c26;
-    --note-bg: #2a2612;
-    --note-fg: #f2e9c4;
+  /* 상태 */
+  --ok: #35b169;
+  --bad: #e05a5a;
+  --ok-text: #5fd08c;
+  --bad-text: #ff8f8f;
+  --ok-fill: #5fd08c;
+  --on-ok-fill: #12261b;
+  --ok-bg: #123726;
+  --ok-fg: #9fe3b8;
+  --ok-tint: #1a2b22;
+  --ok-tint-2: #1a2b22;
+  --ok-line: #2f6a4c;
+  --bad-bg: #3a1717;
+  --bad-fg: #ffb4b4;
+  --bad-tint: #2e1c1c;
+  --bad-tint-2: #2e1c1c;
+  --bad-line: #6d3131;
+  --warn: #e0bb5a;
+  --warn-bg: #322b12;
+  --warn-fg: #f2dfa0;
+  --warn-line: #6b5c26;
+  --note-bg: #2a2612;
+  --note-fg: #f2e9c4;
 
-    --neutral-fill: #4a544f;
-    --neutral-fill-h: #5c6862;
-    --ghost-fill-h: #545c60;
-    --danger-fill: #a33;
-    --danger-fill-h: #c14b4b;
+  --neutral-fill: #4a544f;
+  --neutral-fill-h: #5c6862;
+  --ghost-fill-h: #545c60;
+  --danger-fill: #a33;
+  --danger-fill-h: #c14b4b;
 
-    /* 큰 블록 — 코드는 더 어둡게, 해설은 카드보다 한 단계 밝게 띄운다. */
-    --code-bg: #0b0f12;
-    --code-fg: #e8eaed;
-    --desc-bg: #242e33;
-    --explain-bg: #242d33;
-    --explain-fg: #dfe6ea;
-    --explain-bd: #3a464f;
-    --explain-strong: #a9cbe6;
-    --explain-code-bg: #1a2126;
-    --peek-bg: #1e2a36;
-    --peek-fg: #cfe0ee;
-    --peek-bd: #3a4d61;
-    /* 형광펜은 다크에서도 형광펜이다 — 노랑 바탕·짙은 글자를 유지한다(9.43:1). */
-    --mark-bg: #fff08a;
-    --mark-fg: #4a3b00;
-    /* 토스트는 뒤집어 밝은 알약으로 띄운다 — 어두운 페이지 위에서 가장 잘 보인다. */
-    --toast-bg: #e9edee;
-    --toast-fg: #212b30;
+  /* 큰 블록 — 코드는 더 어둡게, 해설은 카드보다 한 단계 밝게 띄운다. */
+  --code-bg: #0b0f12;
+  --code-fg: #e8eaed;
+  --desc-bg: #242e33;
+  --explain-bg: #242d33;
+  --explain-fg: #dfe6ea;
+  --explain-bd: #3a464f;
+  --explain-strong: #a9cbe6;
+  --explain-code-bg: #1a2126;
+  --peek-bg: #1e2a36;
+  --peek-fg: #cfe0ee;
+  --peek-bd: #3a4d61;
+  /* 형광펜은 다크에서도 형광펜이다 — 노랑 바탕·짙은 글자를 유지한다(9.43:1). */
+  --mark-bg: #fff08a;
+  --mark-fg: #4a3b00;
+  /* 토스트는 뒤집어 밝은 알약으로 띄운다 — 어두운 페이지 위에서 가장 잘 보인다. */
+  --toast-bg: #e9edee;
+  --toast-fg: #212b30;
 
-    --track-bg: #3f4f47;
-    --track-ring: #8a949d;
+  --track-bg: #3f4f47;
+  --track-ring: #8a949d;
 
-    /* 어두운 바탕에서는 검은 그림자가 보이지 않는다 — 카드 경계는 면 밝기 차로 낸다. */
-    --shadow: rgba(0, 0, 0, 0.5);
-    --shadow-2: rgba(0, 0, 0, 0.6);
-    --shadow-3: rgba(0, 0, 0, 0.6);
-    --scrim: rgba(0, 0, 0, 0.72);
-  }
-
-  /* 이 블록의 **유일한 규칙 재정의**다. 입력칸 :focus 테두리는 라이트에서 `var(--deep)` 인데
-     (`npm run headless` 의 focusring 검사가 그 값을 본다), 다크에서는 진녹이 어두운 입력칸과
-     1.95:1 이라 "지금 여기 커서가 있다"가 보이지 않는다. 밝은 녹(8.29:1)으로 올린다.
-     키보드 포커스는 이와 별개로 `:focus-visible` 링(--focus-ring, 9.30:1)이 늘 그린다 —
-     이 규칙은 마우스로 들어온 포커스까지 보이게 하는 몫이다. */
-  input.ans:focus,
-  .form-row input:focus,
-  .modal textarea:focus,
-  .report-box textarea:focus,
-  .type-select:focus,
-  #practiceBox select:focus { border-color: var(--focus-line); }
+  /* 어두운 바탕에서는 검은 그림자가 보이지 않는다 — 카드 경계는 면 밝기 차로 낸다. */
+  --shadow: rgba(0, 0, 0, 0.5);
+  --shadow-2: rgba(0, 0, 0, 0.6);
+  --shadow-3: rgba(0, 0, 0, 0.6);
+  --scrim: rgba(0, 0, 0, 0.72);
 }
+
+/* 다크의 **유일한 규칙 재정의**다. 입력칸 :focus 테두리는 라이트에서 `var(--deep)` 인데
+   (`npm run headless` 의 focusring 검사가 그 값을 본다), 다크에서는 진녹이 어두운 입력칸과
+   1.95:1 이라 "지금 여기 커서가 있다"가 보이지 않는다. 밝은 녹(8.29:1)으로 올린다.
+   키보드 포커스는 이와 별개로 `:focus-visible` 링(--focus-ring, 9.30:1)이 늘 그린다 —
+   이 규칙은 마우스로 들어온 포커스까지 보이게 하는 몫이다. */
+/* `:where()` 는 특이도를 더하지 않는다 — 예전 @media 블록 안과 같은 (0,2,1) 로 두어
+   `input.ans.ok/.bad` 등 다른 규칙과의 우선순위가 이 이전 그대로다. */
+:where(:root[data-theme="dark"]) input.ans:focus,
+:where(:root[data-theme="dark"]) .form-row input:focus,
+:where(:root[data-theme="dark"]) .modal textarea:focus,
+:where(:root[data-theme="dark"]) .report-box textarea:focus,
+:where(:root[data-theme="dark"]) .type-select:focus,
+:where(:root[data-theme="dark"]) #practiceBox select:focus { border-color: var(--focus-line); }

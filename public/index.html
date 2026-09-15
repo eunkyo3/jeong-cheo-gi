@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>정처기 배틀 — 정보처리기사 실기 기출</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<!-- 테마(라이트/다크)는 CSS 보다 먼저, 동기로 — 첫 페인트 전에 <html data-theme> 를 정한다. -->
+<script src="/js/shared/theme.js"></script>
 <link rel="stylesheet" href="/css/app.css">
 <link rel="stylesheet" href="/css/index.css">
 </head>
@@ -22,6 +24,8 @@
     <button type="button" id="navLogout" hidden>로그아웃</button>
     <!-- 비로그인일 때만 보인다 — 계정 섹션이 맨 아래라 여기서 바로 내려갈 수 있게. -->
     <a class="nav-login" id="navLogin" href="#account" hidden>로그인</a>
+    <!-- 테마 전환 — 아이콘·설명은 js/shared/theme.js 가 현재 상태로 채운다(클릭도 거기서 위임 처리). -->
+    <button type="button" class="nav-theme" aria-label="테마 전환">☀️</button>
   </div>
 </nav>
 

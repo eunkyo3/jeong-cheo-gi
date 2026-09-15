@@ -1,7 +1,7 @@
 /* admin.css — 관리자 페이지(/admin.html) 전용 스타일.
 
    app.css 를 먼저 읽고 그 위에 얹는다. 색은 **하나도 새로 정하지 않는다** — app.css :root 의
-   토큰만 참조하므로 다크 팔레트(prefers-color-scheme)가 그대로 따라온다.
+   토큰만 참조하므로 다크 팔레트(`<html data-theme="dark">`, js/shared/theme.js)가 그대로 따라온다.
    전역 클래스(.card / .form-row / table.list / .tbl-scroll / .error-text)는 app.css 것을 쓰고,
    여기서 새로 만드는 이름은 전부 `admin-` 접두로 격리한다(다른 화면과 충돌하지 않게). */
 
@@ -277,6 +277,7 @@ table.list.admin-table td.admin-wrap { min-width: 180px; white-space: pre-wrap; 
 @media (max-width: 560px) {
   .admin-top h1 { font-size: 0.95rem; }
   .admin-top button { padding: 0 10px; font-size: 0.8rem; }
+  .admin-top .nav-theme { padding: 0 6px; font-size: 1rem; }
   .admin-tab { padding: 0 11px; font-size: 0.85rem; }
   .admin-toolbar input { flex: 1 1 140px; }
   table.list.admin-table { font-size: 0.84rem; }

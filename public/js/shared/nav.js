@@ -13,7 +13,7 @@
  *     opts.onLogout   로그아웃 성공 뒤 (없으면 '/' 로 이동)
  *     opts.onError    로그아웃 실패 뒤 (없으면 '/' 로 이동 — 세션 상태를 알 수 없으니 메인이 안전하다)
  *
- * 의존: window.api (js/api.js), JPK.dom
+ * 의존: window.api (js/api.js), JPK.dom, (있으면) JPK.theme
  */
 (function (global) {
   'use strict';
@@ -43,6 +43,8 @@
     kids.push(h('span', { class: 'who', id: 'navWho' }));
     kids.push(h('button', { type: 'button', class: 'nav-logout', id: 'navLogout', hidden: 'hidden', text: '로그아웃' }));
     kids.push(h('a', { class: 'nav-login', id: 'navLogin', href: '/#account', hidden: 'hidden', text: '로그인' }));
+    // 테마 전환 — 아이콘·설명·클릭은 js/shared/theme.js 가 맡는다(문서 단위 위임). 여기서는 자리만 만든다.
+    kids.push(h('button', { type: 'button', class: 'nav-theme', 'aria-label': '테마 전환', text: '☀️' }));
     return h('div', { class: 'wrap' }, kids);
   }
 
@@ -89,7 +91,11 @@
     opts = opts || {};
     var host = doc.getElementById('nav');
     // 동적 내비(battle/ranking)의 빈 그릇 — 처음 한 번만 채운다. 정적 내비에는 #nav 가 없다.
-    if (host && !host.querySelector('.wrap')) host.replaceChildren(buildSkeleton(opts.current));
+    if (host && !host.querySelector('.wrap')) {
+      host.replaceChildren(buildSkeleton(opts.current));
+      // 방금 만든 테마 버튼에 현재 상태(아이콘·설명)를 입힌다.
+      if (JPK.theme) JPK.theme.sync();
+    }
     syncUser(user || null);
     bindLogout(opts);
   }

@@ -178,6 +178,41 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   check(roundsApi.length === 21, 'index: 21회차 전부 노출', roundsApi.length);
   check(idx.errors.length === 0, 'index: JS 오류 없음', idx.errors.slice(0, 2).join(' | '));
 
+  // ---------- 테마 (라이트/다크 즉시 전환 — js/shared/theme.js) ----------
+  {
+    const iw = idx.window, id = iw.document, html = id.documentElement;
+    // jsdom 에는 matchMedia 가 없다 → 기기 설정은 라이트로 본다.
+    check(html.getAttribute('data-theme') === 'light' && html.getAttribute('data-theme-pref') === 'system',
+      'theme: 첫 페인트 전 <html data-theme> 적용 (저장값 없음 → 기기 설정=light)',
+      html.getAttribute('data-theme') + '/' + html.getAttribute('data-theme-pref'));
+    const tb = id.querySelector('.topnav .nav-theme');
+    check(!!tb && tb.textContent === '☀️' && /자동/.test(tb.getAttribute('aria-label') || ''),
+      'theme: 내비에 테마 버튼 + 현재 상태 설명', tb ? tb.textContent + ' ' + tb.getAttribute('aria-label') : '.nav-theme 없음');
+    if (tb) {
+      tb.click();
+      check(html.getAttribute('data-theme') === 'dark' && readStore(iw, 'jpk:theme') === 'dark' && tb.textContent === '🌙',
+        'theme: 누르면 즉시 dark + localStorage["jpk:theme"]=dark (새로고침 없음)',
+        html.getAttribute('data-theme') + ' store=' + readStore(iw, 'jpk:theme') + ' btn=' + tb.textContent);
+      // 계산 스타일은 매번 새로 받는다 — jsdom 은 이전 CSSStyleDeclaration 을 갱신하지 않는다.
+      const paper = () => iw.getComputedStyle(html).getPropertyValue('--paper').trim();
+      check(paper() === '#0e1316', 'theme: dark 에서 토큰이 다크 팔레트로 뒤집힌다(--paper)', paper());
+      tb.click();
+      check(html.getAttribute('data-theme') === 'light' && readStore(iw, 'jpk:theme') === 'light',
+        'theme: 한 번 더 누르면 light 고정', html.getAttribute('data-theme') + ' store=' + readStore(iw, 'jpk:theme'));
+      check(paper() === '#f0f2f5', 'theme: light 로 돌아오면 라이트 팔레트(--paper)', paper());
+      tb.click();
+      check(html.getAttribute('data-theme-pref') === 'system' && readStore(iw, 'jpk:theme') === null,
+        'theme: 세 번째는 기기 설정 따르기(저장값 삭제)', html.getAttribute('data-theme-pref') + ' store=' + readStore(iw, 'jpk:theme'));
+    }
+    // 저장해 둔 다크는 다음 로드의 첫 페인트 전에 적용된다.
+    const darkIdx = await load('/', win => { try { win.localStorage.setItem('jpk:theme', 'dark'); } catch (_) {} });
+    const dh = darkIdx.window.document.documentElement;
+    check(dh.getAttribute('data-theme') === 'dark' && darkIdx.window.document.querySelector('.nav-theme').textContent === '🌙',
+      'theme: 저장된 dark 는 다음 로드에서 바로 적용 + 버튼 아이콘 🌙', dh.getAttribute('data-theme'));
+    check(darkIdx.errors.length === 0, 'theme: dark 로드 JS 오류 없음', darkIdx.errors.slice(0, 2).join(' | '));
+    darkIdx.window.close();
+  }
+
   // 랜덤 모의고사 카드 (B1) — 비로그인 상태에서도 보여야 한다
   const pStart = await waitFor(() => idx.window.document.querySelector('#practiceStart'), '랜덤 모의고사 시작 링크', 4000).catch(() => null);
   check(!!pStart && /set=practice/.test(pStart.getAttribute('href') || ''), 'index: 랜덤 모의고사 카드 + 시작 링크', pStart ? pStart.getAttribute('href') : '없음');
@@ -225,6 +260,11 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
       return el && /새 대전방 만들기/.test(el.textContent) ? true : null;
     }, 'battle.html #view 렌더', 2000).catch(() => null);
     const btView = bt.window.document.getElementById('view');
+    // 동적 내비(nav.js 가 만든 뼈대)에도 테마 버튼이 있고, theme.sync() 로 현재 상태 설명이 들어갔다.
+    const btTheme = bt.window.document.querySelector('#nav .nav-theme');
+    check(!!btTheme && btTheme === bt.window.document.querySelector('#nav .wrap > :last-child')
+      && /자동|고정/.test(btTheme.getAttribute('aria-label') || ''),
+      'theme: 동적 내비(battle)에도 마지막 항목으로 테마 버튼 + 상태 설명', btTheme ? btTheme.getAttribute('aria-label') : '.nav-theme 없음');
     const btNavErr = bt.errors.some(e => /navigation/i.test(e));
     check(
       !btNavErr && !!btView && /새 대전방 만들기/.test(btView.textContent),
@@ -396,8 +436,8 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
   const timerOut = d.getElementById('timerOut');
   check(!!(timerSelect && timerBtn && timerOut), 'timer: 학습 타이머 컨트롤 존재 (B3)');
   if (timerSelect && timerBtn && timerOut) {
-    check([...timerSelect.options].map(o => o.textContent).join('/') === '타이머 없음/30분/60분/90분',
-      'timer: 선택지 4개 (없음/30/60/90)', [...timerSelect.options].map(o => o.textContent).join('/'));
+    check([...timerSelect.options].map(o => o.textContent).join('/') === '타이머 없음/제한 없음 (경과 시간만 표시)/30분/60분/90분',
+      'timer: 선택지 5개 (없음/제한 없음/30/60/90)', [...timerSelect.options].map(o => o.textContent).join('/'));
     check(timerBtn.disabled === true, 'timer: "타이머 없음" 이면 시작 버튼 비활성');
     timerSelect.value = '30';
     timerSelect.dispatchEvent(new w.Event('change', { bubbles: true }));
@@ -417,6 +457,23 @@ const readStore = (win, key) => { try { return win.localStorage.getItem(key); } 
         'timer: 타이머가 도는 동안에는 접기가 먹지 않는다 (항상 펼침)',
         'panel.hidden=' + timerPanel.hidden + ' out.hidden=' + timerOut.hidden);
     }
+
+    // ---- 제한 없음(경과 시간) 모드 — 마감 없이 올라가기만 하고 자동 제출이 없다 ----
+    timerBtn.click();   // 30분 카운트다운 중지
+    check(timerOut.hidden === true && timerBtn.textContent === '시작' && timerSelect.disabled === false,
+      'timer: "중지" 를 누르면 멎고 선택이 풀린다', timerBtn.textContent + ' select.disabled=' + timerSelect.disabled);
+    timerSelect.value = 'free';
+    timerSelect.dispatchEvent(new w.Event('change', { bubbles: true }));
+    check(timerBtn.disabled === false && readStore(w, 'jpk-study:timer') === 'free',
+      'timer: "제한 없음" 을 고르면 시작 가능 + localStorage 에 free 저장', String(readStore(w, 'jpk-study:timer')));
+    timerBtn.click();
+    await sleep(1300);
+    check(timerOut.hidden === false && /^00:0[1-3]$/.test(timerOut.textContent)
+      && timerOut.classList.contains('free') && !timerOut.classList.contains('urgent'),
+      'timer: 제한 없음은 경과 시간이 올라간다(.free · urgent 없음)', JSON.stringify(timerOut.textContent) + ' class=' + timerOut.className);
+    check(timerBtn.textContent === '중지' && timerSelect.disabled === true,
+      'timer: 제한 없음도 진행 중에는 "중지"·선택 잠금', timerBtn.textContent);
+    // 이 상태로 채점까지 간다 — 아래 B3 검사가 "채점되면 경과 시간 타이머도 멎는다" 를 함께 본다.
   }
 
   const setAns = (qnum, fi, val) => { const card = [...cards].find(c => c.querySelector('.num') && c.querySelector('.num').textContent.trim() === String(qnum)); const inp = card.querySelectorAll('input.ans')[fi]; inp.value = val; inp.dispatchEvent(new w.Event('input', { bubbles: true })); };

@@ -93,8 +93,10 @@
     reportStatus: {}, // qid -> string
     reportFocus: '',  // 재렌더 직후 포커스를 줄 qid
     // 타이머
+    timerMode: 'down',   // 'down' 남은 시간 카운트다운(0 이면 자동 제출) | 'up' 제한 없음(경과 시간만)
     timerMinutes: 0,
-    timerEndsAt: 0,   // epoch ms, 0 이면 정지
+    timerEndsAt: 0,      // epoch ms — 'down' 이 도는 동안만 > 0
+    timerStartedAt: 0,   // epoch ms — 'up' 이 도는 동안만 > 0
     timerHandle: null,
     // 타이머 컨트롤 접기 — 사람이 편 상태만 저장한다(도는 동안에는 저장값과 무관하게 항상 펼친다).
     timerOpen: false,
@@ -467,10 +469,43 @@
   });
 
   // --------------------------------------------------------------- 타이머
+  //
+  // 두 모드다.
+  //   'down' — 고른 분(30/60/90)에서 거꾸로 세고, 0 이 되면 자동 제출한다(실전 감각).
+  //   'up'   — "제한 없음": 시작 시각부터 경과 시간만 보여 준다. 마감도 자동 제출도 없다.
+  //            시간 압박 없이 풀면서 "얼마나 걸렸는지"만 보고 싶은 사람의 선택지다.
+  // 둘 다 "시작"을 눌러야 돌고, 채점·초기화 때 멎는다. 어느 쪽도 새로고침을 넘겨 살아남지 않는다.
+
+  var TIMER_FREE = 'free';   // <select> 값이자 localStorage 값 — "제한 없음(경과 시간)"
+
+  function timerRunning() {
+    return !!state.timerEndsAt || !!state.timerStartedAt;
+  }
 
   function remainingSeconds() {
     if (!state.timerEndsAt) return 0;
     return Math.max(0, Math.ceil((state.timerEndsAt - Date.now()) / 1000));
+  }
+
+  function elapsedSeconds() {
+    if (!state.timerStartedAt) return 0;
+    return Math.max(0, Math.floor((Date.now() - state.timerStartedAt) / 1000));
+  }
+
+  /** 경과 시간 표기 — mm:ss, 한 시간을 넘으면 h:mm:ss (제한이 없으니 90분을 넘길 수 있다). */
+  function elapsedText(sec) {
+    var hh = Math.floor(sec / 3600);
+    var mm = Math.floor((sec % 3600) / 60);
+    var ss = sec % 60;
+    return (hh ? hh + ':' + pad2(mm) : pad2(mm)) + ':' + pad2(ss);
+  }
+
+  /** <select> 값 → { mode, minutes } · "타이머 없음" 이면 null. */
+  function selectedTimer() {
+    var v = elTimerSelect ? String(elTimerSelect.value) : '0';
+    if (v === TIMER_FREE) return { mode: 'up', minutes: 0 };
+    var minutes = Number(v) || 0;
+    return minutes > 0 ? { mode: 'down', minutes: minutes } : null;
   }
 
   // 타이머 컨트롤 접기 — 헤더가 시험지보다 커 보이지 않게 기본은 접힘.
@@ -479,7 +514,7 @@
 
   function syncTimerFold() {
     if (!elTimerPanel || !elTimerToggle) return;
-    var open = state.timerOpen || !!state.timerEndsAt;
+    var open = state.timerOpen || timerRunning();
     elTimerPanel.hidden = !open;
     elTimerToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open) elTimerToggle.classList.add('on');
@@ -489,7 +524,7 @@
   if (elTimerToggle) {
     elTimerToggle.addEventListener('click', function () {
       // 도는 중에 접으면 남은 시간이 사라진다 — 접기 대신 아무것도 하지 않는다.
-      if (state.timerEndsAt && state.timerOpen) return;
+      if (timerRunning() && state.timerOpen) return;
       state.timerOpen = !state.timerOpen;
       JPK.store.set(TIMER_OPEN_KEY, state.timerOpen ? '1' : '0');
       syncTimerFold();
@@ -499,21 +534,30 @@
   function renderTimer() {
     syncTimerFold();
     if (!elTimerOut || !elTimerBtn || !elTimerSelect) return;
-    var running = !!state.timerEndsAt;
+    var running = timerRunning();
     elTimerBtn.textContent = running ? '중지' : '시작';
-    elTimerBtn.disabled = !running && Number(elTimerSelect.value) === 0;
-    if (elTimerSelect) elTimerSelect.disabled = running;
+    elTimerBtn.disabled = !running && !selectedTimer();   // "타이머 없음" 은 시작할 것이 없다
+    elTimerSelect.disabled = running;
     if (!running) {
       elTimerOut.textContent = '';
       elTimerOut.hidden = true;
       elTimerOut.classList.remove('urgent');
+      elTimerOut.classList.remove('free');
+      elTimerOut.removeAttribute('title');
       return;
     }
-    var s = remainingSeconds();
-    elTimerOut.textContent = pad2(Math.floor(s / 60)) + ':' + pad2(s % 60);
+    if (state.timerMode === 'up') {
+      elTimerOut.textContent = elapsedText(elapsedSeconds());
+      elTimerOut.classList.remove('urgent');
+      elTimerOut.classList.add('free');
+    } else {
+      var s = remainingSeconds();
+      elTimerOut.textContent = pad2(Math.floor(s / 60)) + ':' + pad2(s % 60);
+      elTimerOut.classList.remove('free');
+      if (s <= 60) elTimerOut.classList.add('urgent');
+      else elTimerOut.classList.remove('urgent');
+    }
     elTimerOut.hidden = false;
-    if (s <= 60) elTimerOut.classList.add('urgent');
-    else elTimerOut.classList.remove('urgent');
   }
 
   function stopTimer() {
@@ -522,12 +566,14 @@
       state.timerHandle = null;
     }
     state.timerEndsAt = 0;
+    state.timerStartedAt = 0;
     renderTimer();
   }
 
   function tick() {
-    if (!state.timerEndsAt) return;
-    if (remainingSeconds() > 0) {
+    if (!timerRunning()) return;
+    // 경과 시간 모드는 끝이 없다 — 표시만 갱신한다.
+    if (state.timerMode === 'up' || remainingSeconds() > 0) {
       renderTimer();
       return;
     }
@@ -537,35 +583,39 @@
     submit(true);   // 시간이 다 된 자동 제출 — 미입력 확인으로 붙잡지 않는다
   }
 
-  function startTimer(minutes) {
+  function startTimer(sel) {
     stopTimer();
-    if (!minutes) return;
-    state.timerMinutes = minutes;
-    state.timerEndsAt = Date.now() + minutes * 60000;
+    if (!sel) return;
+    state.timerMode = sel.mode;
+    state.timerMinutes = sel.minutes;
+    if (sel.mode === 'up') state.timerStartedAt = Date.now();
+    else state.timerEndsAt = Date.now() + sel.minutes * 60000;
+    if (elTimerOut) elTimerOut.title = sel.mode === 'up' ? '경과 시간 — 제한 없음' : '남은 시간';
     state.timerHandle = setInterval(tick, 250);
     renderTimer();
   }
 
   if (elTimerSelect) {
-    // 마지막으로 고른 시간을 기억한다 (자동 시작은 하지 않는다 — 시작은 항상 사용자가 누른다).
-    var savedMinutes = JPK.store.get(TIMER_PREF_KEY);
-    if (savedMinutes && /^(0|30|60|90)$/.test(savedMinutes)) elTimerSelect.value = savedMinutes;
+    // 마지막으로 고른 값을 기억한다 (자동 시작은 하지 않는다 — 시작은 항상 사용자가 누른다).
+    var savedTimer = JPK.store.get(TIMER_PREF_KEY);
+    if (savedTimer && /^(0|free|30|60|90)$/.test(savedTimer)) elTimerSelect.value = savedTimer;
     elTimerSelect.addEventListener('change', function () {
-      JPK.store.set(TIMER_PREF_KEY, String(Number(elTimerSelect.value) || 0));
+      var v = String(elTimerSelect.value);
+      JPK.store.set(TIMER_PREF_KEY, v === TIMER_FREE ? TIMER_FREE : String(Number(v) || 0));
       renderTimer();
     });
   }
   if (elTimerBtn) {
     elTimerBtn.addEventListener('click', function () {
-      if (state.timerEndsAt) {
+      if (timerRunning()) {
         stopTimer();
         toast('타이머를 껐습니다.');
         return;
       }
-      var minutes = Number(elTimerSelect.value) || 0;
-      if (!minutes) return;
-      startTimer(minutes);
-      toast(minutes + '분 타이머를 시작합니다.', 'ok');
+      var sel = selectedTimer();
+      if (!sel) return;
+      startTimer(sel);
+      toast(sel.mode === 'up' ? '제한 없이 풉니다 — 경과 시간만 표시합니다.' : sel.minutes + '분 타이머를 시작합니다.', 'ok');
     });
   }
 

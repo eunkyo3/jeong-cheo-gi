@@ -111,7 +111,8 @@ B급(서식) 9건 수정. 감사는 20% 무작위 표본 + 고위험(validator·
 | **채점 409** — 진행 중인 대전의 문항은 채점 불가 | 같은 사용자가 playing 방의 문항 id 로 채점 → 409 | `tests/practice-api.test.mjs` |
 | **채점 429** — 사용자당 분당 20회 초과 | 21번째 채점 → 429 | `tests/practice-api.test.mjs` |
 | 채점 세트를 클라이언트가 정하지 못한다 | `/api/practice/grade` 는 서명 세트 토큰의 문항만 채점, 토큰 밖 id 는 무시 | `tests/settoken.test.mjs` + practice-api |
-| **다크 모드** — 기기 밝기 설정을 따라간다 | `prefers-color-scheme: dark` 로 5개 화면 표시 | CSS 토큰 전수 검사 PASS(라이트·다크 대비 AA FAIL 0건) · **실기기 육안은 사용자 확인** |
+| **다크 모드** — 기기 밝기 설정을 따라간다 | 저장된 설정이 없으면 `prefers-color-scheme` 대로 `<html data-theme>` 가 정해져 5개 화면 표시 | CSS 토큰 전수 검사 PASS(라이트·다크 대비 AA FAIL 0건) · **실기기 육안은 사용자 확인** |
+| **라이트/다크 즉시 전환** — 내비 ☀️/🌙 버튼 | 누르면 새로고침 없이 뒤집히고 localStorage(`jpk:theme`)에 남아 다음 로드의 첫 페인트 전에 적용 | `npm run headless` theme 검사 PASS |
 | 애니메이션 최소화 존중 | `prefers-reduced-motion` 에서 부드러운 스크롤이 즉시 이동으로 | 코드 검토 PASS · 사용자 확인 |
 | **모바일 표 스크롤 (대전)** — 표가 든 문항이 대전 풀이·결과에서 가로로 넘치지 않는다 | 좁은 폭에서 표 문항 확인 | `public/js/battle.js` 의 문항 카드·결과 카드·해설 3곳이 전부 `JPK.qbody.decorate`(`.tbl-scroll`) 를 지난다 — 코드 PASS · **실기기는 사용자 확인** |
 | **종료 시 DB flush** — `Ctrl+C`/`SIGTERM` 으로 끄면 미저장 쓰기가 남지 않는다 | 종료 → 재기동 후 마지막 쓰기 확인 | `tests/boot.test.mjs` 통합 케이스(자식 프로세스 SIGTERM → exit 0 + `app.json` flush 확인) **PASS** |
