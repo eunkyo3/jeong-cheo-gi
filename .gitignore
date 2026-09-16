@@ -16,6 +16,7 @@ data/reports.json.tmp-*
 # 환경·에디터·로그
 .env
 .env.*
+!.env.example
 coverage/
 *.log
 .vscode/
@@ -30,3 +31,6 @@ data/reports.jsonl
 data/reports.json.migrated
 data/app.db.bak-*
 data/app.json.bak-*
+
+# 런타임 스냅샷 (scripts/db-backup.mjs)
+data/backups*/

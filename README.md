@@ -127,6 +127,12 @@ powershell -ExecutionPolicy Bypass -File scripts\setup-firewall.ps1
 
 이 절차 외에 별도의 운영 작업은 없습니다.
 
+### Docker 로 띄우기
+
+다른 PC 에서 같은 앱을 한 줄로 띄우려면 `cp .env.example .env` 로 `ADMIN_PASSWORD` 를 채운 뒤
+`docker compose up -d --build`. 계정·전적은 이미지가 아니라 볼륨에 살므로 옮길 때는
+`npm run db:backup` → `db:restore` 로 나릅니다. 절차 전부는 `docs/DOCKER.md`.
+
 ---
 
 ## 사용 패턴 — 서버를 켤 때만 접속됩니다
@@ -351,6 +357,8 @@ git hook 은 걸지 않았습니다 — 훅은 사람이 `--no-verify` 로 넘�
 | `npm run e2e` | 실서버 2인 소켓 대전 종단 검증 (격리 임시 DB, 실제 `data/` 무영향) |
 | `npm run scrape` | 블로그 원본 재수집 (이미 `data/raw/` 에 있으면 불필요) |
 | `npm run export:round -- 2026-2` | 회차 → 자립 HTML (`dist/2026-2.html`) |
+| `npm run db:backup [경로]` | `DATA_DIR` 런타임 상태(app.db·secret.key·reports.jsonl)를 온라인 백업으로 묶음 — 서버 켜진 채 OK |
+| `npm run db:restore <묶음> [--force]` | 묶음을 `DATA_DIR` 로 복원 — **서버 내리고** 실행 (`docs/DOCKER.md`) |
 
 `validate:*` 3종(explain·types·langs)은 `--partial` 을 붙이면 **존재하는 파일만** 봅니다(집필·분류 중 체크포인트용).
 `npm run` 으로는 인자를 넘기기 번거로우니 `node scripts/validate-types.mjs --partial` 처럼 직접 부르세요.
@@ -411,6 +419,7 @@ node scripts/fingerprint-questions.mjs --write
 | `SCHEMA.md` | 동결된 문제/DB 스키마와 채점 규칙 — **변경 금지** |
 | `PROTOCOL.md` | REST·소켓 프로토콜과 채점 계약 — **변경 금지** |
 | `docs/ACCEPTANCE.md` | 인수 체크리스트 |
+| `docs/DOCKER.md` | Docker 기동·기존 데이터 이관·다른 PC 로 옮기기 |
 | `docs/battle-state-grid.md` | 대전 상태 머신 격자표 (상태 × 이벤트 60셀) |
 | `docs/explanations/_TEMPLATE.md` | 해설 집필 지침 |
 | `docs/explanations/PROGRESS.md` | 회차별 해설 집필 현황 |

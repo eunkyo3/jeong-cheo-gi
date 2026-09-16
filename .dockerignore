@@ -1,0 +1,25 @@
+# 이미지에 들어가면 안 되는 것 — 런타임 상태는 컨테이너의 /data 볼륨(DATA_DIR)에 산다
+node_modules
+.git
+.omc
+.env
+.env.*
+coverage
+dist
+docs
+tests
+*.log
+**/*.md
+
+# data/ 중 문항 데이터(rounds·explanations·types·langs)만 이미지에 넣고 나머지는 제외
+data/*.db
+data/*.db-*
+data/*.db.*
+data/*.bak-*
+data/app.json*
+data/secret.key
+data/reports.json*
+data/server*.log*
+data/raw
+data/audits
+data/backups*

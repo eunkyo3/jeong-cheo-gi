@@ -1,0 +1,25 @@
+# 정처기 배틀 — 한 줄 기동:  docker compose up -d --build
+# 자세한 절차(기존 데이터 가져오기·백업·다른 PC 로 옮기기)는 docs/DOCKER.md
+services:
+  app:
+    build: .
+    image: jpk-battle:local
+    container_name: jpk-battle
+    ports:
+      - "${HOST_PORT:-3000}:3000"
+    environment:
+      # .env 에 없으면 기동을 거부한다 — 코드 기본 관리자 비밀번호로 띄우지 않기 위함
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD 를 .env 에 설정하세요 (.env.example 참고)}
+      # HTTPS 리버스 프록시 뒤에 둘 때만 1 (세션·관리자 쿠키에 Secure 부착)
+      COOKIE_SECURE: ${COOKIE_SECURE:-}
+      LOG_LEVEL: ${LOG_LEVEL:-}
+      # 로그·백업 폴더 이름의 시각이 로컬 시간이 되도록 (없으면 UTC)
+      TZ: ${TZ:-Asia/Seoul}
+    volumes:
+      # 계정·전적·비밀키·신고 — Windows 호스트에서는 bind mount 대신 named volume 이어야
+      # SQLite WAL(-wal/-shm 공유 mmap)이 안전하다
+      - jpk-data:/data
+    restart: unless-stopped
+
+volumes:
+  jpk-data:

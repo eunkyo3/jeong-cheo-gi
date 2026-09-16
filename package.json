@@ -21,7 +21,9 @@
     "preflight": "node scripts/preflight.mjs",
     "e2e": "node scripts/e2e-battle.js",
     "headless": "node scripts/headless-study.js",
-    "precommit": "node scripts/validate-data.mjs && node scripts/validate-explanations.mjs && node scripts/validate-types.mjs && node scripts/validate-langs.mjs && node scripts/fingerprint-questions.mjs"
+    "precommit": "node scripts/validate-data.mjs && node scripts/validate-explanations.mjs && node scripts/validate-types.mjs && node scripts/validate-langs.mjs && node scripts/fingerprint-questions.mjs",
+    "db:backup": "node scripts/db-backup.mjs",
+    "db:restore": "node scripts/db-restore.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
